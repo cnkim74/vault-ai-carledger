@@ -1,10 +1,18 @@
 import { IOSDevice } from './IOSDevice'
 import { ImageSlot } from './ImageSlot'
 import { deriveVehicle } from './vehicle'
+import { relativeDay, timeOf, won, type VaultData } from './lib/data'
 
 /** 1a 콕핏형 — 차량 상태 히어로 + AI 인사이트 */
-export function CockpitScreen({ battery }: { battery: number }) {
+export function CockpitScreen({ battery, data }: { battery: number; data: VaultData }) {
   const { battery: bat, rangeKm, ringBg } = deriveVehicle(battery)
+  const { vehicle, records } = data
+  const leasePct =
+    vehicle.leaseLimitKm && vehicle.leaseDrivenKm
+      ? Math.round((vehicle.leaseDrivenKm / vehicle.leaseLimitKm) * 100)
+      : null
+  const charge = records.find((r) => r.kind === 'charge')
+  const drive = records.find((r) => r.kind === 'drive')
 
   return (
     <IOSDevice>
@@ -100,8 +108,10 @@ export function CockpitScreen({ battery }: { battery: number }) {
           />
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <span style={{ fontFamily: 'GmarketSans', fontWeight: 500, fontSize: 17 }}>Model Y Long Range</span>
-              <span style={{ fontSize: 11, color: '#8a8b93', letterSpacing: 0.5 }}>62가 3817 · 전기차</span>
+              <span style={{ fontFamily: 'GmarketSans', fontWeight: 500, fontSize: 17 }}>{vehicle.name}</span>
+              <span style={{ fontSize: 11, color: '#8a8b93', letterSpacing: 0.5 }}>
+                {vehicle.plate} · {vehicle.fuelType}
+              </span>
             </div>
             <span
               style={{
@@ -141,7 +151,7 @@ export function CockpitScreen({ battery }: { battery: number }) {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
                 <span style={{ color: '#8a8b93' }}>누적 주행</span>
-                <span style={{ fontFamily: 'GmarketSans', fontWeight: 500 }}>24,318 km</span>
+                <span style={{ fontFamily: 'GmarketSans', fontWeight: 500 }}>{vehicle.odometerKm.toLocaleString('ko-KR')} km</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
                 <span style={{ color: '#8a8b93' }}>완충까지</span>
@@ -198,13 +208,17 @@ export function CockpitScreen({ battery }: { battery: number }) {
           <div style={{ flex: 1, borderRadius: 16, background: '#141419', border: '1px solid rgba(255,255,255,.06)', padding: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
               <span style={{ fontSize: 11, color: '#8a8b93' }}>약정거리</span>
-              <span style={{ fontSize: 10, color: '#ff7a2f' }}>86%</span>
+              <span style={{ fontSize: 10, color: '#ff7a2f' }}>{leasePct ?? 0}%</span>
             </div>
             <div style={{ fontFamily: 'GmarketSans', fontWeight: 700, fontSize: 19, marginTop: 4 }}>
-              17,200<span style={{ fontSize: 11, color: '#8a8b93', fontWeight: 400 }}> /20,000km</span>
+              {(vehicle.leaseDrivenKm ?? 0).toLocaleString('ko-KR')}
+              <span style={{ fontSize: 11, color: '#8a8b93', fontWeight: 400 }}>
+                {' '}
+                /{(vehicle.leaseLimitKm ?? 0).toLocaleString('ko-KR')}km
+              </span>
             </div>
             <div style={{ height: 4, borderRadius: 2, background: 'rgba(255,255,255,.08)', marginTop: 8, overflow: 'hidden' }}>
-              <div style={{ width: '86%', height: '100%', borderRadius: 2, background: 'linear-gradient(90deg,#d4b36a,#ff7a2f)' }} />
+              <div style={{ width: `${leasePct ?? 0}%`, height: '100%', borderRadius: 2, background: 'linear-gradient(90deg,#d4b36a,#ff7a2f)' }} />
             </div>
           </div>
         </div>
@@ -216,75 +230,87 @@ export function CockpitScreen({ battery }: { battery: number }) {
             <span style={{ fontSize: 11, color: '#8a8b93' }}>전체 보기</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                background: '#141419',
-                border: '1px solid rgba(255,255,255,.06)',
-                borderRadius: 14,
-                padding: '11px 14px',
-              }}
-            >
+            {charge && (
               <div
                 style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 10,
-                  background: 'rgba(255,122,47,.14)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  flex: 'none',
+                  gap: 12,
+                  background: '#141419',
+                  border: '1px solid rgba(255,255,255,.06)',
+                  borderRadius: 14,
+                  padding: '11px 14px',
                 }}
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="#ff7a2f">
-                  <path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" />
-                </svg>
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 10,
+                    background: 'rgba(255,122,47,.14)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flex: 'none',
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="#ff7a2f">
+                    <path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" />
+                  </svg>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 1, flex: 1 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 500 }}>{charge.title}</span>
+                  <span style={{ fontSize: 10.5, color: '#8a8b93' }}>
+                    {relativeDay(charge.occurredAt)} {timeOf(charge.occurredAt)}
+                    {charge.location && ` · ${charge.location}`}{' '}
+                    {charge.aiLogged && <span style={{ color: '#d4b36a' }}>· AI 자동기록</span>}
+                  </span>
+                </div>
+                {charge.amountWon !== null && (
+                  <span style={{ fontFamily: 'GmarketSans', fontSize: 13, fontWeight: 500 }}>{won(charge.amountWon)}</span>
+                )}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 1, flex: 1 }}>
-                <span style={{ fontSize: 12.5, fontWeight: 500 }}>초급속 충전 · 42kWh</span>
-                <span style={{ fontSize: 10.5, color: '#8a8b93' }}>
-                  오늘 07:12 · 이마트 성수 <span style={{ color: '#d4b36a' }}>· AI 자동기록</span>
-                </span>
-              </div>
-              <span style={{ fontFamily: 'GmarketSans', fontSize: 13, fontWeight: 500 }}>₩14,900</span>
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                background: '#141419',
-                border: '1px solid rgba(255,255,255,.06)',
-                borderRadius: 14,
-                padding: '11px 14px',
-              }}
-            >
+            )}
+            {drive && (
               <div
                 style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 10,
-                  background: 'rgba(201,205,212,.1)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  flex: 'none',
+                  gap: 12,
+                  background: '#141419',
+                  border: '1px solid rgba(255,255,255,.06)',
+                  borderRadius: 14,
+                  padding: '11px 14px',
                 }}
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c9cdd4" strokeWidth="1.8">
-                  <circle cx="12" cy="12" r="9" />
-                  <path d="M12 7v5l3 3" />
-                </svg>
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 10,
+                    background: 'rgba(201,205,212,.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flex: 'none',
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c9cdd4" strokeWidth="1.8">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 7v5l3 3" />
+                  </svg>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 1, flex: 1 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 500 }}>{drive.title}</span>
+                  <span style={{ fontSize: 10.5, color: '#8a8b93' }}>
+                    {relativeDay(drive.occurredAt)}
+                    {drive.distanceKm !== null && ` · ${drive.distanceKm}km`}
+                    {drive.durationMin !== null && ` · ${drive.durationMin}분`}
+                  </span>
+                </div>
+                {drive.tag && <span style={{ fontSize: 11, color: '#8a8b93' }}>{drive.tag}</span>}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 1, flex: 1 }}>
-                <span style={{ fontSize: 12.5, fontWeight: 500 }}>주행 일지 · 서울 → 판교</span>
-                <span style={{ fontSize: 10.5, color: '#8a8b93' }}>어제 · 38.2km · 21분</span>
-              </div>
-              <span style={{ fontSize: 11, color: '#8a8b93' }}>출퇴근</span>
-            </div>
+            )}
           </div>
         </div>
 

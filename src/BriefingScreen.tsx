@@ -1,9 +1,23 @@
 import { IOSDevice } from './IOSDevice'
 import { deriveVehicle } from './vehicle'
+import { relativeDay, timeOf, won, type VaultData, type VaultRecord } from './lib/data'
+
+const DOT_COLOR: Record<VaultRecord['kind'], string> = {
+  charge: '#ff7a2f',
+  drive: '#c9cdd4',
+  maintenance: '#d4b36a',
+}
 
 /** 1b 브리핑형 — AI 브리핑 + 지출 중심 레저 */
-export function BriefingScreen({ battery, showRent }: { battery: number; showRent: boolean }) {
+export function BriefingScreen({ battery, showRent, data }: { battery: number; showRent: boolean; data: VaultData }) {
   const { battery: bat, rangeKm } = deriveVehicle(battery)
+  const { vehicle, records } = data
+  const shortName = vehicle.name.split(' ').slice(0, 2).join(' ')
+  const leasePct =
+    vehicle.leaseLimitKm && vehicle.leaseDrivenKm
+      ? Math.round((vehicle.leaseDrivenKm / vehicle.leaseLimitKm) * 100)
+      : 0
+  const leaseRemain = (vehicle.leaseLimitKm ?? 0) - (vehicle.leaseDrivenKm ?? 0)
 
   return (
     <IOSDevice>
@@ -38,7 +52,7 @@ export function BriefingScreen({ battery, showRent }: { battery: number; showRen
             }}
           >
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#6fbf8a' }} />
-            Model Y · {bat}% · {rangeKm}km
+            {shortName} · {bat}% · {rangeKm}km
           </div>
         </div>
 
@@ -139,14 +153,14 @@ export function BriefingScreen({ battery, showRent }: { battery: number; showRen
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
               <span style={{ fontSize: 12, fontWeight: 600 }}>렌트 약정거리</span>
-              <span style={{ fontSize: 11, color: '#ff7a2f' }}>초과 위험 · 잔여 2,800km</span>
+              <span style={{ fontSize: 11, color: '#ff7a2f' }}>초과 위험 · 잔여 {leaseRemain.toLocaleString('ko-KR')}km</span>
             </div>
             <div style={{ height: 6, borderRadius: 3, background: 'rgba(255,255,255,.08)', marginTop: 10, overflow: 'hidden' }}>
-              <div style={{ width: '86%', height: '100%', borderRadius: 3, background: 'linear-gradient(90deg,#d4b36a,#ff7a2f)' }} />
+              <div style={{ width: `${leasePct}%`, height: '100%', borderRadius: 3, background: 'linear-gradient(90deg,#d4b36a,#ff7a2f)' }} />
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#8a8b93', marginTop: 6 }}>
-              <span>17,200km 주행</span>
-              <span>약정 20,000km</span>
+              <span>{(vehicle.leaseDrivenKm ?? 0).toLocaleString('ko-KR')}km 주행</span>
+              <span>약정 {(vehicle.leaseLimitKm ?? 0).toLocaleString('ko-KR')}km</span>
             </div>
           </div>
         )}
@@ -155,35 +169,38 @@ export function BriefingScreen({ battery, showRent }: { battery: number; showRen
         <div style={{ margin: '22px 16px 0', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
           <span style={{ fontSize: 13, fontWeight: 600 }}>이번 주 기록</span>
           <div style={{ display: 'flex', flexDirection: 'column', marginTop: 10 }}>
-            <TimelineRow dot="#ff7a2f" line>
-              <div style={{ display: 'flex', justifyContent: 'space-between', flex: 1, paddingBottom: 26 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <span style={{ fontSize: 12.5, fontWeight: 500 }}>초급속 충전 42kWh</span>
-                  <span style={{ fontSize: 10.5, color: '#8a8b93' }}>
-                    오늘 07:12 <span style={{ color: '#d4b36a' }}>· AI 자동기록</span>
-                  </span>
-                </div>
-                <span style={{ fontFamily: 'GmarketSans', fontSize: 13 }}>₩14,900</span>
-              </div>
-            </TimelineRow>
-            <TimelineRow dot="#c9cdd4" line>
-              <div style={{ display: 'flex', justifyContent: 'space-between', flex: 1, paddingBottom: 26 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <span style={{ fontSize: 12.5, fontWeight: 500 }}>주행 서울 → 판교 38.2km</span>
-                  <span style={{ fontSize: 10.5, color: '#8a8b93' }}>어제 08:40 · 출퇴근</span>
-                </div>
-                <span style={{ fontSize: 11, color: '#8a8b93' }}>21분</span>
-              </div>
-            </TimelineRow>
-            <TimelineRow dot="#d4b36a">
-              <div style={{ display: 'flex', justifyContent: 'space-between', flex: 1 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <span style={{ fontSize: 12.5, fontWeight: 500 }}>엔진오일 교체 알림</span>
-                  <span style={{ fontSize: 10.5, color: '#8a8b93' }}>세컨카 · 2,000km 남음</span>
-                </div>
-                <span style={{ fontSize: 11, color: '#d4b36a' }}>예약</span>
-              </div>
-            </TimelineRow>
+            {records.map((r, i) => {
+              const isLast = i === records.length - 1
+              return (
+                <TimelineRow key={r.id} dot={DOT_COLOR[r.kind]} line={!isLast}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', flex: 1, paddingBottom: isLast ? 0 : 26 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <span style={{ fontSize: 12.5, fontWeight: 500 }}>{r.title}</span>
+                      <span style={{ fontSize: 10.5, color: '#8a8b93' }}>
+                        {r.kind === 'maintenance' ? (
+                          <>
+                            {r.location}
+                            {r.tag && ` · ${r.tag}`}
+                          </>
+                        ) : (
+                          <>
+                            {relativeDay(r.occurredAt)} {timeOf(r.occurredAt)}
+                            {r.aiLogged ? <span style={{ color: '#d4b36a' }}> · AI 자동기록</span> : r.tag && ` · ${r.tag}`}
+                          </>
+                        )}
+                      </span>
+                    </div>
+                    {r.kind === 'charge' && r.amountWon !== null && (
+                      <span style={{ fontFamily: 'GmarketSans', fontSize: 13 }}>{won(r.amountWon)}</span>
+                    )}
+                    {r.kind === 'drive' && r.durationMin !== null && (
+                      <span style={{ fontSize: 11, color: '#8a8b93' }}>{r.durationMin}분</span>
+                    )}
+                    {r.kind === 'maintenance' && <span style={{ fontSize: 11, color: '#d4b36a' }}>예약</span>}
+                  </div>
+                </TimelineRow>
+              )
+            })}
           </div>
         </div>
 
