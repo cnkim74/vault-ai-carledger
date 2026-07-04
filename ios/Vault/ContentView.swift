@@ -1,19 +1,31 @@
 import SwiftUI
 
-/// 좌우 스와이프로 두 시안(1a 콕핏형 ↔ 1b 브리핑형)을 전환한다.
-/// 환경변수 VARIANT=1b로 시작 화면 지정 가능 (테스트용).
+/// 메인 셸 — 하단 탭바로 홈/기록/통계/차고 전환, 중앙 +로 기록 추가.
+/// 환경변수 TAB=records|stats|garage로 시작 탭 지정 가능 (테스트용).
 struct ContentView: View {
     @StateObject private var store = VaultStore()
-    @State private var selection: Int =
-        ProcessInfo.processInfo.environment["VARIANT"] == "1b" ? 1 : 0
+    @State private var tab: MainTab =
+        MainTab(rawValue: ProcessInfo.processInfo.environment["TAB"] ?? "") ?? .home
+    @State private var showAddRecord = false
 
     var body: some View {
-        TabView(selection: $selection) {
-            CockpitView(store: store).tag(0)
-            BriefingView(store: store).tag(1)
+        VStack(spacing: 0) {
+            Group {
+                switch tab {
+                case .home: CockpitView(store: store)
+                case .records: RecordsListView(store: store)
+                case .stats: BriefingView(store: store)
+                case .garage: GarageView(store: store)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            TabBarView(tab: $tab) { showAddRecord = true }
         }
-        .tabViewStyle(.page(indexDisplayMode: .never))
         .background(Theme.bgTop.ignoresSafeArea())
+        .sheet(isPresented: $showAddRecord) {
+            AddRecordView(store: store)
+        }
         .task { await store.load() }
     }
 }

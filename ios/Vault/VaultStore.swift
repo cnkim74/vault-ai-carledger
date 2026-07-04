@@ -96,6 +96,49 @@ final class VaultStore: ObservableObject {
         await load()
     }
 
+    struct VehicleUpdate: Encodable {
+        var name: String?
+        var plate: String?
+        var fuel_type: String?
+        var odometer_km: Int?
+        var lease_limit_km: Int?
+        var ownership: String?
+        var maker: String?
+        var model: String?
+        var year: Int?
+        var purchase_price_won: Int?
+        var monthly_fee_won: Int?
+        var contract_end: String?
+    }
+
+    /// 차량 정보를 수정하고 새로고침한다. (nil 필드는 변경하지 않음)
+    func updateVehicle(_ update: VehicleUpdate) async throws {
+        guard let base = Secrets.supabaseURL, let key = Secrets.supabaseKey, !key.isEmpty else {
+            throw URLError(.userAuthenticationRequired)
+        }
+
+        var comps = URLComponents(
+            url: base.appendingPathComponent("rest/v1/vehicles"),
+            resolvingAgainstBaseURL: false
+        )!
+        comps.queryItems = [URLQueryItem(name: "id", value: "eq.\(vehicle.id.uuidString.lowercased())")]
+
+        var req = URLRequest(url: comps.url!)
+        req.httpMethod = "PATCH"
+        req.setValue(key, forHTTPHeaderField: "apikey")
+        req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("return=minimal", forHTTPHeaderField: "Prefer")
+        req.httpBody = try JSONEncoder().encode(update)
+
+        let (_, resp) = try await URLSession.shared.data(for: req)
+        guard let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
+
+        await load()
+    }
+
     private func fetch<T: Decodable>(base: URL, key: String, path: String, query: [URLQueryItem]) async throws -> T {
         var comps = URLComponents(url: base.appendingPathComponent(path), resolvingAgainstBaseURL: false)!
         comps.queryItems = query

@@ -8,7 +8,7 @@ struct CockpitView: View {
     @State private var showPhotoDialog = false
     @State private var showPicker = false
     @State private var photoItem: PhotosPickerItem?
-    @State private var showAddRecord = false
+    @StateObject private var weather = WeatherService()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -18,7 +18,6 @@ struct CockpitView: View {
             statCards
             recentRecords
             Spacer(minLength: 0)
-            tabBar
         }
         .background(
             LinearGradient(colors: [Theme.bgTop, Theme.bgBottom], startPoint: .top, endPoint: .bottom)
@@ -35,9 +34,7 @@ struct CockpitView: View {
                 }
             }
         }
-        .sheet(isPresented: $showAddRecord) {
-            AddRecordView(store: store)
-        }
+        .task { await weather.load() }
         .onAppear {
             // 스크린샷/테스트용: SAMPLE_CAR=red|blue|sky
             if carImage == nil,
@@ -65,6 +62,17 @@ struct CockpitView: View {
                             .font(pd(11, .semibold))
                             .foregroundStyle(Theme.green)
                     }
+                }
+                if let temp = weather.tempC {
+                    HStack(spacing: 4) {
+                        Image(systemName: weather.symbol)
+                            .font(.system(size: 10))
+                            .symbolRenderingMode(.multicolor)
+                        Text("서울 \(temp)° · \(weather.label)")
+                            .font(pd(11))
+                            .foregroundStyle(Theme.silver)
+                    }
+                    .padding(.top, 1)
                 }
             }
             Spacer()
@@ -260,6 +268,7 @@ struct CockpitView: View {
                 .font(pd(13))
                 .lineSpacing(3)
                 .foregroundStyle(Theme.textStrong)
+                .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
         }
@@ -383,50 +392,4 @@ struct CockpitView: View {
         return t.font(pd(10.5)).foregroundStyle(Theme.muted)
     }
 
-    // 탭바
-    private var tabBar: some View {
-        HStack(alignment: .bottom) {
-            tabItem(icon: "house", label: "홈", active: true)
-            Spacer()
-            tabItem(icon: "line.3.horizontal", label: "기록")
-            Spacer()
-            Button {
-                showAddRecord = true
-            } label: {
-                Circle()
-                    .fill(Theme.goldGradient)
-                    .frame(width: 52, height: 52)
-                    .overlay(
-                        Image(systemName: "plus")
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundStyle(Theme.ink)
-                    )
-                    .shadow(color: Theme.gold.opacity(0.35), radius: 9, y: 6)
-            }
-            .offset(y: -14)
-            Spacer()
-            tabItem(icon: "chart.bar", label: "통계")
-            Spacer()
-            tabItem(icon: "car", label: "차고")
-        }
-        .padding(.horizontal, 26)
-        .padding(.top, 8)
-        .padding(.bottom, 2)
-        .background(
-            Theme.bgTop.opacity(0.9)
-                .overlay(Rectangle().frame(height: 1).foregroundStyle(Color.white.opacity(0.06)), alignment: .top)
-                .ignoresSafeArea(edges: .bottom)
-        )
-    }
-
-    private func tabItem(icon: String, label: String, active: Bool = false) -> some View {
-        VStack(spacing: 3) {
-            Image(systemName: icon)
-                .font(.system(size: 17))
-            Text(label)
-                .font(pd(9.5))
-        }
-        .foregroundStyle(active ? Theme.gold : Theme.muted)
-        .frame(minWidth: 48)
-    }
 }

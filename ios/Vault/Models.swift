@@ -4,6 +4,28 @@ enum RecordKind: String, Codable {
     case charge, drive, maintenance
 }
 
+enum Ownership: String, Codable, CaseIterable {
+    case purchase, lease, rent
+
+    var label: String {
+        switch self {
+        case .purchase: return "구매"
+        case .lease: return "리스"
+        case .rent: return "렌트"
+        }
+    }
+}
+
+/// 연료 종류 (차계부 표준)
+enum FuelType: String, CaseIterable {
+    case ev = "전기차"
+    case gasoline = "가솔린"
+    case diesel = "디젤"
+    case hybrid = "하이브리드"
+    case lpg = "LPG"
+    case hydrogen = "수소"
+}
+
 struct Vehicle: Codable, Identifiable {
     let id: UUID
     var name: String
@@ -13,13 +35,23 @@ struct Vehicle: Codable, Identifiable {
     var odometerKm: Int
     var leaseLimitKm: Int?
     var leaseDrivenKm: Int?
+    var ownership: Ownership
+    var maker: String?
+    var model: String?
+    var year: Int?
+    var purchasePriceWon: Int?
+    var monthlyFeeWon: Int?
+    var contractEnd: String?
 
     enum CodingKeys: String, CodingKey {
-        case id, name, plate, battery
+        case id, name, plate, battery, ownership, maker, model, year
         case fuelType = "fuel_type"
         case odometerKm = "odometer_km"
         case leaseLimitKm = "lease_limit_km"
         case leaseDrivenKm = "lease_driven_km"
+        case purchasePriceWon = "purchase_price_won"
+        case monthlyFeeWon = "monthly_fee_won"
+        case contractEnd = "contract_end"
     }
 
     /// 디자인 로직과 동일: rangeKm = battery × 5.03
@@ -98,7 +130,14 @@ enum MockData {
         battery: 82,
         odometerKm: 24318,
         leaseLimitKm: 20000,
-        leaseDrivenKm: 17200
+        leaseDrivenKm: 17200,
+        ownership: .rent,
+        maker: "테슬라",
+        model: "Model Y Long Range",
+        year: 2024,
+        purchasePriceWon: nil,
+        monthlyFeeWon: 890000,
+        contractEnd: "2027-06-30"
     )
 
     static var records: [VaultRecord] {
