@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://webfontworld.github.io/gmarket/GmarketSans.css">
+<style>
+body{margin:0;background:#0e0e10;font-family:Pretendard,-apple-system,sans-serif}
+.dv-turn{padding:40px 44px 32px;scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}
+.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#d4b36a;color:#0a0a0c;border-radius:4px;text-decoration:none}
+.dv-tname{font:600 13px/1.2 Pretendard,sans-serif;color:#e8e8ea}
+.dv-opts{display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(255,255,255,.1);color:#e8e8ea;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 Pretendard,sans-serif;color:rgba(255,255,255,.55)}
+.dv-opt:target .dv-oid{background:#d4b36a;color:#0a0a0c}
+.dv-next{margin:22px 0 0;font:12px/1.5 Pretendard,sans-serif;color:rgba(255,255,255,.45)}
+.dv-next a{color:#d4b36a}
+</style>
+</helmet>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">VAULT — AI 차계부 메인화면 · 다크 / 골드</span></div>
+<div class="dv-opts">
+
+<!-- ============ 1a 콕핏형 ============ -->
+<div class="dv-opt" id="1a">
+<div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>콕핏형 — 차량 상태 히어로 + AI 인사이트</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx ./image-slot.js" dark="{{ true }}" hint-size="430px,880px">
+<div style="height:100%;display:flex;flex-direction:column;background:linear-gradient(180deg,#0a0a0c 0%,#101014 100%);color:#f2f2f4;font-family:Pretendard,sans-serif;overflow:hidden">
+
+  <!-- 헤더 -->
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:62px 20px 6px">
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <span style="font-family:Pretendard;font-weight:900;font-size:22px;letter-spacing:1px;background:linear-gradient(120deg,#e9cd8d,#b78f3e);-webkit-background-clip:text;background-clip:text;color:transparent">VAULT</span>
+      <span style="font-size:11px;color:#9a9ba3">좋은 아침이에요, 지훈님</span>
+    </div>
+    <div style="display:flex;gap:10px">
+      <div style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c9cdd4" stroke-width="1.8"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 01-3.4 0"></path></svg>
+      </div>
+      <div style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#d4b36a">JH</div>
+    </div>
+  </div>
+
+  <!-- 차량 히어로 -->
+  <div style="margin:12px 16px 0;border-radius:20px;background:linear-gradient(160deg,#17171d 0%,#101013 100%);border:1px solid rgba(255,255,255,.07);padding:18px 18px 16px;position:relative;overflow:hidden">
+    <div style="position:absolute;inset:auto -40px -80px auto;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(212,179,106,.14),transparent 70%)"></div>
+    <div style="display:flex;align-items:baseline;justify-content:space-between">
+      <div style="display:flex;flex-direction:column;gap:3px">
+        <span style="font-family:'GmarketSans';font-weight:500;font-size:17px">Model Y Long Range</span>
+        <span style="font-size:11px;color:#8a8b93;letter-spacing:.5px">62가 3817 · 전기차</span>
+      </div>
+      <span style="font-size:10.5px;color:#d4b36a;border:1px solid rgba(212,179,106,.4);border-radius:20px;padding:3px 9px">주차 중</span>
+    </div>
+    <image-slot id="car-1a" style="width:100%;height:130px;margin:12px 0 4px" shape="rounded" radius="14" placeholder="내 차 사진을 끌어다 놓으세요"></image-slot>
+    <div style="display:flex;align-items:center;gap:16px;margin-top:10px">
+      <div style="position:relative;width:74px;height:74px;flex:none">
+        <div style="width:74px;height:74px;border-radius:50%;background:{{ ringBg }}"></div>
+        <div style="position:absolute;inset:7px;border-radius:50%;background:#141419;display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <span style="font-family:'GmarketSans';font-weight:700;font-size:16px;color:#d4b36a">{{ battery }}%</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;flex:1">
+        <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#8a8b93">주행 가능 거리</span><span style="font-family:'GmarketSans';font-weight:500">{{ rangeKm }} km</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#8a8b93">누적 주행</span><span style="font-family:'GmarketSans';font-weight:500">24,318 km</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#8a8b93">완충까지</span><span style="color:#c9cdd4">충전 중 아님</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI 인사이트 -->
+  <div style="margin:12px 16px 0;border-radius:16px;padding:14px 16px;background:linear-gradient(120deg,rgba(212,179,106,.12),rgba(212,179,106,.04));border:1px solid rgba(212,179,106,.35);display:flex;gap:12px;align-items:flex-start">
+    <div style="width:30px;height:30px;flex:none;border-radius:10px;background:linear-gradient(140deg,#e9cd8d,#b78f3e);display:flex;align-items:center;justify-content:center">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="2"><path d="M12 2l1.9 5.8L20 9.7l-5 4 1.7 6.3L12 16.4 7.3 20l1.7-6.3-5-4 6.1-1.9z"></path></svg>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <span style="font-size:11px;color:#d4b36a;font-weight:600;letter-spacing:.5px">AI 인사이트</span>
+      <span style="font-size:13px;line-height:1.45;color:#e8e8ea">심야 요금제로 충전 시간대를 옮기면 이번 달 <b style="color:#d4b36a">₩38,200</b> 절약할 수 있어요.</span>
+    </div>
+  </div>
+
+  <!-- 지출 + 약정거리 -->
+  <div style="display:flex;gap:10px;margin:12px 16px 0">
+    <div style="flex:1;border-radius:16px;background:#141419;border:1px solid rgba(255,255,255,.06);padding:14px">
+      <span style="font-size:11px;color:#8a8b93">7월 지출</span>
+      <div style="font-family:'GmarketSans';font-weight:700;font-size:19px;margin-top:4px">₩186,400</div>
+      <span style="font-size:11px;color:#6fbf8a">지난달 대비 −12%</span>
+    </div>
+    <div style="flex:1;border-radius:16px;background:#141419;border:1px solid rgba(255,255,255,.06);padding:14px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:11px;color:#8a8b93">약정거리</span><span style="font-size:10px;color:#ff7a2f">86%</span></div>
+      <div style="font-family:'GmarketSans';font-weight:700;font-size:19px;margin-top:4px">17,200<span style="font-size:11px;color:#8a8b93;font-weight:400"> /20,000km</span></div>
+      <div style="height:4px;border-radius:2px;background:rgba(255,255,255,.08);margin-top:8px;overflow:hidden"><div style="width:86%;height:100%;border-radius:2px;background:linear-gradient(90deg,#d4b36a,#ff7a2f)"></div></div>
+    </div>
+  </div>
+
+  <!-- 최근 기록 -->
+  <div style="margin:14px 16px 0;flex:1;min-height:0">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+      <span style="font-size:13px;font-weight:600">최근 기록</span>
+      <span style="font-size:11px;color:#8a8b93">전체 보기</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;align-items:center;gap:12px;background:#141419;border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:11px 14px">
+        <div style="width:32px;height:32px;border-radius:10px;background:rgba(255,122,47,.14);display:flex;align-items:center;justify-content:center;flex:none"><svg width="14" height="14" viewBox="0 0 24 24" fill="#ff7a2f"><path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z"></path></svg></div>
+        <div style="display:flex;flex-direction:column;gap:1px;flex:1"><span style="font-size:12.5px;font-weight:500">초급속 충전 · 42kWh</span><span style="font-size:10.5px;color:#8a8b93">오늘 07:12 · 이마트 성수 <span style="color:#d4b36a">· AI 자동기록</span></span></div>
+        <span style="font-family:'GmarketSans';font-size:13px;font-weight:500">₩14,900</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;background:#141419;border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:11px 14px">
+        <div style="width:32px;height:32px;border-radius:10px;background:rgba(201,205,212,.1);display:flex;align-items:center;justify-content:center;flex:none"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c9cdd4" stroke-width="1.8"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 3"></path></svg></div>
+        <div style="display:flex;flex-direction:column;gap:1px;flex:1"><span style="font-size:12.5px;font-weight:500">주행 일지 · 서울 → 판교</span><span style="font-size:10.5px;color:#8a8b93">어제 · 38.2km · 21분</span></div>
+        <span style="font-size:11px;color:#8a8b93">출퇴근</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 탭바 -->
+  <div style="display:flex;align-items:flex-end;justify-content:space-around;padding:8px 18px 18px;background:rgba(10,10,12,.9);border-top:1px solid rgba(255,255,255,.06)">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-width:48px;padding:4px 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d4b36a" stroke-width="1.8"><path d="M3 11l9-8 9 8v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path></svg><span style="font-size:9.5px;color:#d4b36a">홈</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-width:48px;padding:4px 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8a8b93" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10"></path></svg><span style="font-size:9.5px;color:#8a8b93">기록</span></div>
+    <div style="width:52px;height:52px;border-radius:50%;margin-top:-22px;background:linear-gradient(140deg,#e9cd8d,#b78f3e);box-shadow:0 6px 18px rgba(212,179,106,.35);display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="2"><path d="M12 2l1.9 5.8L20 9.7l-5 4 1.7 6.3L12 16.4 7.3 20l1.7-6.3-5-4 6.1-1.9z"></path></svg></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-width:48px;padding:4px 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8a8b93" stroke-width="1.8"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path></svg><span style="font-size:9.5px;color:#8a8b93">통계</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;min-width:48px;padding:4px 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8a8b93" stroke-width="1.8"><path d="M5 17h14M6 17l1.5-5h9L18 17M7.5 12l1-3h7l1 3"></path><circle cx="7.5" cy="17" r="1.5"></circle><circle cx="16.5" cy="17" r="1.5"></circle></svg><span style="font-size:9.5px;color:#8a8b93">차고</span></div>
+  </div>
+</div>
+</x-import>
+</div>
+
+<!-- ============ 1b 브리핑형 ============ -->
+<div class="dv-opt" id="1b">
+<div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>브리핑형 — AI 브리핑 + 지출 중심 레저</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="430px,880px">
+<div style="height:100%;display:flex;flex-direction:column;background:#0a0a0c;color:#f2f2f4;font-family:Pretendard,sans-serif;overflow:hidden;position:relative">
+
+  <!-- 헤더 -->
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:62px 20px 4px">
+    <span style="font-family:Pretendard;font-weight:900;font-size:20px;letter-spacing:1px;color:#f2f2f4">VAULT<span style="color:#d4b36a">.</span></span>
+    <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:#c9cdd4;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:5px 12px">
+      <span style="width:6px;height:6px;border-radius:50%;background:#6fbf8a"></span>Model Y · {{ battery }}% · {{ rangeKm }}km
+    </div>
+  </div>
+
+  <!-- AI 브리핑 -->
+  <div style="margin:16px 16px 0;display:flex;gap:10px;align-items:flex-start">
+    <div style="width:34px;height:34px;flex:none;border-radius:50%;background:linear-gradient(140deg,#e9cd8d,#b78f3e);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(212,179,106,.3)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="2"><path d="M12 2l1.9 5.8L20 9.7l-5 4 1.7 6.3L12 16.4 7.3 20l1.7-6.3-5-4 6.1-1.9z"></path></svg></div>
+    <div style="display:flex;flex-direction:column;gap:6px;flex:1">
+      <div style="background:#16161b;border:1px solid rgba(255,255,255,.07);border-radius:4px 16px 16px 16px;padding:13px 15px;font-size:13px;line-height:1.55;color:#e8e8ea">
+        오늘 아침 브리핑이에요. 어제 <b style="color:#d4b36a">판교 왕복 76km</b>를 자동 기록했고, 약정거리 소진 속도가 빨라요. 이대로면 <b style="color:#ff7a2f">11월 말 초과</b>가 예상돼요.
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span style="font-size:11px;color:#d4b36a;border:1px solid rgba(212,179,106,.4);border-radius:20px;padding:4px 11px">절약 플랜 보기</span>
+        <span style="font-size:11px;color:#c9cdd4;border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:4px 11px">자세히 물어보기</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 월 지출 -->
+  <div style="margin:22px 16px 0;border-radius:20px;background:linear-gradient(160deg,#17171d,#101013);border:1px solid rgba(255,255,255,.07);padding:20px 18px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <span style="font-size:11px;color:#8a8b93">7월 총 지출</span>
+        <span style="font-family:'GmarketSans';font-weight:700;font-size:28px">₩186,400</span>
+        <span style="font-size:11px;color:#6fbf8a">지난달보다 ₩25,300 아꼈어요</span>
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:5px;height:64px;padding-top:6px">
+        <div style="width:12px;height:38px;border-radius:4px;background:rgba(255,255,255,.1)"></div>
+        <div style="width:12px;height:52px;border-radius:4px;background:rgba(255,255,255,.1)"></div>
+        <div style="width:12px;height:44px;border-radius:4px;background:rgba(255,255,255,.1)"></div>
+        <div style="width:12px;height:58px;border-radius:4px;background:rgba(255,255,255,.14)"></div>
+        <div style="width:12px;height:40px;border-radius:4px;background:linear-gradient(180deg,#e9cd8d,#b78f3e)"></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:14px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06)">
+      <div style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#c9cdd4"><span style="width:8px;height:8px;border-radius:2px;background:#ff7a2f"></span>충전 ₩96,200</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#c9cdd4"><span style="width:8px;height:8px;border-radius:2px;background:#d4b36a"></span>주유 ₩41,000</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#c9cdd4"><span style="width:8px;height:8px;border-radius:2px;background:#c9cdd4"></span>기타 ₩49,200</div>
+    </div>
+  </div>
+
+  <!-- 약정거리 -->
+  <sc-if value="{{ showRent }}" hint-placeholder-val="{{ true }}">
+  <div style="margin:12px 16px 0;border-radius:16px;background:#141419;border:1px solid rgba(255,122,47,.25);padding:14px 16px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline">
+      <span style="font-size:12px;font-weight:600">렌트 약정거리</span>
+      <span style="font-size:11px;color:#ff7a2f">초과 위험 · 잔여 2,800km</span>
+    </div>
+    <div style="height:6px;border-radius:3px;background:rgba(255,255,255,.08);margin-top:10px;overflow:hidden"><div style="width:86%;height:100%;border-radius:3px;background:linear-gradient(90deg,#d4b36a,#ff7a2f)"></div></div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:#8a8b93;margin-top:6px"><span>17,200km 주행</span><span>약정 20,000km</span></div>
+  </div>
+  </sc-if>
+
+  <!-- 타임라인 -->
+  <div style="margin:22px 16px 0;flex:1;min-height:0;display:flex;flex-direction:column;justify-content:flex-start">
+    <span style="font-size:13px;font-weight:600">이번 주 기록</span>
+    <div style="display:flex;flex-direction:column;margin-top:10px">
+      <div style="display:flex;gap:12px">
+        <div style="display:flex;flex-direction:column;align-items:center;flex:none;width:20px"><div style="width:8px;height:8px;border-radius:50%;background:#ff7a2f;margin-top:5px"></div><div style="width:1px;flex:1;background:rgba(255,255,255,.1)"></div></div>
+        <div style="display:flex;justify-content:space-between;flex:1;padding-bottom:26px">
+          <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:12.5px;font-weight:500">초급속 충전 42kWh</span><span style="font-size:10.5px;color:#8a8b93">오늘 07:12 <span style="color:#d4b36a">· AI 자동기록</span></span></div>
+          <span style="font-family:'GmarketSans';font-size:13px">₩14,900</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px">
+        <div style="display:flex;flex-direction:column;align-items:center;flex:none;width:20px"><div style="width:8px;height:8px;border-radius:50%;background:#c9cdd4;margin-top:5px"></div><div style="width:1px;flex:1;background:rgba(255,255,255,.1)"></div></div>
+        <div style="display:flex;justify-content:space-between;flex:1;padding-bottom:26px">
+          <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:12.5px;font-weight:500">주행 서울 → 판교 38.2km</span><span style="font-size:10.5px;color:#8a8b93">어제 08:40 · 출퇴근</span></div>
+          <span style="font-size:11px;color:#8a8b93">21분</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px">
+        <div style="display:flex;flex-direction:column;align-items:center;flex:none;width:20px"><div style="width:8px;height:8px;border-radius:50%;background:#d4b36a;margin-top:5px"></div></div>
+        <div style="display:flex;justify-content:space-between;flex:1">
+          <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:12.5px;font-weight:500">엔진오일 교체 알림</span><span style="font-size:10.5px;color:#8a8b93">세컨카 · 2,000km 남음</span></div>
+          <span style="font-size:11px;color:#d4b36a">예약</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI 입력 바 -->
+  <div style="margin:auto 16px 20px;display:flex;align-items:center;gap:10px;background:#16161b;border:1px solid rgba(212,179,106,.3);border-radius:26px;padding:11px 16px">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d4b36a" stroke-width="2"><path d="M12 2l1.9 5.8L20 9.7l-5 4 1.7 6.3L12 16.4 7.3 20l1.7-6.3-5-4 6.1-1.9z"></path></svg>
+    <span style="font-size:12.5px;color:#8a8b93;flex:1">이번 달 충전비 얼마 썼어?</span>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c9cdd4" stroke-width="1.8"><path d="M12 19V5M5 12l7-7 7 7"></path></svg>
+  </div>
+</div>
+</x-import>
+</div>
+
+</div>
+<p class="dv-next">다음 시도: "<a class="dv-oid" href="#1a">1a</a> 히어로에 실버 톤 강조" · "<a class="dv-oid" href="#1b">1b</a>에 차량 사진 추가" · "두 안 섞어서 새 안 만들어줘"</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;1060px&quot;,&quot;height&quot;:&quot;1020px&quot;},&quot;battery&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:82,&quot;min&quot;:0,&quot;max&quot;:100,&quot;step&quot;:1,&quot;unit&quot;:&quot;%&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;차량 상태&quot;},&quot;showRent&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;화면 구성&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const battery = Math.round(this.props.battery ?? 82);
+    const deg = battery * 3.6;
+    return {
+      battery,
+      rangeKm: Math.round(battery * 5.03),
+      ringBg: 'conic-gradient(#d4b36a 0deg ' + deg + 'deg, rgba(255,255,255,.08) ' + deg + 'deg 360deg)',
+      showRent: this.props.showRent ?? true
+    };
+  }
+}
+</script>
+</body>
+</html>
