@@ -4,7 +4,8 @@ import PhotosUI
 /// 1a 콕핏형 — 차량 상태 히어로 + AI 인사이트
 struct CockpitView: View {
     @ObservedObject var store: VaultStore
-    @State private var carImage: UIImage? = CarImageStore.load()
+    @ObservedObject var insight: InsightService
+    @State private var carImage: UIImage?
     @State private var showPhotoDialog = false
     @State private var showPicker = false
     @State private var photoItem: PhotosPickerItem?
@@ -30,19 +31,23 @@ struct CockpitView: View {
                 if let data = try? await item?.loadTransferable(type: Data.self),
                    let img = UIImage(data: data) {
                     carImage = img
-                    CarImageStore.save(img)
+                    CarImageStore.save(img, for: store.vehicle.id)
                 }
             }
         }
-        .task { await weather.load() }
-        .onAppear {
-            // 스크린샷/테스트용: SAMPLE_CAR=red|blue|sky
-            if carImage == nil,
-               let sample = ProcessInfo.processInfo.environment["SAMPLE_CAR"],
-               let img = CarImageStore.sample("car-\(sample)") {
-                carImage = img
-            }
+        .onChange(of: store.vehicle.id) { _, newID in
+            carImage = CarImageStore.load(for: newID) ?? envSampleImage()
         }
+        .onAppear {
+            weather.start()
+            carImage = CarImageStore.load(for: store.vehicle.id) ?? envSampleImage()
+        }
+    }
+
+    /// 스크린샷/테스트용: SAMPLE_CAR=red|blue|sky
+    private func envSampleImage() -> UIImage? {
+        guard let sample = ProcessInfo.processInfo.environment["SAMPLE_CAR"] else { return nil }
+        return CarImageStore.sample("car-\(sample)")
     }
 
     // 헤더
@@ -68,9 +73,12 @@ struct CockpitView: View {
                         Image(systemName: weather.symbol)
                             .font(.system(size: 10))
                             .symbolRenderingMode(.multicolor)
-                        Text("서울 \(temp)° · \(weather.label)")
-                            .font(pd(11))
-                            .foregroundStyle(Theme.silver)
+                        (
+                            Text("\(weather.city) \(temp)° · \(weather.label)")
+                            + (weather.carAdvice.map { Text(" · \($0)").foregroundStyle(Theme.gold) } ?? Text(""))
+                        )
+                        .font(pd(11))
+                        .foregroundStyle(Theme.silver)
                     }
                     .padding(.top, 1)
                 }
@@ -205,7 +213,7 @@ struct CockpitView: View {
             if carImage != nil {
                 Button("사진 제거", role: .destructive) {
                     carImage = nil
-                    CarImageStore.clear()
+                    CarImageStore.clear(for: store.vehicle.id)
                 }
             }
             Button("취소", role: .cancel) {}
@@ -215,7 +223,7 @@ struct CockpitView: View {
     private func setSample(_ name: String) {
         guard let img = CarImageStore.sample(name) else { return }
         carImage = img
-        CarImageStore.save(img)
+        CarImageStore.save(img, for: store.vehicle.id)
     }
 
     private var batteryRing: some View {
@@ -256,15 +264,28 @@ struct CockpitView: View {
                         .foregroundStyle(Theme.ink)
                 )
             VStack(alignment: .leading, spacing: 3) {
-                Text("AI 인사이트")
-                    .font(pd(11, .semibold))
-                    .kerning(0.5)
-                    .foregroundStyle(Theme.gold)
-                (
-                    Text("심야 요금제로 충전 시간대를 옮기면 이번 달 ")
-                    + Text("₩38,200").bold().foregroundStyle(Theme.gold)
-                    + Text(" 절약할 수 있어요.")
-                )
+                HStack(spacing: 6) {
+                    Text("AI 인사이트")
+                        .font(pd(11, .semibold))
+                        .kerning(0.5)
+                        .foregroundStyle(Theme.gold)
+                    if insight.loading {
+                        ProgressView()
+                            .controlSize(.mini)
+                            .tint(Theme.gold)
+                    }
+                }
+                Group {
+                    if let tip = insight.tip {
+                        Text(tip)
+                    } else {
+                        (
+                            Text("심야 요금제로 충전 시간대를 옮기면 이번 달 ")
+                            + Text("₩38,200").bold().foregroundStyle(Theme.gold)
+                            + Text(" 절약할 수 있어요.")
+                        )
+                    }
+                }
                 .font(pd(13))
                 .lineSpacing(3)
                 .foregroundStyle(Theme.textStrong)

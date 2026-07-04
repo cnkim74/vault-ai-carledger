@@ -1,47 +1,77 @@
 import Foundation
 
-/// Supabase(PostgREST)에서 차량/기록을 읽는 스토어.
+/// Supabase(PostgREST)에서 차량/기록을 읽고 쓰는 스토어.
 /// Secrets가 비어 있거나 요청이 실패하면 목업 데이터로 동작한다.
+/// 다중 차량: vehicles 배열 + 선택된 차량(selectedVehicleID, UserDefaults 영속화).
 @MainActor
 final class VaultStore: ObservableObject {
-    @Published var vehicle: Vehicle = MockData.vehicle
+    @Published var vehicles: [Vehicle] = [MockData.vehicle]
     @Published var records: [VaultRecord] = MockData.records
     @Published var live = false
+    @Published var selectedVehicleID: UUID?
+
+    private static let selectedKey = "vault.selectedVehicleID"
+
+    init() {
+        if let raw = UserDefaults.standard.string(forKey: Self.selectedKey) {
+            selectedVehicleID = UUID(uuidString: raw)
+        }
+    }
+
+    /// 현재 선택된 차량 (없으면 첫 번째)
+    var vehicle: Vehicle {
+        vehicles.first(where: { $0.id == selectedVehicleID }) ?? vehicles.first ?? MockData.vehicle
+    }
 
     func load() async {
         guard let base = Secrets.supabaseURL, let key = Secrets.supabaseKey, !key.isEmpty else { return }
 
         do {
-            let vehicles: [Vehicle] = try await fetch(
+            let fetched: [Vehicle] = try await fetch(
                 base: base, key: key,
                 path: "rest/v1/vehicles",
                 query: [
                     URLQueryItem(name: "select", value: "*"),
                     URLQueryItem(name: "order", value: "created_at"),
-                    URLQueryItem(name: "limit", value: "1"),
                 ]
             )
-            guard let v = vehicles.first else { return }
+            guard !fetched.isEmpty else { return }
 
-            let recs: [VaultRecord] = try await fetch(
-                base: base, key: key,
-                path: "rest/v1/records",
-                query: [
-                    URLQueryItem(name: "select", value: "*"),
-                    URLQueryItem(name: "vehicle_id", value: "eq.\(v.id.uuidString.lowercased())"),
-                    URLQueryItem(name: "order", value: "occurred_at.desc"),
-                    URLQueryItem(name: "limit", value: "10"),
-                ]
-            )
-
-            vehicle = v
-            records = recs
+            vehicles = fetched
+            if selectedVehicleID == nil || !fetched.contains(where: { $0.id == selectedVehicleID }) {
+                selectedVehicleID = fetched.first?.id
+            }
+            try await loadRecords()
             live = true
         } catch {
-            // 폴백: 목업 유지
             print("[VaultStore] Supabase load failed: \(error)")
         }
     }
+
+    /// 차량 전환 — 선택을 영속화하고 해당 차량의 기록을 다시 불러온다.
+    func select(_ id: UUID) {
+        guard id != selectedVehicleID else { return }
+        selectedVehicleID = id
+        UserDefaults.standard.set(id.uuidString, forKey: Self.selectedKey)
+        Task { try? await loadRecords() }
+    }
+
+    private func loadRecords() async throws {
+        guard let base = Secrets.supabaseURL, let key = Secrets.supabaseKey else { return }
+        let recs: [VaultRecord] = try await fetch(
+            base: base, key: key,
+            path: "rest/v1/records",
+            query: [
+                URLQueryItem(name: "select", value: "*"),
+                URLQueryItem(name: "vehicle_id", value: "eq.\(vehicle.id.uuidString.lowercased())"),
+                URLQueryItem(name: "order", value: "occurred_at.desc"),
+                URLQueryItem(name: "limit", value: "10"),
+            ]
+        )
+        records = recs
+    }
+
+    // ── 기록 추가 ─────────────────────────────────────
 
     struct RecordInsert: Encodable {
         let vehicle_id: String
@@ -62,17 +92,6 @@ final class VaultStore: ObservableObject {
         amountWon: Int? = nil, distanceKm: Double? = nil, durationMin: Int? = nil,
         location: String? = nil, tag: String? = nil
     ) async throws {
-        guard let base = Secrets.supabaseURL, let key = Secrets.supabaseKey, !key.isEmpty else {
-            throw URLError(.userAuthenticationRequired)
-        }
-
-        var req = URLRequest(url: base.appendingPathComponent("rest/v1/records"))
-        req.httpMethod = "POST"
-        req.setValue(key, forHTTPHeaderField: "apikey")
-        req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.setValue("return=minimal", forHTTPHeaderField: "Prefer")
-
         let iso = ISO8601DateFormatter()
         let body = RecordInsert(
             vehicle_id: vehicle.id.uuidString.lowercased(),
@@ -86,20 +105,17 @@ final class VaultStore: ObservableObject {
             tag: tag,
             ai_logged: false
         )
-        req.httpBody = try JSONEncoder().encode(body)
-
-        let (_, resp) = try await URLSession.shared.data(for: req)
-        guard let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-            throw URLError(.badServerResponse)
-        }
-
+        try await send(method: "POST", path: "rest/v1/records", query: [], body: body)
         await load()
     }
 
-    struct VehicleUpdate: Encodable {
+    // ── 차량 추가/수정 ─────────────────────────────────
+
+    struct VehicleUpsert: Encodable {
         var name: String?
         var plate: String?
         var fuel_type: String?
+        var battery: Int?
         var odometer_km: Int?
         var lease_limit_km: Int?
         var ownership: String?
@@ -111,32 +127,66 @@ final class VaultStore: ObservableObject {
         var contract_end: String?
     }
 
-    /// 차량 정보를 수정하고 새로고침한다. (nil 필드는 변경하지 않음)
-    func updateVehicle(_ update: VehicleUpdate) async throws {
+    /// 새 차량을 등록하고 그 차량을 선택한다.
+    func addVehicle(_ insert: VehicleUpsert) async throws {
         guard let base = Secrets.supabaseURL, let key = Secrets.supabaseKey, !key.isEmpty else {
             throw URLError(.userAuthenticationRequired)
         }
+        var req = URLRequest(url: base.appendingPathComponent("rest/v1/vehicles"))
+        req.httpMethod = "POST"
+        applyHeaders(&req, key: key)
+        req.setValue("return=representation", forHTTPHeaderField: "Prefer")
+        req.httpBody = try JSONEncoder().encode(insert)
 
-        var comps = URLComponents(
-            url: base.appendingPathComponent("rest/v1/vehicles"),
-            resolvingAgainstBaseURL: false
-        )!
-        comps.queryItems = [URLQueryItem(name: "id", value: "eq.\(vehicle.id.uuidString.lowercased())")]
+        let (data, resp) = try await URLSession.shared.data(for: req)
+        guard let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
+        // 반환된 행에서 새 차량 id를 얻어 선택
+        struct Row: Decodable { let id: UUID }
+        if let rows = try? JSONDecoder().decode([Row].self, from: data), let new = rows.first {
+            await load()
+            select(new.id)
+        } else {
+            await load()
+        }
+    }
 
-        var req = URLRequest(url: comps.url!)
-        req.httpMethod = "PATCH"
+    /// 현재 선택된 차량 정보를 수정하고 새로고침한다. (nil 필드는 변경하지 않음)
+    func updateVehicle(_ update: VehicleUpsert) async throws {
+        try await send(
+            method: "PATCH",
+            path: "rest/v1/vehicles",
+            query: [URLQueryItem(name: "id", value: "eq.\(vehicle.id.uuidString.lowercased())")],
+            body: update
+        )
+        await load()
+    }
+
+    // ── 공통 헬퍼 ─────────────────────────────────────
+
+    private func applyHeaders(_ req: inout URLRequest, key: String) {
         req.setValue(key, forHTTPHeaderField: "apikey")
         req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    }
+
+    private func send<B: Encodable>(method: String, path: String, query: [URLQueryItem], body: B) async throws {
+        guard let base = Secrets.supabaseURL, let key = Secrets.supabaseKey, !key.isEmpty else {
+            throw URLError(.userAuthenticationRequired)
+        }
+        var comps = URLComponents(url: base.appendingPathComponent(path), resolvingAgainstBaseURL: false)!
+        if !query.isEmpty { comps.queryItems = query }
+        var req = URLRequest(url: comps.url!)
+        req.httpMethod = method
+        applyHeaders(&req, key: key)
         req.setValue("return=minimal", forHTTPHeaderField: "Prefer")
-        req.httpBody = try JSONEncoder().encode(update)
+        req.httpBody = try JSONEncoder().encode(body)
 
         let (_, resp) = try await URLSession.shared.data(for: req)
         guard let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
             throw URLError(.badServerResponse)
         }
-
-        await load()
     }
 
     private func fetch<T: Decodable>(base: URL, key: String, path: String, query: [URLQueryItem]) async throws -> T {

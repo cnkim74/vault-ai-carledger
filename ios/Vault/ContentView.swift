@@ -4,6 +4,7 @@ import SwiftUI
 /// 환경변수 TAB=records|stats|garage로 시작 탭 지정 가능 (테스트용).
 struct ContentView: View {
     @StateObject private var store = VaultStore()
+    @StateObject private var insight = InsightService()
     @State private var tab: MainTab =
         MainTab(rawValue: ProcessInfo.processInfo.environment["TAB"] ?? "") ?? .home
     @State private var showAddRecord = false
@@ -12,7 +13,7 @@ struct ContentView: View {
         VStack(spacing: 0) {
             Group {
                 switch tab {
-                case .home: CockpitView(store: store)
+                case .home: CockpitView(store: store, insight: insight)
                 case .records: RecordsListView(store: store)
                 case .stats: BriefingView(store: store)
                 case .garage: GarageView(store: store)
@@ -26,7 +27,10 @@ struct ContentView: View {
         .sheet(isPresented: $showAddRecord) {
             AddRecordView(store: store)
         }
-        .task { await store.load() }
+        .task {
+            await store.load()
+            await insight.generate(vehicle: store.vehicle, records: store.records)
+        }
     }
 }
 

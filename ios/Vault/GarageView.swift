@@ -1,25 +1,56 @@
 import SwiftUI
 import PhotosUI
 
-/// 차고 탭 — 차량 정보 카드 + 수정
+/// 차고 탭 — 차량 목록(전환) + 대표 차량 카드 + 정보 수정/추가
 struct GarageView: View {
     @ObservedObject var store: VaultStore
-    @State private var carImage: UIImage? = CarImageStore.load()
+    @State private var carImage: UIImage?
     @State private var showPhotoDialog = false
     @State private var showPicker = false
     @State private var photoItem: PhotosPickerItem?
     @State private var showEdit = false
+    @State private var showAdd = false
 
     private var v: Vehicle { store.vehicle }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                Text("차고")
-                    .font(pd(22, .black))
-                    .kerning(1)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 8)
+                HStack(alignment: .firstTextBaseline) {
+                    Text("차고")
+                        .font(pd(22, .black))
+                        .kerning(1)
+                    Spacer()
+                    Button {
+                        showAdd = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 11, weight: .semibold))
+                            Text("차량 추가")
+                                .font(pd(12, .semibold))
+                        }
+                        .foregroundStyle(Theme.gold)
+                        .padding(.horizontal, 11)
+                        .padding(.vertical, 6)
+                        .overlay(Capsule().stroke(Theme.gold.opacity(0.4), lineWidth: 1))
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+
+                // 차량 전환 목록 (2대 이상일 때)
+                if store.vehicles.count > 1 {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(store.vehicles) { veh in
+                                vehicleChip(veh)
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                    }
+                    .padding(.top, 12)
+                }
 
                 vehicleCard
                     .padding(.horizontal, 16)
@@ -53,14 +84,60 @@ struct GarageView: View {
                 if let data = try? await item?.loadTransferable(type: Data.self),
                    let img = UIImage(data: data) {
                     carImage = img
-                    CarImageStore.save(img)
+                    CarImageStore.save(img, for: v.id)
                 }
             }
         }
-        .sheet(isPresented: $showEdit) {
-            VehicleEditView(store: store)
+        .onChange(of: store.vehicle.id) { _, newID in
+            carImage = CarImageStore.load(for: newID)
         }
-        .onAppear { carImage = CarImageStore.load() }
+        .sheet(isPresented: $showEdit) {
+            VehicleEditView(store: store, mode: .edit)
+        }
+        .sheet(isPresented: $showAdd) {
+            VehicleEditView(store: store, mode: .create)
+        }
+        .onAppear { carImage = CarImageStore.load(for: v.id) }
+    }
+
+    // 차량 전환 칩
+    private func vehicleChip(_ veh: Vehicle) -> some View {
+        let selected = veh.id == v.id
+        return Button {
+            store.select(veh.id)
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "car.fill")
+                    .font(.system(size: 11))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(veh.name)
+                        .font(pd(12, .semibold))
+                        .lineLimit(1)
+                    if let plate = veh.plate {
+                        Text(plate)
+                            .font(pd(9.5))
+                            .foregroundStyle(selected ? Theme.ink.opacity(0.7) : Theme.muted)
+                    }
+                }
+                if selected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 12))
+                }
+            }
+            .foregroundStyle(selected ? Theme.ink : Theme.silver)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+                selected
+                    ? AnyShapeStyle(Theme.goldGradient)
+                    : AnyShapeStyle(Color.white.opacity(0.06))
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(selected ? Color.clear : Color.white.opacity(0.1), lineWidth: 1)
+            )
+        }
     }
 
     // 차량 카드
@@ -106,7 +183,7 @@ struct GarageView: View {
                 if carImage != nil {
                     Button("사진 제거", role: .destructive) {
                         carImage = nil
-                        CarImageStore.clear()
+                        CarImageStore.clear(for: v.id)
                     }
                 }
                 Button("취소", role: .cancel) {}
@@ -209,6 +286,6 @@ struct GarageView: View {
     private func setSample(_ name: String) {
         guard let img = CarImageStore.sample(name) else { return }
         carImage = img
-        CarImageStore.save(img)
+        CarImageStore.save(img, for: v.id)
     }
 }

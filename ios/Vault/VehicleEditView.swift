@@ -1,9 +1,14 @@
 import SwiftUI
 
-/// 차량 정보 수정 폼 — 차종 카탈로그 참조, 소유형태별 필드 분기.
+/// 차량 정보 수정/등록 폼 — 차종 카탈로그 참조, 소유형태별 필드 분기.
 struct VehicleEditView: View {
+    enum Mode {
+        case edit, create
+    }
+
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var store: VaultStore
+    let mode: Mode
 
     @State private var maker: String
     @State private var model: String
@@ -22,8 +27,28 @@ struct VehicleEditView: View {
     @State private var saving = false
     @State private var errorMessage: String?
 
-    init(store: VaultStore) {
+    init(store: VaultStore, mode: Mode = .edit) {
         self.store = store
+        self.mode = mode
+
+        if mode == .create {
+            _maker = State(initialValue: CarCatalog.makers[0])
+            _model = State(initialValue: CarCatalog.models(for: CarCatalog.makers[0]).first ?? "")
+            _useCustomName = State(initialValue: false)
+            _customName = State(initialValue: "")
+            _plate = State(initialValue: "")
+            _fuel = State(initialValue: FuelType.gasoline.rawValue)
+            _year = State(initialValue: "")
+            _odometer = State(initialValue: "0")
+            _ownership = State(initialValue: .purchase)
+            _purchasePrice = State(initialValue: "")
+            _monthlyFee = State(initialValue: "")
+            _leaseLimit = State(initialValue: "")
+            _contractEnd = State(initialValue: Date())
+            _hasContractEnd = State(initialValue: false)
+            return
+        }
+
         let v = store.vehicle
         let knownMaker = v.maker.flatMap { CarCatalog.makers.contains($0) ? $0 : nil }
         _maker = State(initialValue: knownMaker ?? CarCatalog.makers[0])
@@ -112,7 +137,7 @@ struct VehicleEditView: View {
                     }
                 }
             }
-            .navigationTitle("차량 정보")
+            .navigationTitle(mode == .create ? "차량 추가" : "차량 정보")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -122,7 +147,7 @@ struct VehicleEditView: View {
                     if saving {
                         ProgressView()
                     } else {
-                        Button("저장") { Task { await save() } }
+                        Button(mode == .create ? "등록" : "저장") { Task { await save() } }
                             .disabled(!store.live)
                     }
                 }
@@ -140,28 +165,34 @@ struct VehicleEditView: View {
         let df = DateFormatter()
         df.dateFormat = "yyyy-MM-dd"
 
-        var update = VaultStore.VehicleUpdate()
-        update.name = name.isEmpty ? store.vehicle.name : name
-        update.plate = plate.isEmpty ? nil : plate
-        update.fuel_type = fuel
-        update.odometer_km = Int(odometer)
-        update.ownership = ownership.rawValue
-        update.maker = useCustomName ? nil : maker
-        update.model = useCustomName ? nil : model
-        update.year = Int(year)
+        var upsert = VaultStore.VehicleUpsert()
+        upsert.name = name.isEmpty ? (mode == .create ? "내 차" : store.vehicle.name) : name
+        upsert.plate = plate.isEmpty ? nil : plate
+        upsert.fuel_type = fuel
+        upsert.odometer_km = Int(odometer)
+        upsert.ownership = ownership.rawValue
+        upsert.maker = useCustomName ? nil : maker
+        upsert.model = useCustomName ? nil : model
+        upsert.year = Int(year)
         switch ownership {
         case .purchase:
-            update.purchase_price_won = Int(purchasePrice)
+            upsert.purchase_price_won = Int(purchasePrice)
         case .lease, .rent:
-            update.lease_limit_km = Int(leaseLimit)
-            update.monthly_fee_won = Int(monthlyFee)
+            upsert.lease_limit_km = Int(leaseLimit)
+            upsert.monthly_fee_won = Int(monthlyFee)
             if hasContractEnd {
-                update.contract_end = df.string(from: contractEnd)
+                upsert.contract_end = df.string(from: contractEnd)
             }
         }
 
         do {
-            try await store.updateVehicle(update)
+            switch mode {
+            case .edit:
+                try await store.updateVehicle(upsert)
+            case .create:
+                upsert.battery = fuel == FuelType.ev.rawValue ? 100 : 0
+                try await store.addVehicle(upsert)
+            }
             dismiss()
         } catch {
             errorMessage = "저장 실패: \(error.localizedDescription)"
