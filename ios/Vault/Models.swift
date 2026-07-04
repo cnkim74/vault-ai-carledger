@@ -126,6 +126,30 @@ struct Vehicle: Codable, Identifiable {
     }
 }
 
+/// 월 지출 집계 (이번 달 / 지난달 비교 + 항목별)
+struct MonthlySpend {
+    let month: Int          // 이번 달 (1~12)
+    let total: Int          // 이번 달 총 지출
+    let prevTotal: Int      // 지난달 총 지출
+    let charge: Int         // 충전
+    let fuel: Int           // 주유
+    let maintenance: Int    // 정비
+    let other: Int          // 기타
+
+    var deltaWon: Int { total - prevTotal }
+    var deltaPct: Int? {
+        guard prevTotal > 0 else { return nil }
+        return Int((Double(total - prevTotal) / Double(prevTotal) * 100).rounded())
+    }
+
+    /// 0원이 아닌 항목만 (라벨, 금액, 색상키)
+    var breakdown: [(label: String, amount: Int, key: String)] {
+        [("충전", charge, "charge"), ("주유", fuel, "fuel"),
+         ("정비", maintenance, "maintenance"), ("기타", other, "other")]
+            .filter { $0.1 > 0 }
+    }
+}
+
 /// 약정거리 초과 예측 결과
 struct LeaseProjection {
     let projectedTotalKm: Int   // 계약 만료 시 예상 총 주행

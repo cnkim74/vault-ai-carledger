@@ -9,6 +9,7 @@ final class VaultStore: ObservableObject {
     @Published var records: [VaultRecord] = MockData.records
     @Published var live = false
     @Published var selectedVehicleID: UUID?
+    @Published var monthlySpend: MonthlySpend?
 
     private static let selectedKey = "vault.selectedVehicleID"
 
@@ -69,6 +70,51 @@ final class VaultStore: ObservableObject {
             ]
         )
         records = recs
+        try await loadSpend()
+    }
+
+    /// 이번 달·지난달 지출을 실제 기록에서 집계.
+    private func loadSpend() async throws {
+        guard let base = Secrets.supabaseURL, let key = Secrets.supabaseKey else { return }
+
+        let cal = Calendar(identifier: .gregorian)
+        let now = Date()
+        let startThis = cal.date(from: cal.dateComponents([.year, .month], from: now)) ?? now
+        let startPrev = cal.date(byAdding: .month, value: -1, to: startThis) ?? startThis
+        let iso = ISO8601DateFormatter()
+
+        let recs: [VaultRecord] = try await fetch(
+            base: base, key: key,
+            path: "rest/v1/records",
+            query: [
+                URLQueryItem(name: "select", value: "*"),
+                URLQueryItem(name: "vehicle_id", value: "eq.\(vehicle.id.uuidString.lowercased())"),
+                URLQueryItem(name: "occurred_at", value: "gte.\(iso.string(from: startPrev))"),
+                URLQueryItem(name: "order", value: "occurred_at.desc"),
+                URLQueryItem(name: "limit", value: "500"),
+            ]
+        )
+
+        var total = 0, prev = 0, charge = 0, fuel = 0, maint = 0, other = 0
+        for r in recs {
+            guard let amount = r.amountWon, amount > 0 else { continue }
+            let inThisMonth = r.occurredAt >= startThis
+            if inThisMonth {
+                total += amount
+                if r.title.contains("주유") { fuel += amount }
+                else if r.kind == .charge { charge += amount }
+                else if r.kind == .maintenance { maint += amount }
+                else { other += amount }
+            } else {
+                prev += amount
+            }
+        }
+
+        monthlySpend = MonthlySpend(
+            month: cal.component(.month, from: now),
+            total: total, prevTotal: prev,
+            charge: charge, fuel: fuel, maintenance: maint, other: other
+        )
     }
 
     // ── 기록 추가 ─────────────────────────────────────

@@ -99,30 +99,27 @@ struct BriefingView: View {
 
     // 월 지출
     private var spendCard: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        let s = store.monthlySpend
+        return VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("7월 총 지출").font(pd(11)).foregroundStyle(Theme.muted)
-                    Text("₩186,400").font(gm(28, .bold))
-                    Text("지난달보다 ₩25,300 아꼈어요").font(pd(11)).foregroundStyle(Theme.green)
+                    Text("\(s?.month ?? 7)월 총 지출").font(pd(11)).foregroundStyle(Theme.muted)
+                    Text(won(s?.total ?? 186400)).font(gm(28, .bold))
+                    spendDeltaText
                 }
                 Spacer()
-                HStack(alignment: .bottom, spacing: 5) {
-                    bar(38, Color.white.opacity(0.1))
-                    bar(52, Color.white.opacity(0.1))
-                    bar(44, Color.white.opacity(0.1))
-                    bar(58, Color.white.opacity(0.14))
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(LinearGradient(colors: [Theme.goldLight, Theme.goldDark], startPoint: .top, endPoint: .bottom))
-                        .frame(width: 12, height: 40)
-                }
-                .frame(height: 64, alignment: .bottom)
-                .padding(.top, 6)
+                spendBars
             }
             HStack(spacing: 14) {
-                legend(Theme.orange, "충전 ₩96,200")
-                legend(Theme.gold, "주유 ₩41,000")
-                legend(Theme.silver, "기타 ₩49,200")
+                if let s, !s.breakdown.isEmpty {
+                    ForEach(s.breakdown, id: \.key) { item in
+                        legend(spendColor(item.key), "\(item.label) \(won(item.amount))")
+                    }
+                } else {
+                    legend(Theme.orange, "충전 ₩96,200")
+                    legend(Theme.gold, "주유 ₩41,000")
+                    legend(Theme.silver, "기타 ₩49,200")
+                }
             }
             .padding(.top, 12)
             .overlay(Rectangle().frame(height: 1).foregroundStyle(Color.white.opacity(0.06)), alignment: .top)
@@ -136,6 +133,56 @@ struct BriefingView: View {
         .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.07), lineWidth: 1))
         .padding(.horizontal, 16)
         .padding(.top, 22)
+    }
+
+    @ViewBuilder
+    private var spendDeltaText: some View {
+        if let s = store.monthlySpend, s.prevTotal > 0 {
+            if s.deltaWon <= 0 {
+                Text("지난달보다 \(won(-s.deltaWon)) 아꼈어요").font(pd(11)).foregroundStyle(Theme.green)
+            } else {
+                Text("지난달보다 \(won(s.deltaWon)) 더 썼어요").font(pd(11)).foregroundStyle(Theme.orange)
+            }
+        } else if store.monthlySpend != nil {
+            Text("이번 달 첫 지출 기록").font(pd(11)).foregroundStyle(Theme.muted)
+        } else {
+            Text("지난달보다 ₩25,300 아꼈어요").font(pd(11)).foregroundStyle(Theme.green)
+        }
+    }
+
+    // 최근 5개월 막대 (마지막이 이번 달) — 데이터 없으면 데모 높이
+    private var spendBars: some View {
+        HStack(alignment: .bottom, spacing: 5) {
+            bar(38, Color.white.opacity(0.1))
+            bar(52, Color.white.opacity(0.1))
+            bar(44, Color.white.opacity(0.1))
+            bar(prevBarHeight, Color.white.opacity(0.14))
+            RoundedRectangle(cornerRadius: 4)
+                .fill(LinearGradient(colors: [Theme.goldLight, Theme.goldDark], startPoint: .top, endPoint: .bottom))
+                .frame(width: 12, height: thisBarHeight)
+        }
+        .frame(height: 64, alignment: .bottom)
+        .padding(.top, 6)
+    }
+
+    private var thisBarHeight: CGFloat {
+        guard let s = store.monthlySpend, s.prevTotal > 0 || s.total > 0 else { return 40 }
+        let maxV = max(s.total, s.prevTotal, 1)
+        return max(10, CGFloat(s.total) / CGFloat(maxV) * 58)
+    }
+    private var prevBarHeight: CGFloat {
+        guard let s = store.monthlySpend, s.prevTotal > 0 || s.total > 0 else { return 58 }
+        let maxV = max(s.total, s.prevTotal, 1)
+        return max(10, CGFloat(s.prevTotal) / CGFloat(maxV) * 58)
+    }
+
+    private func spendColor(_ key: String) -> Color {
+        switch key {
+        case "charge": return Theme.orange
+        case "fuel": return Theme.gold
+        case "maintenance": return Theme.green
+        default: return Theme.silver
+        }
     }
 
     private func bar(_ height: CGFloat, _ color: Color) -> some View {

@@ -334,9 +334,9 @@ struct CockpitView: View {
     private var statCards: some View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("7월 지출").font(pd(11)).foregroundStyle(Theme.muted)
-                Text("₩186,400").font(gm(19, .bold))
-                Text("지난달 대비 −12%").font(pd(11)).foregroundStyle(Theme.green)
+                Text("\(store.monthlySpend?.month ?? 7)월 지출").font(pd(11)).foregroundStyle(Theme.muted)
+                Text(won(store.monthlySpend?.total ?? 186400)).font(gm(19, .bold))
+                spendDelta
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(14)
@@ -348,6 +348,20 @@ struct CockpitView: View {
         }
         .padding(.horizontal, 16)
         .padding(.top, 12)
+    }
+
+    @ViewBuilder
+    private var spendDelta: some View {
+        if let s = store.monthlySpend, let pct = s.deltaPct {
+            let down = pct <= 0
+            Text("지난달 대비 \(down ? "−" : "+")\(abs(pct))%")
+                .font(pd(11))
+                .foregroundStyle(down ? Theme.green : Theme.orange)
+        } else if store.monthlySpend != nil {
+            Text("첫 지출 기록").font(pd(11)).foregroundStyle(Theme.muted)
+        } else {
+            Text("지난달 대비 −12%").font(pd(11)).foregroundStyle(Theme.green)
+        }
     }
 
     // 두 번째 통계 카드: 약정거리(리스/렌트) 또는 구매가(구매)
