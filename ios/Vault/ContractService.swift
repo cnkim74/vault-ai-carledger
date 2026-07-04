@@ -45,8 +45,7 @@ final class ContractService: ObservableObject {
         text = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { throw ContractError.empty }
 
-        if let key = Secrets.anthropicKey, !key.isEmpty,
-           let info = try? await parseWithClaude(text: text, key: key) {
+        if let info = await parseWithClaude(text: text) {
             return info
         }
         return Self.parseLocally(text: text)
@@ -54,50 +53,20 @@ final class ContractService: ObservableObject {
 
     // ── Claude 파싱 (구조화 출력) ──────────────────────
 
-    private func parseWithClaude(text: String, key: String) async throws -> ContractInfo {
+    private static let system = """
+    너는 자동차 리스/렌트 계약서에서 핵심 정보를 추출하는 도구다. \
+    아래 계약서 텍스트에서 다음을 찾아 JSON만 출력한다(설명 금지):
+    {"contract_start":"YYYY-MM-DD 또는 null","contract_end":"YYYY-MM-DD 또는 null",\
+    "lease_limit_km":정수 또는 null,"monthly_fee_won":정수 또는 null,\
+    "maker":"제조사 또는 null","model":"모델명 또는 null","plate":"차량번호 또는 null"}
+    약정거리가 연간이면 계약기간(년)을 곱해 총 약정거리로 환산한다. \
+    금액·거리의 콤마와 단위는 제거하고 숫자만 넣는다.
+    """
+
+    private func parseWithClaude(text: String) async -> ContractInfo? {
         let clipped = String(text.prefix(8000))
-
-        struct RequestBody: Encodable {
-            let model = "claude-opus-4-8"
-            let max_tokens = 500
-            let system = """
-            너는 자동차 리스/렌트 계약서에서 핵심 정보를 추출하는 도구다. \
-            아래 계약서 텍스트에서 다음을 찾아 JSON만 출력한다(설명 금지):
-            {"contract_start":"YYYY-MM-DD 또는 null","contract_end":"YYYY-MM-DD 또는 null",\
-            "lease_limit_km":정수 또는 null,"monthly_fee_won":정수 또는 null,\
-            "maker":"제조사 또는 null","model":"모델명 또는 null","plate":"차량번호 또는 null"}
-            약정거리가 연간이면 계약기간(년)을 곱해 총 약정거리로 환산한다. \
-            금액·거리의 콤마와 단위는 제거하고 숫자만 넣는다.
-            """
-            let messages: [[String: String]]
-        }
-        let body = RequestBody(messages: [["role": "user", "content": clipped]])
-
-        var req = URLRequest(url: URL(string: "https://api.anthropic.com/v1/messages")!)
-        req.httpMethod = "POST"
-        req.setValue(key, forHTTPHeaderField: "x-api-key")
-        req.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.timeoutInterval = 60
-        req.httpBody = try JSONEncoder().encode(body)
-
-        let (data, resp) = try await URLSession.shared.data(for: req)
-        guard let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-            throw ContractError.unreadable
-        }
-        struct ResponseBody: Decodable {
-            struct Block: Decodable { let type: String; let text: String? }
-            let content: [Block]
-        }
-        let res = try JSONDecoder().decode(ResponseBody.self, from: data)
-        guard let raw = res.content.first(where: { $0.type == "text" })?.text else {
-            throw ContractError.unreadable
-        }
-        // JSON 부분만 추출
-        guard let start = raw.firstIndex(of: "{"), let end = raw.lastIndex(of: "}") else {
-            throw ContractError.unreadable
-        }
-        let json = String(raw[start...end])
+        guard let raw = await AIProxy.complete(system: Self.system, user: clipped, maxTokens: 500),
+              let json = AIProxy.extractJSON(raw) else { return nil }
 
         struct Parsed: Decodable {
             let contract_start: String?
@@ -108,7 +77,7 @@ final class ContractService: ObservableObject {
             let model: String?
             let plate: String?
         }
-        let p = try JSONDecoder().decode(Parsed.self, from: Data(json.utf8))
+        guard let p = try? JSONDecoder().decode(Parsed.self, from: json) else { return nil }
         return ContractInfo(
             contractStart: p.contract_start,
             contractEnd: p.contract_end,
