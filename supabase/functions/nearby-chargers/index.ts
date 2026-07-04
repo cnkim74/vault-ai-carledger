@@ -2,6 +2,11 @@
 // apis.data.go.kr/B552584/EvCharger/getChargerInfo (lat/lng + 실시간 stat)
 // 위경도로 가장 가까운 시도(zcode)를 고른 뒤 반경 내 충전소를 거리순 정렬.
 //
+// ⚠️ 현재 미사용(보류): KECO API는 반경 검색이 없고 시도 전체 조회가 느립니다
+//    (서울 75k기 = 8MB·37초). 동기 프록시로는 앱/엣지 타임아웃이 발생해,
+//    앱은 카카오맵 링크로 대체 중입니다. 실사용하려면 KECO 데이터를
+//    Supabase 테이블로 주기 동기화(cron) 후 PostGIS 반경 쿼리로 전환하세요.
+//
 // ⚠️ 공개 리포이므로 이 파일에는 키를 넣지 않습니다.
 //    설정: Supabase 대시보드 → Edge Functions → Secrets → KECO_KEY
 //          (공공데이터포털 getChargerInfo 서비스키, "인코딩" 버전)

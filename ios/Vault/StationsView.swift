@@ -8,9 +8,7 @@ struct StationsCard: View {
     @ObservedObject var store: VaultStore
     @ObservedObject var weather: WeatherService
     @StateObject private var service = StationService()
-    @StateObject private var chargerService = ChargerService()
     @State private var showSheet = false
-    @State private var showChargerSheet = false
     @Environment(\.openURL) private var openURL
 
     private var fuel: FuelType {
@@ -27,18 +25,12 @@ struct StationsCard: View {
         }
         .padding(.horizontal, 16)
         .task(id: cardTaskID) {
-            guard let coord = weather.coordinate else { return }
-            if store.vehicle.usesFuel {
+            if store.vehicle.usesFuel, let coord = weather.coordinate {
                 await service.load(fuel: fuel, coordinate: coord)
-            } else {
-                await chargerService.load(coordinate: coord)
             }
         }
         .sheet(isPresented: $showSheet) {
             StationsSheet(service: service, fuel: fuel)
-        }
-        .sheet(isPresented: $showChargerSheet) {
-            ChargersSheet(service: chargerService, city: weather.city)
         }
     }
 
@@ -120,14 +112,12 @@ struct StationsCard: View {
         }
     }
 
-    // 전기차 충전소 카드 — KECO 실시간, 데이터 없으면 카카오맵 링크
+    // 전기차 충전소 카드 — 카카오맵 실시간 충전소 검색 링크
     private var evCard: some View {
         Button {
-            if chargerService.state == .loaded {
-                showChargerSheet = true
-            } else {
-                openKakaoChargers()
-            }
+            let q = "\(weather.city) 전기차 충전소"
+                .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "충전소"
+            if let url = URL(string: "https://map.kakao.com/?q=\(q)") { openURL(url) }
         } label: {
             HStack(spacing: 12) {
                 RoundedRectangle(cornerRadius: 10)
@@ -139,12 +129,16 @@ struct StationsCard: View {
                             .foregroundStyle(Theme.green)
                     )
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("주변 충전소")
+                    Text("주변 충전소 찾기")
                         .font(pd(12.5, .semibold))
-                    chargerSubtitle
+                    Text("\(weather.city) 주변 · 카카오맵에서 보기")
+                        .font(pd(10.5))
+                        .foregroundStyle(Theme.muted)
                 }
                 Spacer()
-                chargerTrailing
+                Image(systemName: "arrow.up.right.square")
+                    .font(.system(size: 15))
+                    .foregroundStyle(Theme.muted)
             }
             .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14))
             .background(Theme.card)
@@ -152,52 +146,6 @@ struct StationsCard: View {
             .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.cardBorder, lineWidth: 1))
         }
         .buttonStyle(.plain)
-    }
-
-    @ViewBuilder
-    private var chargerSubtitle: some View {
-        switch chargerService.state {
-        case .loaded:
-            if let nearest = chargerService.chargers.first {
-                Text("최근접 \(nearest.distanceLabel) · \(nearest.fast ? "급속" : "완속")")
-                    .font(pd(10.5)).foregroundStyle(Theme.muted)
-            }
-        case .loading:
-            Text("주변 검색 중…").font(pd(10.5)).foregroundStyle(Theme.muted)
-        case .noKey:
-            Text("\(weather.city) 주변 · 카카오맵에서 보기").font(pd(10.5)).foregroundStyle(Theme.muted)
-        case .failed:
-            Text("카카오맵에서 충전소 보기").font(pd(10.5)).foregroundStyle(Theme.muted)
-        case .idle:
-            Text("위치 확인 중…").font(pd(10.5)).foregroundStyle(Theme.muted)
-        }
-    }
-
-    @ViewBuilder
-    private var chargerTrailing: some View {
-        switch chargerService.state {
-        case .loaded:
-            if let nearest = chargerService.chargers.first {
-                HStack(spacing: 8) {
-                    VStack(alignment: .trailing, spacing: 1) {
-                        Text("가능 \(nearest.available)")
-                            .font(gm(14, .bold))
-                            .foregroundStyle(nearest.available > 0 ? Theme.green : Theme.muted)
-                        Text("총 \(nearest.total)기").font(pd(9.5)).foregroundStyle(Theme.muted)
-                    }
-                    Image(systemName: "chevron.right").font(.system(size: 11)).foregroundStyle(Theme.muted)
-                }
-            }
-        case .loading:
-            ProgressView().controlSize(.small).tint(Theme.gold)
-        default:
-            Image(systemName: "arrow.up.right.square").font(.system(size: 15)).foregroundStyle(Theme.muted)
-        }
-    }
-
-    private func openKakaoChargers() {
-        let q = "전기차 충전소".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "충전소"
-        if let url = URL(string: "https://map.kakao.com/?q=\(q)") { openURL(url) }
     }
 }
 
@@ -256,68 +204,6 @@ struct StationsSheet: View {
             }
             .background(Theme.bgTop.ignoresSafeArea())
             .navigationTitle("주변 주유소")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("닫기") { dismiss() }
-                }
-            }
-        }
-        .tint(Theme.gold)
-        .preferredColorScheme(.dark)
-    }
-}
-
-/// 주변 충전소 전체 목록 시트 (거리순, 실시간 가용)
-struct ChargersSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.openURL) private var openURL
-    @ObservedObject var service: ChargerService
-    let city: String
-
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 8) {
-                    ForEach(service.chargers) { c in
-                        Button {
-                            let q = c.name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-                            if let url = URL(string: "https://map.kakao.com/?q=\(q)") { openURL(url) }
-                        } label: {
-                            HStack(spacing: 12) {
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill((c.available > 0 ? Theme.green : Theme.muted).opacity(0.14))
-                                    .frame(width: 34, height: 34)
-                                    .overlay(
-                                        Image(systemName: c.fast ? "bolt.fill" : "bolt")
-                                            .font(.system(size: 14))
-                                            .foregroundStyle(c.available > 0 ? Theme.green : Theme.muted)
-                                    )
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(c.name).font(pd(12.5, .medium)).lineLimit(1)
-                                    Text("\(c.fast ? "급속" : "완속") · \(c.distanceLabel)")
-                                        .font(pd(10.5)).foregroundStyle(Theme.muted)
-                                }
-                                Spacer()
-                                VStack(alignment: .trailing, spacing: 1) {
-                                    Text("가능 \(c.available)/\(c.total)")
-                                        .font(gm(13, .medium))
-                                        .foregroundStyle(c.available > 0 ? Theme.green : Theme.muted)
-                                }
-                                Image(systemName: "map").font(.system(size: 12)).foregroundStyle(Theme.muted)
-                            }
-                            .padding(EdgeInsets(top: 11, leading: 14, bottom: 11, trailing: 14))
-                            .background(Theme.card)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.cardBorder, lineWidth: 1))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(16)
-            }
-            .background(Theme.bgTop.ignoresSafeArea())
-            .navigationTitle("주변 충전소")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
