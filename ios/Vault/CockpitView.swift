@@ -1,8 +1,14 @@
 import SwiftUI
+import PhotosUI
 
 /// 1a 콕핏형 — 차량 상태 히어로 + AI 인사이트
 struct CockpitView: View {
     @ObservedObject var store: VaultStore
+    @State private var carImage: UIImage? = CarImageStore.load()
+    @State private var showPhotoDialog = false
+    @State private var showPicker = false
+    @State private var photoItem: PhotosPickerItem?
+    @State private var showAddRecord = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -19,6 +25,27 @@ struct CockpitView: View {
                 .ignoresSafeArea()
         )
         .foregroundStyle(Theme.text)
+        .photosPicker(isPresented: $showPicker, selection: $photoItem, matching: .images)
+        .onChange(of: photoItem) { _, item in
+            Task {
+                if let data = try? await item?.loadTransferable(type: Data.self),
+                   let img = UIImage(data: data) {
+                    carImage = img
+                    CarImageStore.save(img)
+                }
+            }
+        }
+        .sheet(isPresented: $showAddRecord) {
+            AddRecordView(store: store)
+        }
+        .onAppear {
+            // 스크린샷/테스트용: SAMPLE_CAR=red|blue|sky
+            if carImage == nil,
+               let sample = ProcessInfo.processInfo.environment["SAMPLE_CAR"],
+               let img = CarImageStore.sample("car-\(sample)") {
+                carImage = img
+            }
+        }
     }
 
     // 헤더
@@ -26,16 +53,16 @@ struct CockpitView: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text("VAULT")
-                    .font(.system(size: 22, weight: .black))
+                    .font(pd(22, .black))
                     .kerning(1)
                     .foregroundStyle(Theme.goldGradient)
                 HStack(spacing: 5) {
                     Text("좋은 아침이에요, 지훈님")
-                        .font(.system(size: 11))
+                        .font(pd(11))
                         .foregroundStyle(Theme.muted2)
                     if store.live {
                         Text("· Supabase 연결됨")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(pd(11, .semibold))
                             .foregroundStyle(Theme.green)
                     }
                 }
@@ -49,7 +76,7 @@ struct CockpitView: View {
                 }
                 circleButton {
                     Text("JH")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(pd(12, .semibold))
                         .foregroundStyle(Theme.gold)
                 }
             }
@@ -73,40 +100,23 @@ struct CockpitView: View {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(store.vehicle.name)
-                        .font(.system(size: 17, weight: .medium, design: .rounded))
+                        .font(gm(17, .medium))
                     Text("\(store.vehicle.plate ?? "") · \(store.vehicle.fuelType)")
-                        .font(.system(size: 11))
+                        .font(pd(11))
                         .kerning(0.5)
                         .foregroundStyle(Theme.muted)
                 }
                 Spacer()
                 Text("주차 중")
-                    .font(.system(size: 10.5))
+                    .font(pd(10.5))
                     .foregroundStyle(Theme.gold)
                     .padding(.horizontal, 9)
                     .padding(.vertical, 3)
                     .overlay(Capsule().stroke(Theme.gold.opacity(0.4), lineWidth: 1))
             }
 
-            // 차량 사진 슬롯 (placeholder)
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Color.white.opacity(0.03))
-                .overlay(
-                    VStack(spacing: 6) {
-                        Image(systemName: "photo")
-                            .font(.system(size: 20))
-                            .foregroundStyle(Theme.gold.opacity(0.7))
-                        Text("내 차 사진을 끌어다 놓으세요")
-                            .font(.system(size: 11))
-                            .foregroundStyle(Color.white.opacity(0.45))
-                    }
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
-                        .foregroundStyle(Color.white.opacity(0.18))
-                )
-                .frame(height: 130)
+            // 차량 사진 슬롯 — 탭하면 앨범/샘플 선택
+            photoSlot
                 .padding(.top, 12)
                 .padding(.bottom, 4)
 
@@ -116,9 +126,9 @@ struct CockpitView: View {
                     statRow(label: "주행 가능 거리", value: "\(store.vehicle.rangeKm) km")
                     statRow(label: "누적 주행", value: "\(grouped(store.vehicle.odometerKm)) km")
                     HStack {
-                        Text("완충까지").font(.system(size: 12)).foregroundStyle(Theme.muted)
+                        Text("완충까지").font(pd(12)).foregroundStyle(Theme.muted)
                         Spacer()
-                        Text("충전 중 아님").font(.system(size: 12)).foregroundStyle(Theme.silver)
+                        Text("충전 중 아님").font(pd(12)).foregroundStyle(Theme.silver)
                     }
                 }
             }
@@ -146,6 +156,60 @@ struct CockpitView: View {
         .padding(.top, 12)
     }
 
+    @ViewBuilder
+    private var photoSlot: some View {
+        Group {
+            if let img = carImage {
+                Image(uiImage: img)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 130)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+            } else {
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color.white.opacity(0.03))
+                    .overlay(
+                        VStack(spacing: 6) {
+                            Image(systemName: "photo")
+                                .font(.system(size: 20))
+                                .foregroundStyle(Theme.gold.opacity(0.7))
+                            Text("탭해서 내 차 사진을 선택하세요")
+                                .font(pd(11))
+                                .foregroundStyle(Color.white.opacity(0.45))
+                        }
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
+                            .foregroundStyle(Color.white.opacity(0.18))
+                    )
+                    .frame(height: 130)
+            }
+        }
+        .contentShape(RoundedRectangle(cornerRadius: 14))
+        .onTapGesture { showPhotoDialog = true }
+        .confirmationDialog("차량 사진", isPresented: $showPhotoDialog, titleVisibility: .visible) {
+            Button("앨범에서 선택") { showPicker = true }
+            Button("샘플 · 레드") { setSample("car-red") }
+            Button("샘플 · 블루") { setSample("car-blue") }
+            Button("샘플 · 스카이") { setSample("car-sky") }
+            if carImage != nil {
+                Button("사진 제거", role: .destructive) {
+                    carImage = nil
+                    CarImageStore.clear()
+                }
+            }
+            Button("취소", role: .cancel) {}
+        }
+    }
+
+    private func setSample(_ name: String) {
+        guard let img = CarImageStore.sample(name) else { return }
+        carImage = img
+        CarImageStore.save(img)
+    }
+
     private var batteryRing: some View {
         ZStack {
             Circle()
@@ -158,7 +222,7 @@ struct CockpitView: View {
                 .fill(Theme.card)
                 .padding(7)
             Text("\(store.vehicle.battery)%")
-                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .font(gm(16, .bold))
                 .foregroundStyle(Theme.gold)
         }
         .frame(width: 74, height: 74)
@@ -166,9 +230,9 @@ struct CockpitView: View {
 
     private func statRow(label: String, value: String) -> some View {
         HStack {
-            Text(label).font(.system(size: 12)).foregroundStyle(Theme.muted)
+            Text(label).font(pd(12)).foregroundStyle(Theme.muted)
             Spacer()
-            Text(value).font(.system(size: 12, weight: .medium, design: .rounded))
+            Text(value).font(gm(12, .medium))
         }
     }
 
@@ -185,7 +249,7 @@ struct CockpitView: View {
                 )
             VStack(alignment: .leading, spacing: 3) {
                 Text("AI 인사이트")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(pd(11, .semibold))
                     .kerning(0.5)
                     .foregroundStyle(Theme.gold)
                 (
@@ -193,7 +257,7 @@ struct CockpitView: View {
                     + Text("₩38,200").bold().foregroundStyle(Theme.gold)
                     + Text(" 절약할 수 있어요.")
                 )
-                .font(.system(size: 13))
+                .font(pd(13))
                 .lineSpacing(3)
                 .foregroundStyle(Theme.textStrong)
             }
@@ -216,9 +280,9 @@ struct CockpitView: View {
     private var statCards: some View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("7월 지출").font(.system(size: 11)).foregroundStyle(Theme.muted)
-                Text("₩186,400").font(.system(size: 19, weight: .bold, design: .rounded))
-                Text("지난달 대비 −12%").font(.system(size: 11)).foregroundStyle(Theme.green)
+                Text("7월 지출").font(pd(11)).foregroundStyle(Theme.muted)
+                Text("₩186,400").font(gm(19, .bold))
+                Text("지난달 대비 −12%").font(pd(11)).foregroundStyle(Theme.green)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(14)
@@ -228,15 +292,15 @@ struct CockpitView: View {
 
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .firstTextBaseline) {
-                    Text("약정거리").font(.system(size: 11)).foregroundStyle(Theme.muted)
+                    Text("약정거리").font(pd(11)).foregroundStyle(Theme.muted)
                     Spacer()
-                    Text("\(store.vehicle.leasePct ?? 0)%").font(.system(size: 10)).foregroundStyle(Theme.orange)
+                    Text("\(store.vehicle.leasePct ?? 0)%").font(pd(10)).foregroundStyle(Theme.orange)
                 }
                 (
                     Text(grouped(store.vehicle.leaseDrivenKm ?? 0))
-                        .font(.system(size: 19, weight: .bold, design: .rounded))
+                        .font(gm(19, .bold))
                     + Text(" /\(grouped(store.vehicle.leaseLimitKm ?? 0))km")
-                        .font(.system(size: 11))
+                        .font(pd(11))
                         .foregroundStyle(Theme.muted)
                 )
                 .padding(.top, 4)
@@ -265,9 +329,9 @@ struct CockpitView: View {
     private var recentRecords: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline) {
-                Text("최근 기록").font(.system(size: 13, weight: .semibold))
+                Text("최근 기록").font(pd(13, .semibold))
                 Spacer()
-                Text("전체 보기").font(.system(size: 11)).foregroundStyle(Theme.muted)
+                Text("전체 보기").font(pd(11)).foregroundStyle(Theme.muted)
             }
             .padding(.bottom, 0)
 
@@ -290,14 +354,14 @@ struct CockpitView: View {
                         .foregroundStyle(rec.kind == .charge ? Theme.orange : Theme.silver)
                 )
             VStack(alignment: .leading, spacing: 1) {
-                Text(rec.title).font(.system(size: 12.5, weight: .medium))
+                Text(rec.title).font(pd(12.5, .medium))
                 subtitleText(rec)
             }
             Spacer()
             if rec.kind == .charge, let amount = rec.amountWon {
-                Text(won(amount)).font(.system(size: 13, weight: .medium, design: .rounded))
+                Text(won(amount)).font(gm(13, .medium))
             } else if let tag = rec.tag {
-                Text(tag).font(.system(size: 11)).foregroundStyle(Theme.muted)
+                Text(tag).font(pd(11)).foregroundStyle(Theme.muted)
             }
         }
         .padding(EdgeInsets(top: 11, leading: 14, bottom: 11, trailing: 14))
@@ -316,7 +380,7 @@ struct CockpitView: View {
             if let dist = rec.distanceKm { t = t + Text(" · \(String(format: "%.1f", dist))km") }
             if let dur = rec.durationMin { t = t + Text(" · \(dur)분") }
         }
-        return t.font(.system(size: 10.5)).foregroundStyle(Theme.muted)
+        return t.font(pd(10.5)).foregroundStyle(Theme.muted)
     }
 
     // 탭바
@@ -326,16 +390,20 @@ struct CockpitView: View {
             Spacer()
             tabItem(icon: "line.3.horizontal", label: "기록")
             Spacer()
-            Circle()
-                .fill(Theme.goldGradient)
-                .frame(width: 52, height: 52)
-                .overlay(
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 19, weight: .semibold))
-                        .foregroundStyle(Theme.ink)
-                )
-                .shadow(color: Theme.gold.opacity(0.35), radius: 9, y: 6)
-                .offset(y: -14)
+            Button {
+                showAddRecord = true
+            } label: {
+                Circle()
+                    .fill(Theme.goldGradient)
+                    .frame(width: 52, height: 52)
+                    .overlay(
+                        Image(systemName: "plus")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundStyle(Theme.ink)
+                    )
+                    .shadow(color: Theme.gold.opacity(0.35), radius: 9, y: 6)
+            }
+            .offset(y: -14)
             Spacer()
             tabItem(icon: "chart.bar", label: "통계")
             Spacer()
@@ -356,7 +424,7 @@ struct CockpitView: View {
             Image(systemName: icon)
                 .font(.system(size: 17))
             Text(label)
-                .font(.system(size: 9.5))
+                .font(pd(9.5))
         }
         .foregroundStyle(active ? Theme.gold : Theme.muted)
         .frame(minWidth: 48)

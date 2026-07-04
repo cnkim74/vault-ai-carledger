@@ -43,6 +43,59 @@ final class VaultStore: ObservableObject {
         }
     }
 
+    struct RecordInsert: Encodable {
+        let vehicle_id: String
+        let kind: String
+        let title: String
+        let occurred_at: String
+        let amount_won: Int?
+        let distance_km: Double?
+        let duration_min: Int?
+        let location: String?
+        let tag: String?
+        let ai_logged: Bool
+    }
+
+    /// 새 기록을 Supabase에 저장하고 목록을 새로고침한다.
+    func addRecord(
+        kind: RecordKind, title: String,
+        amountWon: Int? = nil, distanceKm: Double? = nil, durationMin: Int? = nil,
+        location: String? = nil, tag: String? = nil
+    ) async throws {
+        guard let base = Secrets.supabaseURL, let key = Secrets.supabaseKey, !key.isEmpty else {
+            throw URLError(.userAuthenticationRequired)
+        }
+
+        var req = URLRequest(url: base.appendingPathComponent("rest/v1/records"))
+        req.httpMethod = "POST"
+        req.setValue(key, forHTTPHeaderField: "apikey")
+        req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("return=minimal", forHTTPHeaderField: "Prefer")
+
+        let iso = ISO8601DateFormatter()
+        let body = RecordInsert(
+            vehicle_id: vehicle.id.uuidString.lowercased(),
+            kind: kind.rawValue,
+            title: title,
+            occurred_at: iso.string(from: Date()),
+            amount_won: amountWon,
+            distance_km: distanceKm,
+            duration_min: durationMin,
+            location: location,
+            tag: tag,
+            ai_logged: false
+        )
+        req.httpBody = try JSONEncoder().encode(body)
+
+        let (_, resp) = try await URLSession.shared.data(for: req)
+        guard let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
+
+        await load()
+    }
+
     private func fetch<T: Decodable>(base: URL, key: String, path: String, query: [URLQueryItem]) async throws -> T {
         var comps = URLComponents(url: base.appendingPathComponent(path), resolvingAgainstBaseURL: false)!
         comps.queryItems = query

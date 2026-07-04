@@ -26,13 +26,13 @@ struct BriefingView: View {
     private var header: some View {
         HStack {
             (Text("VAULT") + Text(".").foregroundStyle(Theme.gold))
-                .font(.system(size: 20, weight: .black))
+                .font(pd(20, .black))
                 .kerning(1)
             Spacer()
             HStack(spacing: 8) {
                 Circle().fill(Theme.green).frame(width: 6, height: 6)
                 Text("\(shortName) · \(store.vehicle.battery)% · \(store.vehicle.rangeKm)km")
-                    .font(.system(size: 11))
+                    .font(pd(11))
                     .foregroundStyle(Theme.silver)
             }
             .padding(.horizontal, 12)
@@ -66,7 +66,7 @@ struct BriefingView: View {
                     + Text("11월 말 초과").bold().foregroundStyle(Theme.orange)
                     + Text("가 예상돼요.")
                 )
-                .font(.system(size: 13))
+                .font(pd(13))
                 .lineSpacing(4)
                 .foregroundStyle(Theme.textStrong)
                 .padding(EdgeInsets(top: 13, leading: 15, bottom: 13, trailing: 15))
@@ -90,7 +90,7 @@ struct BriefingView: View {
 
     private func chip(_ label: String, color: Color, border: Color) -> some View {
         Text(label)
-            .font(.system(size: 11))
+            .font(pd(11))
             .foregroundStyle(color)
             .padding(.horizontal, 11)
             .padding(.vertical, 4)
@@ -102,9 +102,9 @@ struct BriefingView: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("7월 총 지출").font(.system(size: 11)).foregroundStyle(Theme.muted)
-                    Text("₩186,400").font(.system(size: 28, weight: .bold, design: .rounded))
-                    Text("지난달보다 ₩25,300 아꼈어요").font(.system(size: 11)).foregroundStyle(Theme.green)
+                    Text("7월 총 지출").font(pd(11)).foregroundStyle(Theme.muted)
+                    Text("₩186,400").font(gm(28, .bold))
+                    Text("지난달보다 ₩25,300 아꼈어요").font(pd(11)).foregroundStyle(Theme.green)
                 }
                 Spacer()
                 HStack(alignment: .bottom, spacing: 5) {
@@ -145,7 +145,7 @@ struct BriefingView: View {
     private func legend(_ color: Color, _ label: String) -> some View {
         HStack(spacing: 6) {
             RoundedRectangle(cornerRadius: 2).fill(color).frame(width: 8, height: 8)
-            Text(label).font(.system(size: 11.5)).foregroundStyle(Theme.silver)
+            Text(label).font(pd(11.5)).foregroundStyle(Theme.silver)
         }
     }
 
@@ -153,10 +153,10 @@ struct BriefingView: View {
     private var leaseCard: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .firstTextBaseline) {
-                Text("렌트 약정거리").font(.system(size: 12, weight: .semibold))
+                Text("렌트 약정거리").font(pd(12, .semibold))
                 Spacer()
                 Text("초과 위험 · 잔여 \(grouped(store.vehicle.leaseRemainKm))km")
-                    .font(.system(size: 11))
+                    .font(pd(11))
                     .foregroundStyle(Theme.orange)
             }
             GeometryReader { geo in
@@ -174,7 +174,7 @@ struct BriefingView: View {
                 Spacer()
                 Text("약정 \(grouped(store.vehicle.leaseLimitKm ?? 0))km")
             }
-            .font(.system(size: 10))
+            .font(pd(10))
             .foregroundStyle(Theme.muted)
             .padding(.top, 6)
         }
@@ -189,7 +189,7 @@ struct BriefingView: View {
     // 이번 주 기록 타임라인
     private var timeline: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("이번 주 기록").font(.system(size: 13, weight: .semibold))
+            Text("이번 주 기록").font(pd(13, .semibold))
             VStack(spacing: 0) {
                 ForEach(Array(store.records.enumerated()), id: \.element.id) { idx, rec in
                     timelineRow(rec, isLast: idx == store.records.count - 1)
@@ -221,7 +221,7 @@ struct BriefingView: View {
 
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(rec.title).font(.system(size: 12.5, weight: .medium))
+                    Text(rec.title).font(pd(12.5, .medium))
                     timelineSubtitle(rec)
                 }
                 Spacer()
@@ -248,7 +248,7 @@ struct BriefingView: View {
             }
             t = s
         }
-        return t.font(.system(size: 10.5)).foregroundStyle(Theme.muted)
+        return t.font(pd(10.5)).foregroundStyle(Theme.muted)
     }
 
     @ViewBuilder
@@ -256,14 +256,14 @@ struct BriefingView: View {
         switch rec.kind {
         case .charge:
             if let amount = rec.amountWon {
-                Text(won(amount)).font(.system(size: 13, design: .rounded))
+                Text(won(amount)).font(gm(13))
             }
         case .drive:
             if let dur = rec.durationMin {
-                Text("\(dur)분").font(.system(size: 11)).foregroundStyle(Theme.muted)
+                Text("\(dur)분").font(pd(11)).foregroundStyle(Theme.muted)
             }
         case .maintenance:
-            Text("예약").font(.system(size: 11)).foregroundStyle(Theme.gold)
+            Text("예약").font(pd(11)).foregroundStyle(Theme.gold)
         }
     }
 
@@ -274,7 +274,7 @@ struct BriefingView: View {
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(Theme.gold)
             Text("이번 달 충전비 얼마 썼어?")
-                .font(.system(size: 12.5))
+                .font(pd(12.5))
                 .foregroundStyle(Theme.muted)
             Spacer()
             Image(systemName: "arrow.up")
