@@ -1,6 +1,8 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// 차량 정보 수정/등록 폼 — 차종 카탈로그 참조, 소유형태별 필드 분기.
+/// 계약서 PDF를 불러와 계약일·약정일·약정거리·월납입금을 자동 채울 수 있다.
 struct VehicleEditView: View {
     enum Mode {
         case edit, create
@@ -9,6 +11,11 @@ struct VehicleEditView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var store: VaultStore
     let mode: Mode
+
+    @StateObject private var contractSvc = ContractService()
+    @State private var showImporter = false
+    @State private var importError: String?
+    @State private var importSummary: String?
 
     @State private var maker: String
     @State private var model: String
@@ -22,6 +29,8 @@ struct VehicleEditView: View {
     @State private var purchasePrice: String
     @State private var monthlyFee: String
     @State private var leaseLimit: String
+    @State private var contractStart: Date
+    @State private var hasContractStart: Bool
     @State private var contractEnd: Date
     @State private var hasContractEnd: Bool
     @State private var saving = false
@@ -44,6 +53,8 @@ struct VehicleEditView: View {
             _purchasePrice = State(initialValue: "")
             _monthlyFee = State(initialValue: "")
             _leaseLimit = State(initialValue: "")
+            _contractStart = State(initialValue: Date())
+            _hasContractStart = State(initialValue: false)
             _contractEnd = State(initialValue: Date())
             _hasContractEnd = State(initialValue: false)
             return
@@ -65,9 +76,10 @@ struct VehicleEditView: View {
         _purchasePrice = State(initialValue: v.purchasePriceWon.map(String.init) ?? "")
         _monthlyFee = State(initialValue: v.monthlyFeeWon.map(String.init) ?? "")
         _leaseLimit = State(initialValue: v.leaseLimitKm.map(String.init) ?? "")
-        let df = DateFormatter()
-        df.dateFormat = "yyyy-MM-dd"
-        let end = v.contractEnd.flatMap { df.date(from: $0) }
+        let start = v.contractStart.flatMap { Vehicle.parseDay($0) }
+        _contractStart = State(initialValue: start ?? Date())
+        _hasContractStart = State(initialValue: start != nil)
+        let end = v.contractEnd.flatMap { Vehicle.parseDay($0) }
         _contractEnd = State(initialValue: end ?? Date())
         _hasContractEnd = State(initialValue: end != nil)
     }
@@ -75,6 +87,29 @@ struct VehicleEditView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    Button {
+                        showImporter = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "doc.text.magnifyingglass")
+                            Text(contractSvc.parsing ? "계약서 분석 중…" : "계약서 PDF 불러오기")
+                            Spacer()
+                            if contractSvc.parsing { ProgressView() }
+                        }
+                        .foregroundStyle(Theme.gold)
+                    }
+                    .disabled(contractSvc.parsing)
+                    if let s = importSummary {
+                        Text(s).font(pd(11)).foregroundStyle(Theme.green)
+                    }
+                    if let e = importError {
+                        Text(e).font(pd(11)).foregroundStyle(.red)
+                    }
+                } footer: {
+                    Text("리스·렌트 계약서 PDF에서 계약일·약정일·약정거리를 자동으로 채워요.")
+                }
+
                 Section("차량") {
                     Toggle("직접 입력", isOn: $useCustomName)
                     if useCustomName {
@@ -118,6 +153,10 @@ struct VehicleEditView: View {
                             .keyboardType(.numberPad)
                         TextField("월 납입금 (원)", text: $monthlyFee)
                             .keyboardType(.numberPad)
+                        Toggle("계약 시작일 설정", isOn: $hasContractStart)
+                        if hasContractStart {
+                            DatePicker("계약 시작일", selection: $contractStart, displayedComponents: .date)
+                        }
                         Toggle("계약 종료일 설정", isOn: $hasContractEnd)
                         if hasContractEnd {
                             DatePicker("계약 종료일", selection: $contractEnd, displayedComponents: .date)
@@ -155,6 +194,47 @@ struct VehicleEditView: View {
         }
         .tint(Theme.gold)
         .preferredColorScheme(.dark)
+        .fileImporter(isPresented: $showImporter, allowedContentTypes: [.pdf]) { result in
+            switch result {
+            case .success(let url):
+                Task { await importContract(url) }
+            case .failure(let err):
+                importError = err.localizedDescription
+            }
+        }
+    }
+
+    private func importContract(_ url: URL) async {
+        importError = nil
+        importSummary = nil
+        do {
+            let info = try await contractSvc.parse(url: url)
+            var filled: [String] = []
+            if let s = info.contractStart, let d = Vehicle.parseDay(s) {
+                contractStart = d; hasContractStart = true; filled.append("계약일")
+            }
+            if let s = info.contractEnd, let d = Vehicle.parseDay(s) {
+                contractEnd = d; hasContractEnd = true; filled.append("약정일")
+            }
+            if let km = info.leaseLimitKm { leaseLimit = String(km); filled.append("약정거리") }
+            if let fee = info.monthlyFeeWon { monthlyFee = String(fee); filled.append("월납입금") }
+            if let p = info.plate, plate.isEmpty { plate = p }
+            if let mk = info.maker, CarCatalog.makers.contains(mk) {
+                maker = mk
+                if let md = info.model, CarCatalog.models(for: mk).contains(md) { model = md }
+                useCustomName = false
+            } else if let md = info.model {
+                customName = md; useCustomName = true
+            }
+            // 계약서를 불러왔으면 소유형태를 렌트로 (구매가 아닌 계약)
+            if !filled.isEmpty && ownership == .purchase { ownership = .rent }
+
+            importSummary = filled.isEmpty
+                ? "인식된 항목이 없어요. 직접 입력해 주세요."
+                : "\(filled.joined(separator: " · ")) 자동 입력됨"
+        } catch {
+            importError = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
     }
 
     private func save() async {
@@ -180,6 +260,9 @@ struct VehicleEditView: View {
         case .lease, .rent:
             upsert.lease_limit_km = Int(leaseLimit)
             upsert.monthly_fee_won = Int(monthlyFee)
+            if hasContractStart {
+                upsert.contract_start = df.string(from: contractStart)
+            }
             if hasContractEnd {
                 upsert.contract_end = df.string(from: contractEnd)
             }

@@ -124,6 +124,7 @@ final class VaultStore: ObservableObject {
         var year: Int?
         var purchase_price_won: Int?
         var monthly_fee_won: Int?
+        var contract_start: String?
         var contract_end: String?
     }
 

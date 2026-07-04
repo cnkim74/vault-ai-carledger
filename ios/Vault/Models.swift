@@ -24,6 +24,16 @@ enum FuelType: String, CaseIterable {
     case hybrid = "하이브리드"
     case lpg = "LPG"
     case hydrogen = "수소"
+
+    /// 오피넷 유종 코드 (전기/수소는 없음)
+    var opinetCode: String? {
+        switch self {
+        case .gasoline, .hybrid: return "B027"
+        case .diesel: return "D047"
+        case .lpg: return "K015"
+        case .ev, .hydrogen: return nil
+        }
+    }
 }
 
 struct Vehicle: Codable, Identifiable {
@@ -41,6 +51,7 @@ struct Vehicle: Codable, Identifiable {
     var year: Int?
     var purchasePriceWon: Int?
     var monthlyFeeWon: Int?
+    var contractStart: String?
     var contractEnd: String?
 
     enum CodingKeys: String, CodingKey {
@@ -51,6 +62,7 @@ struct Vehicle: Codable, Identifiable {
         case leaseDrivenKm = "lease_driven_km"
         case purchasePriceWon = "purchase_price_won"
         case monthlyFeeWon = "monthly_fee_won"
+        case contractStart = "contract_start"
         case contractEnd = "contract_end"
     }
 
@@ -65,6 +77,65 @@ struct Vehicle: Codable, Identifiable {
     var leaseRemainKm: Int {
         (leaseLimitKm ?? 0) - (leaseDrivenKm ?? 0)
     }
+
+    /// 연료가 주유 대상(전기·수소 제외)인지
+    var usesFuel: Bool {
+        fuelType != FuelType.ev.rawValue && fuelType != FuelType.hydrogen.rawValue
+    }
+
+    /// 계약서 기반 약정거리 초과 예측.
+    /// 계약일·약정일·약정km·현재 약정주행이 모두 있어야 계산됨.
+    func leaseProjection(asOf: Date = Date()) -> LeaseProjection? {
+        guard let startStr = contractStart, let start = Self.parseDay(startStr),
+              let endStr = contractEnd, let end = Self.parseDay(endStr),
+              let limit = leaseLimitKm, limit > 0,
+              let driven = leaseDrivenKm
+        else { return nil }
+
+        let cal = Calendar(identifier: .gregorian)
+        let totalDays = max(1, cal.dateComponents([.day], from: start, to: end).day ?? 1)
+        let rawElapsed = cal.dateComponents([.day], from: start, to: asOf).day ?? 0
+        let elapsed = min(max(1, rawElapsed), totalDays)
+        let remaining = max(0, totalDays - elapsed)
+
+        let dailyPace = Double(driven) / Double(elapsed)
+        let projectedTotal = Int((dailyPace * Double(totalDays)).rounded())
+        let overage = projectedTotal - limit
+
+        let timeProgress = Double(elapsed) / Double(totalDays)
+        let distProgress = Double(driven) / Double(limit)
+
+        return LeaseProjection(
+            projectedTotalKm: projectedTotal,
+            overageKm: overage,
+            allowedToDateKm: Int((Double(limit) * timeProgress).rounded()),
+            drivenKm: driven,
+            limitKm: limit,
+            dailyPaceKm: dailyPace,
+            daysRemaining: remaining,
+            isOverPace: distProgress > timeProgress
+        )
+    }
+
+    static func parseDay(_ s: String) -> Date? {
+        let f = DateFormatter()
+        f.calendar = Calendar(identifier: .gregorian)
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd"
+        return f.date(from: String(s.prefix(10)))
+    }
+}
+
+/// 약정거리 초과 예측 결과
+struct LeaseProjection {
+    let projectedTotalKm: Int   // 계약 만료 시 예상 총 주행
+    let overageKm: Int          // 약정 대비: +초과 / -여유
+    let allowedToDateKm: Int    // 오늘까지 허용되는 페이스 주행
+    let drivenKm: Int           // 현재 약정 주행
+    let limitKm: Int            // 약정 km
+    let dailyPaceKm: Double     // 하루 평균 주행
+    let daysRemaining: Int      // 계약 잔여 일수
+    let isOverPace: Bool        // 시간 대비 과속 여부
 }
 
 struct VaultRecord: Codable, Identifiable {
@@ -137,6 +208,7 @@ enum MockData {
         year: 2024,
         purchasePriceWon: nil,
         monthlyFeeWon: 890000,
+        contractStart: "2024-07-01",
         contractEnd: "2027-06-30"
     )
 

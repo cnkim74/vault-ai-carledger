@@ -10,21 +10,31 @@ struct CockpitView: View {
     @State private var showPicker = false
     @State private var photoItem: PhotosPickerItem?
     @StateObject private var weather = WeatherService()
+    @StateObject private var prediction = PredictionService()
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            heroCard
-            insightCard
-            statCards
-            recentRecords
-            Spacer(minLength: 0)
+        ScrollView {
+            VStack(spacing: 0) {
+                header
+                heroCard
+                insightCard
+                statCards
+                leaseProjectionCard
+                predictionCard
+                StationsCard(store: store, weather: weather)
+                    .padding(.top, 12)
+                recentRecords
+            }
+            .padding(.bottom, 16)
         }
         .background(
             LinearGradient(colors: [Theme.bgTop, Theme.bgBottom], startPoint: .top, endPoint: .bottom)
                 .ignoresSafeArea()
         )
         .foregroundStyle(Theme.text)
+        .task(id: store.vehicle.id) {
+            await prediction.predict(vehicle: store.vehicle, records: store.records, placeName: weather.city)
+        }
         .photosPicker(isPresented: $showPicker, selection: $photoItem, matching: .images)
         .onChange(of: photoItem) { _, item in
             Task {
@@ -69,16 +79,16 @@ struct CockpitView: View {
                     }
                 }
                 if let temp = weather.tempC {
-                    HStack(spacing: 4) {
+                    HStack(spacing: 5) {
                         Image(systemName: weather.symbol)
                             .font(.system(size: 10))
                             .symbolRenderingMode(.multicolor)
-                        (
-                            Text("\(weather.city) \(temp)° · \(weather.label)")
-                            + (weather.carAdvice.map { Text(" · \($0)").foregroundStyle(Theme.gold) } ?? Text(""))
-                        )
-                        .font(pd(11))
-                        .foregroundStyle(Theme.silver)
+                        Text("\(weather.city) \(temp)° · \(weather.label)")
+                            .font(pd(11))
+                            .foregroundStyle(Theme.silver)
+                        if let score = weather.carWashScore {
+                            washBadge(score: score, grade: weather.carWashGrade)
+                        }
                     }
                     .padding(.top, 1)
                 }
@@ -100,6 +110,20 @@ struct CockpitView: View {
         .padding(.horizontal, 20)
         .padding(.top, 8)
         .padding(.bottom, 6)
+    }
+
+    // 세차지수 배지
+    private func washBadge(score: Int, grade: String) -> some View {
+        let color: Color = score >= 60 ? Theme.green : (score >= 40 ? Theme.gold : Theme.orange)
+        return HStack(spacing: 3) {
+            Image(systemName: "drop.fill").font(.system(size: 8))
+            Text("세차 \(score) · \(grade)").font(pd(10, .semibold))
+        }
+        .foregroundStyle(color)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 2)
+        .background(color.opacity(0.12))
+        .clipShape(Capsule())
     }
 
     private func circleButton<Content: View>(@ViewBuilder content: () -> Content) -> some View {
@@ -320,39 +344,167 @@ struct CockpitView: View {
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.cardBorder, lineWidth: 1))
 
-            VStack(alignment: .leading, spacing: 0) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text("약정거리").font(pd(11)).foregroundStyle(Theme.muted)
-                    Spacer()
-                    Text("\(store.vehicle.leasePct ?? 0)%").font(pd(10)).foregroundStyle(Theme.orange)
-                }
-                (
-                    Text(grouped(store.vehicle.leaseDrivenKm ?? 0))
-                        .font(gm(19, .bold))
-                    + Text(" /\(grouped(store.vehicle.leaseLimitKm ?? 0))km")
-                        .font(pd(11))
-                        .foregroundStyle(Theme.muted)
-                )
-                .padding(.top, 4)
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule().fill(Color.white.opacity(0.08))
-                        Capsule()
-                            .fill(Theme.leaseGradient)
-                            .frame(width: geo.size.width * CGFloat(store.vehicle.leasePct ?? 0) / 100)
-                    }
-                }
-                .frame(height: 4)
-                .padding(.top, 8)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(14)
-            .background(Theme.card)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.cardBorder, lineWidth: 1))
+            secondStatCard
         }
         .padding(.horizontal, 16)
         .padding(.top, 12)
+    }
+
+    // 두 번째 통계 카드: 약정거리(리스/렌트) 또는 구매가(구매)
+    @ViewBuilder
+    private var secondStatCard: some View {
+        Group {
+            if let limit = store.vehicle.leaseLimitKm, limit > 0 {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("약정거리").font(pd(11)).foregroundStyle(Theme.muted)
+                        Spacer()
+                        Text("\(store.vehicle.leasePct ?? 0)%").font(pd(10)).foregroundStyle(Theme.orange)
+                    }
+                    (
+                        Text(grouped(store.vehicle.leaseDrivenKm ?? 0))
+                            .font(gm(19, .bold))
+                        + Text(" /\(grouped(limit))km")
+                            .font(pd(11))
+                            .foregroundStyle(Theme.muted)
+                    )
+                    .padding(.top, 4)
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(Color.white.opacity(0.08))
+                            Capsule()
+                                .fill(Theme.leaseGradient)
+                                .frame(width: geo.size.width * CGFloat(store.vehicle.leasePct ?? 0) / 100)
+                        }
+                    }
+                    .frame(height: 4)
+                    .padding(.top, 8)
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(store.vehicle.ownership.label).font(pd(11)).foregroundStyle(Theme.muted)
+                    if let price = store.vehicle.purchasePriceWon {
+                        Text(won(price)).font(gm(19, .bold))
+                        Text("구매가").font(pd(11)).foregroundStyle(Theme.muted)
+                    } else {
+                        Text("\(grouped(store.vehicle.odometerKm))").font(gm(19, .bold))
+                        Text("누적 주행 km").font(pd(11)).foregroundStyle(Theme.muted)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(Theme.card)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.cardBorder, lineWidth: 1))
+    }
+
+    // 계약서 기반 약정거리 초과 예측
+    @ViewBuilder
+    private var leaseProjectionCard: some View {
+        if let p = store.vehicle.leaseProjection() {
+            let over = p.overageKm > 0
+            let accent = over ? Theme.orange : Theme.green
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .firstTextBaseline) {
+                    HStack(spacing: 6) {
+                        Image(systemName: over ? "exclamationmark.triangle.fill" : "checkmark.seal.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(accent)
+                        Text("약정거리 예측")
+                            .font(pd(12, .semibold))
+                    }
+                    Spacer()
+                    Text(p.isOverPace ? "과속 페이스" : "안전 페이스")
+                        .font(pd(10.5, .semibold))
+                        .foregroundStyle(accent)
+                }
+
+                // 만료 시 예상 주행 vs 약정
+                HStack(alignment: .lastTextBaseline, spacing: 6) {
+                    Text("만료 시 예상")
+                        .font(pd(11)).foregroundStyle(Theme.muted)
+                    Text("\(grouped(p.projectedTotalKm))km")
+                        .font(gm(18, .bold))
+                    Text("/ 약정 \(grouped(p.limitKm))km")
+                        .font(pd(10.5)).foregroundStyle(Theme.muted)
+                }
+
+                // 이중 게이지: 시간 진행(회색) 위에 거리 진행(골드→오렌지)
+                GeometryReader { geo in
+                    let distRatio = min(1.3, Double(p.drivenKm) / Double(p.limitKm))
+                    let allowRatio = min(1.0, Double(p.allowedToDateKm) / Double(p.limitKm))
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color.white.opacity(0.08))
+                        // 오늘까지 허용 페이스 마커
+                        Capsule().fill(Color.white.opacity(0.18))
+                            .frame(width: geo.size.width * CGFloat(allowRatio))
+                        Capsule().fill(Theme.leaseGradient)
+                            .frame(width: geo.size.width * CGFloat(min(1.0, distRatio)))
+                    }
+                }
+                .frame(height: 6)
+
+                HStack {
+                    Text("현재 \(grouped(p.drivenKm))km · 하루 \(Int(p.dailyPaceKm.rounded()))km")
+                        .font(pd(10)).foregroundStyle(Theme.muted)
+                    Spacer()
+                    Text(over ? "예상 초과 +\(grouped(p.overageKm))km" : "예상 여유 \(grouped(-p.overageKm))km")
+                        .font(pd(11, .semibold))
+                        .foregroundStyle(accent)
+                }
+            }
+            .padding(EdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16))
+            .background(Theme.card)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(accent.opacity(0.3), lineWidth: 1))
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+        }
+    }
+
+    // AI 예상 이동거리
+    @ViewBuilder
+    private var predictionCard: some View {
+        if let km = prediction.weeklyKm {
+            HStack(spacing: 12) {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Theme.gold.opacity(0.12))
+                    .frame(width: 34, height: 34)
+                    .overlay(
+                        Image(systemName: "location.fill")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Theme.gold)
+                    )
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 5) {
+                        Text("이번 주 예상 이동")
+                            .font(pd(12, .semibold))
+                        Text(prediction.isAI ? "AI" : "예상")
+                            .font(pd(8.5, .bold))
+                            .foregroundStyle(Theme.ink)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1)
+                            .background(Theme.goldGradient)
+                            .clipShape(Capsule())
+                    }
+                    if let reason = prediction.reason {
+                        Text(reason).font(pd(10)).foregroundStyle(Theme.muted)
+                    }
+                }
+                Spacer()
+                Text("\(grouped(km))km")
+                    .font(gm(18, .bold))
+                    .foregroundStyle(Theme.gold)
+            }
+            .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 16))
+            .background(Theme.card)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.cardBorder, lineWidth: 1))
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+        }
     }
 
     // 최근 기록
