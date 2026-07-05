@@ -29,6 +29,7 @@ struct VehicleEditView: View {
     @State private var purchasePrice: String
     @State private var monthlyFee: String
     @State private var leaseLimit: String
+    @State private var odometerStart: String
     @State private var contractStart: Date
     @State private var hasContractStart: Bool
     @State private var contractEnd: Date
@@ -53,6 +54,7 @@ struct VehicleEditView: View {
             _purchasePrice = State(initialValue: "")
             _monthlyFee = State(initialValue: "")
             _leaseLimit = State(initialValue: "")
+            _odometerStart = State(initialValue: "0")
             _contractStart = State(initialValue: Date())
             _hasContractStart = State(initialValue: false)
             _contractEnd = State(initialValue: Date())
@@ -76,6 +78,7 @@ struct VehicleEditView: View {
         _purchasePrice = State(initialValue: v.purchasePriceWon.map(String.init) ?? "")
         _monthlyFee = State(initialValue: v.monthlyFeeWon.map(String.init) ?? "")
         _leaseLimit = State(initialValue: v.leaseLimitKm.map(String.init) ?? "")
+        _odometerStart = State(initialValue: String(v.odometerStartKm ?? 0))
         let start = v.contractStart.flatMap { Vehicle.parseDay($0) }
         _contractStart = State(initialValue: start ?? Date())
         _hasContractStart = State(initialValue: start != nil)
@@ -152,6 +155,8 @@ struct VehicleEditView: View {
                         TextField("약정거리 (km)", text: $leaseLimit)
                             .keyboardType(.numberPad)
                         TextField("월 납입금 (원)", text: $monthlyFee)
+                            .keyboardType(.numberPad)
+                        TextField("계약 시작 시 주행거리 (신차면 0)", text: $odometerStart)
                             .keyboardType(.numberPad)
                         Toggle("계약 시작일 설정", isOn: $hasContractStart)
                         if hasContractStart {
@@ -260,6 +265,7 @@ struct VehicleEditView: View {
         case .lease, .rent:
             upsert.lease_limit_km = Int(leaseLimit)
             upsert.monthly_fee_won = Int(monthlyFee)
+            upsert.odometer_start_km = Int(odometerStart) ?? 0
             if hasContractStart {
                 upsert.contract_start = df.string(from: contractStart)
             }

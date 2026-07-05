@@ -32,8 +32,8 @@ final class InsightService: ObservableObject {
         var lines: [String] = []
         lines.append("차량: \(vehicle.name) (\(vehicle.fuelType), \(vehicle.ownership.label))")
         lines.append("누적 주행: \(vehicle.odometerKm)km")
-        if let limit = vehicle.leaseLimitKm, let driven = vehicle.leaseDrivenKm {
-            lines.append("약정거리: \(driven)/\(limit)km" + (vehicle.contractEnd.map { " (계약 종료 \($0))" } ?? ""))
+        if let limit = vehicle.leaseLimitKm {
+            lines.append("약정거리: \(vehicle.leaseDriven)/\(limit)km" + (vehicle.contractEnd.map { " (계약 종료 \($0))" } ?? ""))
         }
         if let fee = vehicle.monthlyFeeWon {
             lines.append("월 납입금: \(fee)원")

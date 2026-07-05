@@ -376,7 +376,7 @@ struct CockpitView: View {
                         Text("\(store.vehicle.leasePct ?? 0)%").font(pd(10)).foregroundStyle(Theme.orange)
                     }
                     (
-                        Text(grouped(store.vehicle.leaseDrivenKm ?? 0))
+                        Text(grouped(store.vehicle.leaseDriven))
                             .font(gm(19, .bold))
                         + Text(" /\(grouped(limit))km")
                             .font(pd(11))

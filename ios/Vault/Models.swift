@@ -43,8 +43,9 @@ struct Vehicle: Codable, Identifiable {
     var fuelType: String
     var battery: Int
     var odometerKm: Int
+    var odometerStartKm: Int?   // 계약 시작 시 주행거리 (신차면 0)
     var leaseLimitKm: Int?
-    var leaseDrivenKm: Int?
+    var leaseDrivenKm: Int?     // (레거시) 수동 저장값 — 이제 odometer 기반 파생값을 사용
     var ownership: Ownership
     var maker: String?
     var model: String?
@@ -58,6 +59,7 @@ struct Vehicle: Codable, Identifiable {
         case id, name, plate, battery, ownership, maker, model, year
         case fuelType = "fuel_type"
         case odometerKm = "odometer_km"
+        case odometerStartKm = "odometer_start_km"
         case leaseLimitKm = "lease_limit_km"
         case leaseDrivenKm = "lease_driven_km"
         case purchasePriceWon = "purchase_price_won"
@@ -69,13 +71,23 @@ struct Vehicle: Codable, Identifiable {
     /// 디자인 로직과 동일: rangeKm = battery × 5.03
     var rangeKm: Int { Int((Double(battery) * 5.03).rounded()) }
 
+    /// 계약 이후 실제 주행거리 = 누적주행 − 계약 시작 시 주행거리 (음수 방지).
+    /// odometer/시작값이 유효하지 않으면 레거시 lease_driven_km로 폴백.
+    var leaseDriven: Int {
+        let start = odometerStartKm ?? 0
+        if odometerKm >= start && (odometerStartKm != nil || odometerKm > 0) {
+            return max(0, odometerKm - start)
+        }
+        return leaseDrivenKm ?? 0
+    }
+
     var leasePct: Int? {
-        guard let limit = leaseLimitKm, let driven = leaseDrivenKm, limit > 0 else { return nil }
-        return Int((Double(driven) / Double(limit) * 100).rounded())
+        guard let limit = leaseLimitKm, limit > 0 else { return nil }
+        return Int((Double(leaseDriven) / Double(limit) * 100).rounded())
     }
 
     var leaseRemainKm: Int {
-        (leaseLimitKm ?? 0) - (leaseDrivenKm ?? 0)
+        (leaseLimitKm ?? 0) - leaseDriven
     }
 
     /// 연료가 주유 대상(전기·수소 제외)인지
@@ -88,9 +100,9 @@ struct Vehicle: Codable, Identifiable {
     func leaseProjection(asOf: Date = Date()) -> LeaseProjection? {
         guard let startStr = contractStart, let start = Self.parseDay(startStr),
               let endStr = contractEnd, let end = Self.parseDay(endStr),
-              let limit = leaseLimitKm, limit > 0,
-              let driven = leaseDrivenKm
+              let limit = leaseLimitKm, limit > 0
         else { return nil }
+        let driven = leaseDriven
 
         let cal = Calendar(identifier: .gregorian)
         let totalDays = max(1, cal.dateComponents([.day], from: start, to: end).day ?? 1)
@@ -224,6 +236,7 @@ enum MockData {
         fuelType: "전기차",
         battery: 82,
         odometerKm: 24318,
+        odometerStartKm: 0,
         leaseLimitKm: 20000,
         leaseDrivenKm: 17200,
         ownership: .rent,

@@ -217,7 +217,7 @@ struct BriefingView: View {
             .frame(height: 6)
             .padding(.top, 10)
             HStack {
-                Text("\(grouped(store.vehicle.leaseDrivenKm ?? 0))km 주행")
+                Text("\(grouped(store.vehicle.leaseDriven))km 주행")
                 Spacer()
                 Text("약정 \(grouped(store.vehicle.leaseLimitKm ?? 0))km")
             }

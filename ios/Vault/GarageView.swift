@@ -248,7 +248,7 @@ struct GarageView: View {
             if v.ownership != .purchase {
                 if let limit = v.leaseLimitKm {
                     divider
-                    infoRow("약정거리", "\(grouped(v.leaseDrivenKm ?? 0)) / \(grouped(limit)) km")
+                    infoRow("약정거리", "\(grouped(v.leaseDriven)) / \(grouped(limit)) km")
                 }
                 if let fee = v.monthlyFeeWon {
                     divider

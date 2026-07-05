@@ -163,6 +163,7 @@ final class VaultStore: ObservableObject {
         var fuel_type: String?
         var battery: Int?
         var odometer_km: Int?
+        var odometer_start_km: Int?
         var lease_limit_km: Int?
         var ownership: String?
         var maker: String?
