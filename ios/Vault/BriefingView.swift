@@ -9,14 +9,16 @@ struct BriefingView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            briefing
-            spendCard
-            leaseCard
-            timeline
-            Spacer(minLength: 0)
-            aiInputBar
+        ScrollView {
+            VStack(spacing: 0) {
+                header
+                briefing
+                spendCard
+                leaseCard
+                timeline
+                aiInputBar
+            }
+            .padding(.bottom, 12)
         }
         .background(Theme.bgTop.ignoresSafeArea())
         .foregroundStyle(Theme.text)

@@ -16,6 +16,10 @@ final class WeatherService: NSObject, ObservableObject {
     @Published var carWashScore: Int?
     /// 세차지수 등급 (매우 좋음/좋음/보통/나쁨/매우 나쁨)
     @Published var carWashGrade: String = ""
+    /// 세차지수 근거 (오늘·내일 강수확률)
+    @Published var todayRainProb: Int = 0
+    @Published var tomorrowRainProb: Int = 0
+    @Published var washReason: String = ""
     /// 날씨 조회에 사용된 최종 좌표 (주변 주유소 조회에 재사용)
     @Published var coordinate: CLLocationCoordinate2D?
 
@@ -71,12 +75,17 @@ final class WeatherService: NSObject, ObservableObject {
             tempC = Int(res.current_weather.temperature.rounded())
             (symbol, label) = Self.describe(code: code)
 
-            let maxRainProb = (res.daily?.precipitation_probability_max ?? [])
-                .compactMap { $0 }.max() ?? 0
+            let probs = res.daily?.precipitation_probability_max ?? []
+            let today = probs.first.flatMap { $0 } ?? 0
+            let tomorrow = probs.count > 1 ? (probs[1] ?? 0) : today
+            todayRainProb = today
+            tomorrowRainProb = tomorrow
+            let maxRainProb = max(today, tomorrow)
             carAdvice = Self.advice(code: code, rainProb: maxRainProb, temp: tempC ?? 20)
-            let score = Self.washScore(code: code, rainProb: maxRainProb)
+            let score = Self.washScore(code: code, todayRain: today, tomorrowRain: tomorrow)
             carWashScore = score
             carWashGrade = Self.washGrade(score)
+            washReason = "오늘 강수 \(today)% · 내일 \(tomorrow)%"
         } catch {
             print("[WeatherService] fetch failed: \(error)")
             didFetch = false
@@ -100,18 +109,19 @@ final class WeatherService: NSObject, ObservableObject {
         }
     }
 
-    /// 세차지수 0~100 — 향후 강수확률과 현재 날씨를 반영
-    static func washScore(code: Int, rainProb: Int) -> Int {
-        // 현재 강수/강설이면 매우 낮음
+    /// 세차지수 0~100 — 오늘 날씨 + 오늘/내일 강수확률 반영.
+    /// 오늘 비가 안 와도 세차 유지가 관건이라 오늘 강수를 더 크게, 내일 강수는 절반만 감점.
+    static func washScore(code: Int, todayRain: Int, tomorrowRain: Int) -> Int {
+        // 지금 강수/강설 중이면 매우 낮음
         switch code {
-        case 51...67, 80...82, 95...99: return max(5, 20 - rainProb / 5)  // 비
-        case 71...77, 85, 86: return 10                                    // 눈
-        case 45, 48: return 40                                            // 안개
+        case 51...67, 80...82, 95...99: return max(5, 20 - todayRain / 10)  // 비
+        case 71...77, 85, 86: return 10                                      // 눈
+        case 45, 48: return 45                                              // 안개
         default: break
         }
-        // 맑음/흐림: 향후 강수확률이 낮을수록 높음
-        var score = 100 - rainProb          // 강수확률 그대로 감점
-        if code == 3 { score -= 10 }         // 흐림 소폭 감점
+        // 맑음/흐림: 강수확률로 감점 (오늘 100%, 내일 50% 가중)
+        var score = 100 - Int(Double(todayRain) * 1.0) - Int(Double(tomorrowRain) * 0.5)
+        if code == 3 { score -= 8 }          // 흐림 소폭 감점
         if code == 1 || code == 2 { score -= 3 }
         return min(100, max(0, score))
     }

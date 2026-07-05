@@ -254,9 +254,17 @@ struct GarageView: View {
                     divider
                     infoRow("월 납입금", won(fee))
                 }
+                if let start = v.contractStart {
+                    divider
+                    infoRow("계약 시작", start)
+                }
                 if let end = v.contractEnd {
                     divider
                     infoRow("계약 종료", end)
+                }
+                if let start = v.contractStart, let end = v.contractEnd {
+                    divider
+                    infoRow("계약 기간", contractTermLabel(start, end))
                 }
             } else if let price = v.purchasePriceWon {
                 divider
@@ -272,6 +280,16 @@ struct GarageView: View {
 
     private var divider: some View {
         Rectangle().fill(Color.white.opacity(0.06)).frame(height: 1)
+    }
+
+    // 계약 기간 라벨 (예: "5년" 또는 "3년 6개월")
+    private func contractTermLabel(_ start: String, _ end: String) -> String {
+        guard let s = Vehicle.parseDay(start), let e = Vehicle.parseDay(end) else { return "-" }
+        let c = Calendar.current.dateComponents([.year, .month], from: s, to: e)
+        let y = c.year ?? 0, m = c.month ?? 0
+        if y > 0 && m > 0 { return "\(y)년 \(m)개월" }
+        if y > 0 { return "\(y)년" }
+        return "\(m)개월"
     }
 
     private func infoRow(_ label: String, _ value: String) -> some View {

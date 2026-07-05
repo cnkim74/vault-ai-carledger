@@ -5,17 +5,24 @@ import PhotosUI
 struct CockpitView: View {
     @ObservedObject var store: VaultStore
     @ObservedObject var insight: InsightService
+    @ObservedObject var profile: ProfileStore
+    var onEditProfile: () -> Void = {}
     @State private var carImage: UIImage?
     @State private var showPhotoDialog = false
     @State private var showPicker = false
     @State private var photoItem: PhotosPickerItem?
     @StateObject private var weather = WeatherService()
     @StateObject private var prediction = PredictionService()
+    @State private var showBatteryEdit = false
+    @State private var showOdometerEdit = false
+    @State private var batteryInput = ""
+    @State private var odometerInput = ""
 
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
                 header
+                weatherCard
                 heroCard
                 insightCard
                 statCards
@@ -52,6 +59,94 @@ struct CockpitView: View {
             weather.start()
             carImage = CarImageStore.load(for: store.vehicle.id) ?? envSampleImage()
         }
+        .alert("현재 배터리", isPresented: $showBatteryEdit) {
+            TextField("0~100", text: $batteryInput).keyboardType(.numberPad)
+            Button("저장") {
+                if let v = Int(batteryInput), (0...100).contains(v) {
+                    Task { try? await store.updateVehicle(.init(battery: v)) }
+                }
+            }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("현재 배터리 잔량(%)을 입력하세요. 주행 가능 거리가 자동 계산돼요.")
+        }
+        .alert("누적 주행거리", isPresented: $showOdometerEdit) {
+            TextField("km", text: $odometerInput).keyboardType(.numberPad)
+            Button("저장") {
+                if let v = Int(odometerInput), v >= 0 {
+                    Task { try? await store.updateVehicle(.init(odometer_km: v)) }
+                }
+            }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("계기판의 현재 누적 주행거리(km)를 입력하세요.")
+        }
+    }
+
+    // 날씨 대시보드 카드
+    private var weatherCard: some View {
+        Group {
+            if let temp = weather.tempC {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(spacing: 14) {
+                        Image(systemName: weather.symbol)
+                            .font(.system(size: 34))
+                            .symbolRenderingMode(.multicolor)
+                            .frame(width: 44)
+                        VStack(alignment: .leading, spacing: 3) {
+                            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                Text("\(temp)°").font(gm(26, .bold))
+                                Text(weather.label).font(pd(13)).foregroundStyle(Theme.silver)
+                            }
+                            HStack(spacing: 5) {
+                                Image(systemName: "location.fill").font(.system(size: 9)).foregroundStyle(Theme.muted)
+                                Text(weather.city).font(pd(11)).foregroundStyle(Theme.muted)
+                                if !weather.washReason.isEmpty {
+                                    Text("· \(weather.washReason)").font(pd(11)).foregroundStyle(Theme.muted)
+                                }
+                            }
+                        }
+                        Spacer()
+                        if let score = weather.carWashScore {
+                            washGauge(score: score, grade: weather.carWashGrade)
+                        }
+                    }
+                    if let advice = weather.carAdvice {
+                        HStack(spacing: 5) {
+                            Image(systemName: "sparkles").font(.system(size: 9)).foregroundStyle(Theme.gold)
+                            Text(advice).font(pd(11, .semibold)).foregroundStyle(Theme.gold)
+                        }
+                        .padding(.top, 10)
+                        .padding(.leading, 2)
+                    }
+                }
+                .padding(EdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16))
+                .background(
+                    LinearGradient(colors: [Theme.heroTop, Theme.heroBottom], startPoint: .topLeading, endPoint: .bottomTrailing)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 18))
+                .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color.white.opacity(0.07), lineWidth: 1))
+                .padding(.horizontal, 16)
+                .padding(.top, 4)
+                .padding(.bottom, 8)
+            }
+        }
+    }
+
+    // 세차지수 게이지 (원형)
+    private func washGauge(score: Int, grade: String) -> some View {
+        let color: Color = score >= 60 ? Theme.green : (score >= 40 ? Theme.gold : Theme.orange)
+        return VStack(spacing: 2) {
+            ZStack {
+                Circle().stroke(Color.white.opacity(0.1), lineWidth: 4).frame(width: 46, height: 46)
+                Circle().trim(from: 0, to: CGFloat(score) / 100)
+                    .stroke(color, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .frame(width: 46, height: 46)
+                Text("\(score)").font(gm(14, .bold)).foregroundStyle(color)
+            }
+            Text("세차 \(grade)").font(pd(9)).foregroundStyle(color)
+        }
     }
 
     /// 스크린샷/테스트용: SAMPLE_CAR=red|blue|sky
@@ -68,30 +163,9 @@ struct CockpitView: View {
                     .font(pd(22, .black))
                     .kerning(1)
                     .foregroundStyle(Theme.goldGradient)
-                HStack(spacing: 5) {
-                    Text("좋은 아침이에요, 지훈님")
-                        .font(pd(11))
-                        .foregroundStyle(Theme.muted2)
-                    if store.live {
-                        Text("· Supabase 연결됨")
-                            .font(pd(11, .semibold))
-                            .foregroundStyle(Theme.green)
-                    }
-                }
-                if let temp = weather.tempC {
-                    HStack(spacing: 5) {
-                        Image(systemName: weather.symbol)
-                            .font(.system(size: 10))
-                            .symbolRenderingMode(.multicolor)
-                        Text("\(weather.city) \(temp)° · \(weather.label)")
-                            .font(pd(11))
-                            .foregroundStyle(Theme.silver)
-                        if let score = weather.carWashScore {
-                            washBadge(score: score, grade: weather.carWashGrade)
-                        }
-                    }
-                    .padding(.top, 1)
-                }
+                Text("\(greeting), \(profile.greetingName)")
+                    .font(pd(11))
+                    .foregroundStyle(Theme.muted2)
             }
             Spacer()
             HStack(spacing: 10) {
@@ -100,10 +174,12 @@ struct CockpitView: View {
                         .font(.system(size: 14))
                         .foregroundStyle(Theme.silver)
                 }
-                circleButton {
-                    Text("JH")
-                        .font(pd(12, .semibold))
-                        .foregroundStyle(Theme.gold)
+                Button(action: onEditProfile) {
+                    circleButton {
+                        Text(profile.initials)
+                            .font(pd(12, .semibold))
+                            .foregroundStyle(Theme.gold)
+                    }
                 }
             }
         }
@@ -112,18 +188,15 @@ struct CockpitView: View {
         .padding(.bottom, 6)
     }
 
-    // 세차지수 배지
-    private func washBadge(score: Int, grade: String) -> some View {
-        let color: Color = score >= 60 ? Theme.green : (score >= 40 ? Theme.gold : Theme.orange)
-        return HStack(spacing: 3) {
-            Image(systemName: "drop.fill").font(.system(size: 8))
-            Text("세차 \(score) · \(grade)").font(pd(10, .semibold))
+    // 시간대 인사말
+    private var greeting: String {
+        let h = Calendar.current.component(.hour, from: Date())
+        switch h {
+        case 5..<11: return "좋은 아침이에요"
+        case 11..<17: return "좋은 오후예요"
+        case 17..<22: return "좋은 저녁이에요"
+        default: return "안녕하세요"
         }
-        .foregroundStyle(color)
-        .padding(.horizontal, 7)
-        .padding(.vertical, 2)
-        .background(color.opacity(0.12))
-        .clipShape(Capsule())
     }
 
     private func circleButton<Content: View>(@ViewBuilder content: () -> Content) -> some View {
@@ -161,14 +234,32 @@ struct CockpitView: View {
                 .padding(.bottom, 4)
 
             HStack(spacing: 16) {
-                batteryRing
+                Button {
+                    batteryInput = "\(store.vehicle.battery)"
+                    showBatteryEdit = true
+                } label: { batteryRing }
+                .buttonStyle(.plain)
                 VStack(spacing: 6) {
                     statRow(label: "주행 가능 거리", value: "\(store.vehicle.rangeKm) km")
-                    statRow(label: "누적 주행", value: "\(grouped(store.vehicle.odometerKm)) km")
+                    Button {
+                        odometerInput = "\(store.vehicle.odometerKm)"
+                        showOdometerEdit = true
+                    } label: {
+                        HStack {
+                            HStack(spacing: 4) {
+                                Text("누적 주행").font(pd(12)).foregroundStyle(Theme.muted)
+                                Image(systemName: "pencil").font(.system(size: 9)).foregroundStyle(Theme.gold)
+                            }
+                            Spacer()
+                            Text("\(grouped(store.vehicle.odometerKm)) km")
+                                .font(gm(12, .medium)).foregroundStyle(Theme.text)
+                        }
+                    }
+                    .buttonStyle(.plain)
                     HStack {
-                        Text("완충까지").font(pd(12)).foregroundStyle(Theme.muted)
+                        Text("완충 시 주행").font(pd(12)).foregroundStyle(Theme.muted)
                         Spacer()
-                        Text("충전 중 아님").font(pd(12)).foregroundStyle(Theme.silver)
+                        Text("\(Int((503).rounded())) km").font(pd(12)).foregroundStyle(Theme.silver)
                     }
                 }
             }
@@ -261,9 +352,12 @@ struct CockpitView: View {
             Circle()
                 .fill(Theme.card)
                 .padding(7)
-            Text("\(store.vehicle.battery)%")
-                .font(gm(16, .bold))
-                .foregroundStyle(Theme.gold)
+            VStack(spacing: 1) {
+                Text("\(store.vehicle.battery)%")
+                    .font(gm(16, .bold))
+                    .foregroundStyle(Theme.gold)
+                Image(systemName: "pencil").font(.system(size: 8)).foregroundStyle(Theme.muted)
+            }
         }
         .frame(width: 74, height: 74)
     }
