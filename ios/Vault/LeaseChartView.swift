@@ -1,93 +1,54 @@
 import SwiftUI
 
-/// 약정거리 타임라인 선형 그래프.
-/// x = 계약 시작 → 종료, y = 0 → 약정거리.
-/// - 적정 페이스: (시작,0)→(종료,약정) 회색 점선
-/// - 실제 주행: (시작,0)→(오늘,현재) 골드 실선 + 하단 채움
-/// - 예측: (오늘,현재)→(종료,만료예상) 점선
-/// - 오늘 수직선 + 현재 지점 점
+/// 약정거리 예측 — 가장 단순한 진도율 막대.
+/// 트랙 = max(약정, 만료예상). 골드 = 0~약정 진행분, 빨강 = 약정 초과분.
+/// 흰 눈금 = 현재 주행 위치, 흰 세로선 = 약정(100%) 기준선.
 struct LeaseChartView: View {
     let p: LeaseProjection
 
     var body: some View {
-        GeometryReader { geo in
+        let limit = Double(max(p.limitKm, 1))
+        let proj = Double(max(p.projectedTotalKm, 0))
+        let driven = Double(max(p.drivenKm, 0))
+        let maxV = max(limit, proj)
+        let projRatio = min(proj / maxV, 1)
+        let limitRatio = min(limit / maxV, 1)
+        let drivenRatio = min(driven / maxV, 1)
+        let over = proj > limit
+
+        return GeometryReader { geo in
             let w = geo.size.width
             let h = geo.size.height
-            let maxY = Double(max(p.limitKm, p.projectedTotalKm)) * 1.05
-            let td = Double(max(p.totalDays, 1))
-            let ed = Double(min(p.elapsedDays, p.totalDays))
+            ZStack(alignment: .leading) {
+                // 트랙
+                Capsule().fill(Color.white.opacity(0.08))
 
-            let x: (Double) -> CGFloat = { day in CGFloat(day / td) * w }
-            let y: (Double) -> CGFloat = { km in h - CGFloat(km / maxY) * h }
+                // 0~약정 진행분 (골드)
+                Capsule()
+                    .fill(Theme.goldGradient)
+                    .frame(width: max(0, w * min(projRatio, limitRatio)))
 
-            let todayX = x(ed)
-            let over = p.overageKm > 0
-            let actualColor = p.paceRatioPct > 100 ? Theme.orange : Theme.green
-
-            ZStack {
-                // 약정 상한선 (수평)
-                Path { pth in
-                    pth.move(to: CGPoint(x: 0, y: y(Double(p.limitKm))))
-                    pth.addLine(to: CGPoint(x: w, y: y(Double(p.limitKm))))
+                // 약정 초과분 (빨강)
+                if over {
+                    Capsule()
+                        .fill(Theme.red)
+                        .frame(width: max(0, w * (projRatio - limitRatio)))
+                        .offset(x: w * limitRatio)
                 }
-                .stroke(Theme.orange.opacity(0.5), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
 
-                // 적정 페이스 대각선 (회색 점선)
-                Path { pth in
-                    pth.move(to: CGPoint(x: x(0), y: y(0)))
-                    pth.addLine(to: CGPoint(x: x(td), y: y(Double(p.limitKm))))
+                // 현재 주행 위치 눈금
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(Color.white.opacity(0.9))
+                    .frame(width: 2.5, height: h + 6)
+                    .offset(x: min(max(w * drivenRatio - 1.25, 0), w - 2.5))
+
+                // 약정(100%) 기준선
+                if over {
+                    Rectangle()
+                        .fill(Color.white.opacity(0.5))
+                        .frame(width: 1.5, height: h)
+                        .offset(x: w * limitRatio - 0.75)
                 }
-                .stroke(Color.white.opacity(0.28), style: StrokeStyle(lineWidth: 1.5, dash: [4, 4]))
-
-                // 실제 주행 하단 채움
-                Path { pth in
-                    pth.move(to: CGPoint(x: x(0), y: h))
-                    pth.addLine(to: CGPoint(x: x(0), y: y(0)))
-                    pth.addLine(to: CGPoint(x: todayX, y: y(Double(p.drivenKm))))
-                    pth.addLine(to: CGPoint(x: todayX, y: h))
-                    pth.closeSubpath()
-                }
-                .fill(LinearGradient(colors: [actualColor.opacity(0.28), actualColor.opacity(0.02)],
-                                     startPoint: .top, endPoint: .bottom))
-
-                // 실제 주행 실선
-                Path { pth in
-                    pth.move(to: CGPoint(x: x(0), y: y(0)))
-                    pth.addLine(to: CGPoint(x: todayX, y: y(Double(p.drivenKm))))
-                }
-                .stroke(actualColor, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
-
-                // 예측 (오늘→종료) 점선
-                Path { pth in
-                    pth.move(to: CGPoint(x: todayX, y: y(Double(p.drivenKm))))
-                    pth.addLine(to: CGPoint(x: x(td), y: y(Double(p.projectedTotalKm))))
-                }
-                .stroke((over ? Theme.orange : actualColor).opacity(0.8),
-                        style: StrokeStyle(lineWidth: 2, dash: [5, 4]))
-
-                // 오늘 수직선
-                Path { pth in
-                    pth.move(to: CGPoint(x: todayX, y: 0))
-                    pth.addLine(to: CGPoint(x: todayX, y: h))
-                }
-                .stroke(Color.white.opacity(0.25), lineWidth: 1)
-
-                // 현재 지점 점
-                Circle()
-                    .fill(actualColor)
-                    .frame(width: 8, height: 8)
-                    .position(x: todayX, y: y(Double(p.drivenKm)))
-                    .overlay(
-                        Circle().stroke(Theme.bgTop, lineWidth: 2)
-                            .frame(width: 8, height: 8)
-                            .position(x: todayX, y: y(Double(p.drivenKm)))
-                    )
-
-                // 만료 예상 점
-                Circle()
-                    .fill(over ? Theme.orange : actualColor)
-                    .frame(width: 6, height: 6)
-                    .position(x: x(td), y: y(Double(p.projectedTotalKm)))
             }
         }
     }

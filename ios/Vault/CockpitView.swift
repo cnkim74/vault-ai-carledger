@@ -231,12 +231,11 @@ struct CockpitView: View {
                     .overlay(Capsule().stroke(Theme.gold.opacity(0.4), lineWidth: 1))
             }
 
-            // 작은 차량 사진 + 배터리 도넛을 같은 줄에
-            HStack(spacing: 16) {
-                photoSlot(height: 104)
-                    .frame(width: 168)
+            // 차량 사진(비율 채움) + 배터리 도넛을 같은 줄에, 중간 여백 없이
+            HStack(spacing: 14) {
+                photoSlot(height: 128)
+                    .frame(maxWidth: .infinity)
                     .padding(.top, 12)
-                Spacer(minLength: 4)
                 Button {
                     batteryInput = "\(store.vehicle.battery)"
                     showBatteryEdit = true
@@ -548,20 +547,25 @@ struct CockpitView: View {
                         .font(pd(10.5)).foregroundStyle(paceColor.opacity(0.9))
                 }
 
-                // 타임라인 선형 그래프 (계약 시작~종료, 오늘 지점 표시)
+                // 진도율 막대 (만료 시 예상 대비 약정, 초과분은 빨강)
                 LeaseChartView(p: p)
-                    .frame(height: 96)
-                    .padding(.top, 4)
+                    .frame(height: 16)
+                    .padding(.top, 6)
 
-                // x축 라벨 (시작 · 오늘 · 종료)
+                // 막대 범례 (0% · 현재 · 약정 100%)
                 HStack {
-                    Text(store.vehicle.contractStart.map { String($0.prefix(7)) } ?? "시작")
+                    Text("0")
                         .font(pd(9)).foregroundStyle(Theme.muted)
                     Spacer()
-                    Text("오늘").font(pd(9, .semibold)).foregroundStyle(Theme.silver)
+                    HStack(spacing: 4) {
+                        Circle().fill(Color.white.opacity(0.9)).frame(width: 5, height: 5)
+                        Text("현재 \(p.projectedTotalKm > p.limitKm ? Int(Double(p.drivenKm) / Double(max(p.limitKm,1)) * 100) : p.paceRatioPct)%")
+                            .font(pd(9, .semibold)).foregroundStyle(Theme.silver)
+                    }
                     Spacer()
-                    Text(store.vehicle.contractEnd.map { String($0.prefix(7)) } ?? "종료")
-                        .font(pd(9)).foregroundStyle(Theme.muted)
+                    Text("약정 100%")
+                        .font(pd(9, .semibold))
+                        .foregroundStyle(over ? Theme.red : Theme.muted)
                 }
 
                 // 적정/실제 주행 비교

@@ -30,4 +30,19 @@ enum NavLauncher {
             if !ok { UIApplication.shared.open(app.appStore) }   // 미설치 → 앱스토어
         }
     }
+
+    /// 키워드로 목적지 검색 후 해당 내비 앱에서 길찾기. 좌표 없이 장소명만으로 동작.
+    @MainActor
+    static func search(_ query: String, app: NavApp) {
+        let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else { return }
+        let enc = q.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let scheme = app == .tmap
+            ? "tmap://search?name=\(enc)"
+            : "kakaomap://look?q=\(enc)"
+        guard let url = URL(string: scheme) else { return }
+        UIApplication.shared.open(url, options: [:]) { ok in
+            if !ok { UIApplication.shared.open(app.appStore) }
+        }
+    }
 }
