@@ -13,6 +13,7 @@ struct CockpitView: View {
     @State private var photoItem: PhotosPickerItem?
     @StateObject private var weather = WeatherService()
     @StateObject private var prediction = PredictionService()
+    @StateObject private var calendar = CalendarService()
     @State private var showBatteryEdit = false
     @State private var showOdometerEdit = false
     @State private var batteryInput = ""
@@ -23,6 +24,7 @@ struct CockpitView: View {
             VStack(spacing: 0) {
                 header
                 weatherCard
+                DestinationCard(calendar: calendar)
                 heroCard
                 insightCard
                 statCards
@@ -59,6 +61,7 @@ struct CockpitView: View {
             weather.start()
             carImage = CarImageStore.load(for: store.vehicle.id) ?? envSampleImage()
         }
+        .task { await calendar.load() }
         .alert("현재 배터리", isPresented: $showBatteryEdit) {
             TextField("0~100", text: $batteryInput).keyboardType(.numberPad)
             Button("저장") {
@@ -545,19 +548,21 @@ struct CockpitView: View {
                         .font(pd(10.5)).foregroundStyle(paceColor.opacity(0.9))
                 }
 
-                // 이중 게이지: 오늘까지 적정(회색 마커) 위에 실제 주행(골드→오렌지)
-                GeometryReader { geo in
-                    let distRatio = min(1.3, Double(p.drivenKm) / Double(p.limitKm))
-                    let allowRatio = min(1.0, Double(p.allowedToDateKm) / Double(p.limitKm))
-                    ZStack(alignment: .leading) {
-                        Capsule().fill(Color.white.opacity(0.08))
-                        Capsule().fill(Color.white.opacity(0.18))
-                            .frame(width: geo.size.width * CGFloat(allowRatio))
-                        Capsule().fill(Theme.leaseGradient)
-                            .frame(width: geo.size.width * CGFloat(min(1.0, distRatio)))
-                    }
+                // 타임라인 선형 그래프 (계약 시작~종료, 오늘 지점 표시)
+                LeaseChartView(p: p)
+                    .frame(height: 96)
+                    .padding(.top, 4)
+
+                // x축 라벨 (시작 · 오늘 · 종료)
+                HStack {
+                    Text(store.vehicle.contractStart.map { String($0.prefix(7)) } ?? "시작")
+                        .font(pd(9)).foregroundStyle(Theme.muted)
+                    Spacer()
+                    Text("오늘").font(pd(9, .semibold)).foregroundStyle(Theme.silver)
+                    Spacer()
+                    Text(store.vehicle.contractEnd.map { String($0.prefix(7)) } ?? "종료")
+                        .font(pd(9)).foregroundStyle(Theme.muted)
                 }
-                .frame(height: 6)
 
                 // 적정/실제 주행 비교
                 HStack {
