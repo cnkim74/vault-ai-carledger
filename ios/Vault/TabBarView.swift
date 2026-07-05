@@ -49,14 +49,14 @@ struct TabBarView: View {
         Button {
             tab = target
         } label: {
-            VStack(spacing: 3) {
+            VStack(spacing: 4) {
                 Image(systemName: icon)
-                    .font(.system(size: 17))
+                    .font(.system(size: 21))
                 Text(label)
-                    .font(pd(9.5))
+                    .font(pd(11.5))
             }
             .foregroundStyle(tab == target ? Theme.gold : Theme.muted)
-            .frame(minWidth: 48)
+            .frame(minWidth: 52)
         }
     }
 }
