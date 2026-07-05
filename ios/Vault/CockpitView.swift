@@ -14,6 +14,7 @@ struct CockpitView: View {
     @StateObject private var weather = WeatherService()
     @StateObject private var prediction = PredictionService()
     @StateObject private var calendar = CalendarService()
+    @StateObject private var notif = NotificationService()
     @State private var showBatteryEdit = false
     @State private var showOdometerEdit = false
     @State private var batteryInput = ""
@@ -62,6 +63,9 @@ struct CockpitView: View {
             carImage = CarImageStore.load(for: store.vehicle.id) ?? envSampleImage()
         }
         .task { await calendar.load() }
+        .task(id: store.vehicle.id) {
+            await notif.refreshIfEnabled(store: store, weather: weather)
+        }
         .alert("현재 배터리", isPresented: $showBatteryEdit) {
             TextField("0~100", text: $batteryInput).keyboardType(.numberPad)
             Button("저장") {
@@ -172,10 +176,14 @@ struct CockpitView: View {
             }
             Spacer()
             HStack(spacing: 10) {
-                circleButton {
-                    Image(systemName: "bell")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Theme.silver)
+                Button {
+                    Task { await notif.toggle(store: store, weather: weather) }
+                } label: {
+                    circleButton {
+                        Image(systemName: notif.enabled ? "bell.fill" : "bell")
+                            .font(.system(size: 14))
+                            .foregroundStyle(notif.enabled ? Theme.gold : Theme.silver)
+                    }
                 }
                 Button(action: onEditProfile) {
                     circleButton {
