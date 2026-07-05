@@ -24,9 +24,9 @@ struct CockpitView: View {
             VStack(spacing: 0) {
                 header
                 weatherCard
-                DestinationCard(calendar: calendar)
                 heroCard
                 insightCard
+                DestinationCard(calendar: calendar)
                 statCards
                 leaseProjectionCard
                 predictionCard
