@@ -10,6 +10,7 @@ import AuthenticationServices
 final class TeslaService: NSObject, ObservableObject, ASWebAuthenticationPresentationContextProviding {
     @Published var connecting = false
     @Published var syncing = false
+    @Published var importing = false
     @Published var connected = UserDefaults.standard.bool(forKey: "tesla.connected")
     @Published var message: String?
 
@@ -97,6 +98,46 @@ final class TeslaService: NSObject, ObservableObject, ASWebAuthenticationPresent
 
         try? await store.updateVehicle(upsert)
         message = "동기화 완료"
+        return true
+    }
+
+    /// 슈퍼차저 충전 이력 → 기록 자동 임포트 (신규 세션만)
+    @discardableResult
+    func importCharging(store: VaultStore) async -> Bool {
+        guard connected, let base = Secrets.supabaseURL, let key = Secrets.supabaseKey, !key.isEmpty else { return false }
+        importing = true; defer { importing = false }
+
+        var req = URLRequest(url: base.appendingPathComponent("functions/v1/tesla-charging"))
+        req.httpMethod = "POST"
+        req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try? JSONSerialization.data(withJSONObject: ["vehicleId": store.vehicle.id.uuidString])
+        req.timeoutInterval = 40
+
+        guard let (data, _) = try? await URLSession.shared.data(for: req),
+              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            message = "충전 이력 조회 실패"; return false
+        }
+
+        if let err = obj["error"] as? String {
+            switch err {
+            case "not_connected", "reauth":
+                connected = false
+                UserDefaults.standard.set(false, forKey: "tesla.connected")
+                message = "재연결이 필요해요"
+            case "scope":
+                message = "테슬라 재연결 필요 (충전 이력 권한)"
+            case "no_vin":
+                message = "VIN 확인 실패"
+            default:
+                message = "충전 이력 조회 실패"
+            }
+            return false
+        }
+
+        let imported = obj["imported"] as? Int ?? 0
+        if imported > 0 { await store.load() }
+        message = imported > 0 ? "충전 \(imported)건 가져옴" : "새 충전 내역 없음"
         return true
     }
 
