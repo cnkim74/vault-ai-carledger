@@ -236,32 +236,47 @@ struct CockpitView: View {
                 photoSlot(height: 128)
                     .frame(maxWidth: .infinity)
                     .padding(.top, 12)
-                Button {
-                    batteryInput = "\(store.vehicle.battery)"
-                    showBatteryEdit = true
-                } label: { batteryRing }
-                .buttonStyle(.plain)
-                .padding(.top, 12)
+                // 테슬라 자동연결이면 수정 불가(값은 자동 동기화), 아니면 탭해서 편집
+                if teslaConnected {
+                    batteryRing(editable: false).padding(.top, 12)
+                } else {
+                    Button {
+                        batteryInput = "\(store.vehicle.battery)"
+                        showBatteryEdit = true
+                    } label: { batteryRing(editable: true) }
+                    .buttonStyle(.plain)
+                    .padding(.top, 12)
+                }
             }
 
             // 상세 스탯 (풀폭)
             VStack(spacing: 8) {
                 statRow(label: "주행 가능 거리", value: "\(store.vehicle.rangeKm) km")
-                Button {
-                    odometerInput = "\(store.vehicle.odometerKm)"
-                    showOdometerEdit = true
-                } label: {
+                // 테슬라 자동연결이면 누적 주행도 수정 불가
+                if teslaConnected {
                     HStack {
-                        HStack(spacing: 4) {
-                            Text("누적 주행").font(pd(13)).foregroundStyle(Theme.muted)
-                            Image(systemName: "pencil").font(.system(size: 10)).foregroundStyle(Theme.gold)
-                        }
+                        Text("누적 주행").font(pd(13)).foregroundStyle(Theme.muted)
                         Spacer()
                         Text("\(grouped(store.vehicle.odometerKm)) km")
                             .font(gm(13, .medium)).foregroundStyle(Theme.text)
                     }
+                } else {
+                    Button {
+                        odometerInput = "\(store.vehicle.odometerKm)"
+                        showOdometerEdit = true
+                    } label: {
+                        HStack {
+                            HStack(spacing: 4) {
+                                Text("누적 주행").font(pd(13)).foregroundStyle(Theme.muted)
+                                Image(systemName: "pencil").font(.system(size: 10)).foregroundStyle(Theme.gold)
+                            }
+                            Spacer()
+                            Text("\(grouped(store.vehicle.odometerKm)) km")
+                                .font(gm(13, .medium)).foregroundStyle(Theme.text)
+                        }
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
                 HStack {
                     Text("완충 시 주행").font(pd(13)).foregroundStyle(Theme.muted)
                     Spacer()
@@ -346,13 +361,26 @@ struct CockpitView: View {
         CarImageStore.save(img, for: store.vehicle.id)
     }
 
-    private var batteryRing: some View {
+    // 테슬라 자동연결 여부 (연결 시 배터리·주행거리는 자동 동기화 → 수동 수정 숨김)
+    private var teslaConnected: Bool {
+        UserDefaults.standard.bool(forKey: "tesla.connected")
+    }
+
+    // 배터리 잔량별 색상: 20%↑ 녹색 / 10~20% 노랑 / 10%↓ 빨강
+    private var batteryColor: Color {
+        let b = store.vehicle.battery
+        if b >= 20 { return Theme.green }
+        if b >= 10 { return Theme.yellow }
+        return Theme.red
+    }
+
+    private func batteryRing(editable: Bool) -> some View {
         ZStack {
             Circle()
                 .stroke(Color.white.opacity(0.08), lineWidth: 7)
             Circle()
                 .trim(from: 0, to: CGFloat(store.vehicle.battery) / 100)
-                .stroke(Theme.gold, lineWidth: 7)
+                .stroke(batteryColor, lineWidth: 7)
                 .rotationEffect(.degrees(-90))
             Circle()
                 .fill(Theme.card)
@@ -360,8 +388,10 @@ struct CockpitView: View {
             VStack(spacing: 1) {
                 Text("\(store.vehicle.battery)%")
                     .font(gm(16, .bold))
-                    .foregroundStyle(Theme.gold)
-                Image(systemName: "pencil").font(.system(size: 8)).foregroundStyle(Theme.muted)
+                    .foregroundStyle(batteryColor)
+                if editable {
+                    Image(systemName: "pencil").font(.system(size: 8)).foregroundStyle(Theme.muted)
+                }
             }
         }
         .frame(width: 74, height: 74)

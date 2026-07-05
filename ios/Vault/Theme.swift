@@ -31,6 +31,7 @@ enum Theme {
     static let green = Color(hex: 0x6FBF8A)
     static let orange = Color(hex: 0xFF7A2F)
     static let red = Color(hex: 0xE5484D)
+    static let yellow = Color(hex: 0xF2C94C)
     static let ink = Color(hex: 0x141414)
 
     static let goldGradient = LinearGradient(

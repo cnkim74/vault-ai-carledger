@@ -1,25 +1,106 @@
 {
   "sourceLanguage" : "ko",
   "strings" : {
-    "NSCalendarsFullAccessUsageDescription" : {
+    "CFBundleName" : {
+      "comment" : "Bundle name",
+      "extractionState" : "extracted_with_value",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Reads your calendar to offer directions to upcoming event locations." } },
-        "ja" : { "stringUnit" : { "state" : "translated", "value" : "今後の予定の場所への経路案内のためにカレンダーを読み取ります。" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "读取日历，以便为即将到来的日程地点提供路线导航。" } }
+        "ko" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Vault"
+          }
+        }
+      }
+    },
+    "NSCalendarsFullAccessUsageDescription" : {
+      "comment" : "Privacy - Calendars Full Access Usage Description",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Reads your calendar to offer directions to upcoming event locations."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "今後の予定の場所への経路案内のためにカレンダーを読み取ります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "다가오는 일정의 장소로 길찾기를 제공하기 위해 캘린더를 읽습니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "读取日历，以便为即将到来的日程地点提供路线导航。"
+          }
+        }
       }
     },
     "NSCalendarsUsageDescription" : {
+      "comment" : "Privacy - Calendars Usage Description",
+      "extractionState" : "extracted_with_value",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Reads your calendar to offer directions to upcoming event locations." } },
-        "ja" : { "stringUnit" : { "state" : "translated", "value" : "今後の予定の場所への経路案内のためにカレンダーを読み取ります。" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "读取日历，以便为即将到来的日程地点提供路线导航。" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Reads your calendar to offer directions to upcoming event locations."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "今後の予定の場所への経路案内のためにカレンダーを読み取ります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "다가오는 일정의 장소로 길찾기를 제공하기 위해 캘린더를 읽습니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "读取日历，以便为即将到来的日程地点提供路线导航。"
+          }
+        }
       }
     },
     "NSLocationWhenInUseUsageDescription" : {
+      "comment" : "Privacy - Location When In Use Usage Description",
+      "extractionState" : "extracted_with_value",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Uses your location to show local weather and car-care tips." } },
-        "ja" : { "stringUnit" : { "state" : "translated", "value" : "現在地の天気と車両管理のヒントを表示するために位置情報を使用します。" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "使用您的位置以显示当地天气和车辆养护提示。" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Uses your location to show local weather and car-care tips."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "現在地の天気と車両管理のヒントを表示するために位置情報を使用します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "현재 위치의 날씨와 차량 관리 팁을 보여드리기 위해 위치 정보를 사용합니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "使用您的位置以显示当地天气和车辆养护提示。"
+          }
+        }
       }
     }
   },
