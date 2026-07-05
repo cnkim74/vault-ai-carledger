@@ -8,3 +8,4 @@ tsconfig.tsbuildinfo
 ios/build
 xcuserdata/
 ios/Vault/Secrets.swift
+.secrets/

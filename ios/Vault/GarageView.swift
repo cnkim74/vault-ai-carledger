@@ -4,6 +4,7 @@ import PhotosUI
 /// 차고 탭 — 차량 목록(전환) + 대표 차량 카드 + 정보 수정/추가
 struct GarageView: View {
     @ObservedObject var store: VaultStore
+    @StateObject private var tesla = TeslaService()
     @State private var carImage: UIImage?
     @State private var showPhotoDialog = false
     @State private var showPicker = false
@@ -73,7 +74,15 @@ struct GarageView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
-                .padding(.bottom, 24)
+
+                // 테슬라 연결 (전기차)
+                if v.fuelType == FuelType.ev.rawValue {
+                    teslaButton
+                        .padding(.horizontal, 16)
+                        .padding(.top, 10)
+                }
+
+                Spacer(minLength: 24)
             }
         }
         .background(Theme.bgTop.ignoresSafeArea())
@@ -98,6 +107,42 @@ struct GarageView: View {
             VehicleEditView(store: store, mode: .create)
         }
         .onAppear { carImage = CarImageStore.load(for: v.id) }
+    }
+
+    // 테슬라 연결/동기화 버튼
+    private var teslaButton: some View {
+        Button {
+            Task {
+                if !tesla.connected { await tesla.connect() }
+                if tesla.connected { await tesla.sync(store: store) }
+            }
+        } label: {
+            HStack(spacing: 8) {
+                if tesla.connecting || tesla.syncing {
+                    ProgressView().controlSize(.small).tint(Theme.silver)
+                } else {
+                    Image(systemName: tesla.connected ? "arrow.triangle.2.circlepath" : "bolt.car.fill")
+                        .font(.system(size: 14))
+                }
+                Text(tesla.connecting ? "테슬라 로그인 중…"
+                     : tesla.syncing ? "동기화 중…"
+                     : tesla.connected ? "테슬라 동기화 (배터리·주행거리)"
+                     : "테슬라 연결")
+                    .font(pd(14, .semibold))
+            }
+            .foregroundStyle(Theme.silver)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 13)
+            .background(Theme.card)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.cardBorder, lineWidth: 1))
+        }
+        .disabled(tesla.connecting || tesla.syncing)
+        .overlay(alignment: .bottom) {
+            if let msg = tesla.message {
+                Text(msg).font(pd(10)).foregroundStyle(Theme.muted).offset(y: 16)
+            }
+        }
     }
 
     // 차량 전환 칩
