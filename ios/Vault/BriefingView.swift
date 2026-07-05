@@ -268,8 +268,9 @@ struct BriefingView: View {
     private func dotColor(_ kind: RecordKind) -> Color {
         switch kind {
         case .charge: return Theme.orange
+        case .fuel: return Theme.gold
         case .drive: return Theme.silver
-        case .maintenance: return Theme.gold
+        case .maintenance: return Theme.green
         }
     }
 
@@ -318,7 +319,7 @@ struct BriefingView: View {
     @ViewBuilder
     private func trailing(_ rec: VaultRecord) -> some View {
         switch rec.kind {
-        case .charge:
+        case .charge, .fuel:
             if let amount = rec.amountWon {
                 Text(won(amount)).font(gm(13))
             }
@@ -327,7 +328,11 @@ struct BriefingView: View {
                 Text("\(dur)분").font(pd(11)).foregroundStyle(Theme.muted)
             }
         case .maintenance:
-            Text("예약").font(pd(11)).foregroundStyle(Theme.gold)
+            if let amount = rec.amountWon {
+                Text(won(amount)).font(gm(13))
+            } else {
+                Text("예약").font(pd(11)).foregroundStyle(Theme.gold)
+            }
         }
     }
 

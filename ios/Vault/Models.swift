@@ -1,7 +1,27 @@
 import Foundation
 
 enum RecordKind: String, Codable {
-    case charge, drive, maintenance
+    case charge, fuel, drive, maintenance
+
+    var label: String {
+        switch self {
+        case .charge: return "충전"
+        case .fuel: return "주유"
+        case .drive: return "주행"
+        case .maintenance: return "정비"
+        }
+    }
+}
+
+/// 연료 종류별 예상 정비 항목 (기록 추가 시 빠른 선택)
+enum MaintenancePresets {
+    static func items(ev: Bool) -> [String] {
+        ev
+            ? ["타이어 위치교환", "타이어 교체", "브레이크 패드", "냉각수 점검",
+               "에어컨 필터", "와이퍼", "하부 세차", "실내필터", "타이어 공기압", "정기 점검"]
+            : ["엔진오일", "오일필터", "에어클리너", "점화플러그", "미션오일",
+               "브레이크 패드", "타이어 교체", "부동액", "연료필터", "와이퍼", "배터리", "정기 점검"]
+    }
 }
 
 enum Ownership: String, Codable, CaseIterable {

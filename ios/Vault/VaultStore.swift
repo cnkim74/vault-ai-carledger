@@ -101,10 +101,12 @@ final class VaultStore: ObservableObject {
             let inThisMonth = r.occurredAt >= startThis
             if inThisMonth {
                 total += amount
-                if r.title.contains("주유") { fuel += amount }
-                else if r.kind == .charge { charge += amount }
-                else if r.kind == .maintenance { maint += amount }
-                else { other += amount }
+                switch r.kind {
+                case .charge: charge += amount
+                case .fuel: fuel += amount
+                case .maintenance: maint += amount
+                case .drive: other += amount
+                }
             } else {
                 prev += amount
             }

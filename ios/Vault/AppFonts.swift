@@ -15,6 +15,9 @@ enum AppFonts {
     }
 }
 
+/// 전역 텍스트 배율 — 가독성을 위해 전반적으로 조금 크게.
+let textScale: CGFloat = 1.1
+
 /// Pretendard — 본문/UI 텍스트 (디자인 스펙)
 func pd(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
     let name: String
@@ -23,7 +26,7 @@ func pd(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
     else if weight == .semibold { name = "Pretendard-SemiBold" }
     else if weight == .medium { name = "Pretendard-Medium" }
     else { name = "Pretendard-Regular" }
-    return .custom(name, size: size)
+    return .custom(name, size: size * textScale)
 }
 
 /// GmarketSans — 숫자/강조 (디자인 스펙)
@@ -31,5 +34,5 @@ func gm(_ size: CGFloat, _ weight: Font.Weight = .medium) -> Font {
     let name = (weight == .bold || weight == .black || weight == .heavy)
         ? "GmarketSansTTFBold"
         : "GmarketSansTTFMedium"
-    return .custom(name, size: size)
+    return .custom(name, size: size * textScale)
 }

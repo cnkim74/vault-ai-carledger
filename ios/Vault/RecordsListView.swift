@@ -45,6 +45,7 @@ struct RecordsListView: View {
     private func iconInfo(_ kind: RecordKind) -> (symbol: String, color: Color) {
         switch kind {
         case .charge: return ("bolt.fill", Theme.orange)
+        case .fuel: return ("fuelpump.fill", Theme.gold)
         case .drive: return ("clock", Theme.silver)
         case .maintenance: return ("wrench.and.screwdriver", Theme.gold)
         }

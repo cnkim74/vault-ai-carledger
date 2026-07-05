@@ -228,42 +228,45 @@ struct CockpitView: View {
                     .overlay(Capsule().stroke(Theme.gold.opacity(0.4), lineWidth: 1))
             }
 
-            // 차량 사진 슬롯 — 탭하면 앨범/샘플 선택
-            photoSlot
-                .padding(.top, 12)
-                .padding(.bottom, 4)
-
+            // 작은 차량 사진 + 배터리 도넛을 같은 줄에
             HStack(spacing: 16) {
+                photoSlot(height: 104)
+                    .frame(width: 168)
+                    .padding(.top, 12)
+                Spacer(minLength: 4)
                 Button {
                     batteryInput = "\(store.vehicle.battery)"
                     showBatteryEdit = true
                 } label: { batteryRing }
                 .buttonStyle(.plain)
-                VStack(spacing: 6) {
-                    statRow(label: "주행 가능 거리", value: "\(store.vehicle.rangeKm) km")
-                    Button {
-                        odometerInput = "\(store.vehicle.odometerKm)"
-                        showOdometerEdit = true
-                    } label: {
-                        HStack {
-                            HStack(spacing: 4) {
-                                Text("누적 주행").font(pd(12)).foregroundStyle(Theme.muted)
-                                Image(systemName: "pencil").font(.system(size: 9)).foregroundStyle(Theme.gold)
-                            }
-                            Spacer()
-                            Text("\(grouped(store.vehicle.odometerKm)) km")
-                                .font(gm(12, .medium)).foregroundStyle(Theme.text)
-                        }
-                    }
-                    .buttonStyle(.plain)
+                .padding(.top, 12)
+            }
+
+            // 상세 스탯 (풀폭)
+            VStack(spacing: 8) {
+                statRow(label: "주행 가능 거리", value: "\(store.vehicle.rangeKm) km")
+                Button {
+                    odometerInput = "\(store.vehicle.odometerKm)"
+                    showOdometerEdit = true
+                } label: {
                     HStack {
-                        Text("완충 시 주행").font(pd(12)).foregroundStyle(Theme.muted)
+                        HStack(spacing: 4) {
+                            Text("누적 주행").font(pd(13)).foregroundStyle(Theme.muted)
+                            Image(systemName: "pencil").font(.system(size: 10)).foregroundStyle(Theme.gold)
+                        }
                         Spacer()
-                        Text("\(Int((503).rounded())) km").font(pd(12)).foregroundStyle(Theme.silver)
+                        Text("\(grouped(store.vehicle.odometerKm)) km")
+                            .font(gm(13, .medium)).foregroundStyle(Theme.text)
                     }
                 }
+                .buttonStyle(.plain)
+                HStack {
+                    Text("완충 시 주행").font(pd(13)).foregroundStyle(Theme.muted)
+                    Spacer()
+                    Text("503 km").font(pd(13)).foregroundStyle(Theme.silver)
+                }
             }
-            .padding(.top, 10)
+            .padding(.top, 14)
         }
         .padding(EdgeInsets(top: 18, leading: 18, bottom: 16, trailing: 18))
         .background(
@@ -288,25 +291,25 @@ struct CockpitView: View {
     }
 
     @ViewBuilder
-    private var photoSlot: some View {
+    private func photoSlot(height: CGFloat = 130) -> some View {
         Group {
             if let img = carImage {
                 Image(uiImage: img)
                     .resizable()
                     .scaledToFill()
                     .frame(maxWidth: .infinity)
-                    .frame(height: 130)
+                    .frame(height: height)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
             } else {
                 RoundedRectangle(cornerRadius: 14)
                     .fill(Color.white.opacity(0.03))
                     .overlay(
-                        VStack(spacing: 6) {
+                        VStack(spacing: 5) {
                             Image(systemName: "photo")
-                                .font(.system(size: 20))
+                                .font(.system(size: 18))
                                 .foregroundStyle(Theme.gold.opacity(0.7))
-                            Text("탭해서 내 차 사진을 선택하세요")
-                                .font(pd(11))
+                            Text("사진 선택")
+                                .font(pd(10))
                                 .foregroundStyle(Color.white.opacity(0.45))
                         }
                     )
@@ -315,7 +318,7 @@ struct CockpitView: View {
                             .stroke(style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
                             .foregroundStyle(Color.white.opacity(0.18))
                     )
-                    .frame(height: 130)
+                    .frame(height: height)
             }
         }
         .contentShape(RoundedRectangle(cornerRadius: 14))
@@ -637,7 +640,7 @@ struct CockpitView: View {
             }
             .padding(.bottom, 0)
 
-            ForEach(store.records.filter { $0.kind != .maintenance }.prefix(2)) { rec in
+            ForEach(store.records.prefix(3)) { rec in
                 recordRow(rec)
             }
         }
@@ -646,22 +649,32 @@ struct CockpitView: View {
     }
 
     private func recordRow(_ rec: VaultRecord) -> some View {
-        HStack(spacing: 12) {
+        let icon: String
+        let color: Color
+        switch rec.kind {
+        case .charge: icon = "bolt.fill"; color = Theme.orange
+        case .fuel: icon = "fuelpump.fill"; color = Theme.gold
+        case .drive: icon = "clock"; color = Theme.silver
+        case .maintenance: icon = "wrench.and.screwdriver.fill"; color = Theme.green
+        }
+        return HStack(spacing: 12) {
             RoundedRectangle(cornerRadius: 10)
-                .fill(rec.kind == .charge ? Theme.orange.opacity(0.14) : Theme.silver.opacity(0.1))
+                .fill(color.opacity(0.14))
                 .frame(width: 32, height: 32)
                 .overlay(
-                    Image(systemName: rec.kind == .charge ? "bolt.fill" : "clock")
+                    Image(systemName: icon)
                         .font(.system(size: 13))
-                        .foregroundStyle(rec.kind == .charge ? Theme.orange : Theme.silver)
+                        .foregroundStyle(color)
                 )
             VStack(alignment: .leading, spacing: 1) {
                 Text(rec.title).font(pd(12.5, .medium))
                 subtitleText(rec)
             }
             Spacer()
-            if rec.kind == .charge, let amount = rec.amountWon {
+            if let amount = rec.amountWon {
                 Text(won(amount)).font(gm(13, .medium))
+            } else if let dur = rec.durationMin {
+                Text("\(dur)분").font(pd(11)).foregroundStyle(Theme.muted)
             } else if let tag = rec.tag {
                 Text(tag).font(pd(11)).foregroundStyle(Theme.muted)
             }
@@ -674,7 +687,7 @@ struct CockpitView: View {
 
     private func subtitleText(_ rec: VaultRecord) -> some View {
         var t = Text("\(relativeDay(rec.occurredAt))")
-        if rec.kind == .charge {
+        if rec.kind == .charge || rec.kind == .fuel {
             t = t + Text(" \(timeOf(rec.occurredAt))")
             if let loc = rec.location { t = t + Text(" · \(loc)") }
             if rec.aiLogged { t = t + Text(" · AI 자동기록").foregroundStyle(Theme.gold) }
