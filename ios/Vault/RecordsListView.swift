@@ -95,7 +95,7 @@ struct RecordsListView: View {
         if let amount = rec.amountWon {
             Text(won(amount)).font(gm(13, .medium))
         } else if let dur = rec.durationMin {
-            Text("\(dur)분").font(pd(11)).foregroundStyle(Theme.muted)
+            Text(verbatim: String(format: L("%d분"), dur)).font(pd(11)).foregroundStyle(Theme.muted)
         } else if rec.kind == .maintenance {
             Text("예약").font(pd(11)).foregroundStyle(Theme.gold)
         }

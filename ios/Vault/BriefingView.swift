@@ -91,7 +91,7 @@ struct BriefingView: View {
     }
 
     private func chip(_ label: String, color: Color, border: Color) -> some View {
-        Text(label)
+        Text(L(label))
             .font(pd(11))
             .foregroundStyle(color)
             .padding(.horizontal, 11)
@@ -105,7 +105,7 @@ struct BriefingView: View {
         return VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("\(s?.month ?? 7)월 총 지출").font(pd(11)).foregroundStyle(Theme.muted)
+                    Text(verbatim: String(format: L("%d월 총 지출"), s?.month ?? 7)).font(pd(11)).foregroundStyle(Theme.muted)
                     Text(won(s?.total ?? 186400)).font(gm(28, .bold))
                     spendDeltaText
                 }
@@ -141,9 +141,9 @@ struct BriefingView: View {
     private var spendDeltaText: some View {
         if let s = store.monthlySpend, s.prevTotal > 0 {
             if s.deltaWon <= 0 {
-                Text("지난달보다 \(won(-s.deltaWon)) 아꼈어요").font(pd(11)).foregroundStyle(Theme.green)
+                Text(verbatim: String(format: L("지난달보다 %@ 아꼈어요"), won(-s.deltaWon))).font(pd(11)).foregroundStyle(Theme.green)
             } else {
-                Text("지난달보다 \(won(s.deltaWon)) 더 썼어요").font(pd(11)).foregroundStyle(Theme.orange)
+                Text(verbatim: String(format: L("지난달보다 %@ 더 썼어요"), won(s.deltaWon))).font(pd(11)).foregroundStyle(Theme.orange)
             }
         } else if store.monthlySpend != nil {
             Text("이번 달 첫 지출 기록").font(pd(11)).foregroundStyle(Theme.muted)
@@ -212,7 +212,7 @@ struct BriefingView: View {
                         .font(pd(11, .semibold))
                         .foregroundStyle(accent)
                 } else {
-                    Text("잔여 \(grouped(store.vehicle.leaseRemainKm))km")
+                    Text(verbatim: String(format: L("잔여 %@km"), grouped(store.vehicle.leaseRemainKm)))
                         .font(pd(11)).foregroundStyle(Theme.orange)
                 }
             }
@@ -231,12 +231,12 @@ struct BriefingView: View {
             .padding(.top, 10)
             HStack {
                 if let p {
-                    Text("오늘 적정 \(grouped(p.allowedToDateKm))km · 현재 \(grouped(store.vehicle.leaseDriven))km")
+                    Text(verbatim: String(format: L("오늘 적정 %@km · 현재 %@km"), grouped(p.allowedToDateKm), grouped(store.vehicle.leaseDriven)))
                 } else {
-                    Text("\(grouped(store.vehicle.leaseDriven))km 주행")
+                    Text(verbatim: String(format: L("%@km 주행"), grouped(store.vehicle.leaseDriven)))
                 }
                 Spacer()
-                Text("약정 \(grouped(store.vehicle.leaseLimitKm ?? 0))km")
+                Text(verbatim: String(format: L("약정 %@km"), grouped(store.vehicle.leaseLimitKm ?? 0)))
             }
             .font(pd(10))
             .foregroundStyle(Theme.muted)
@@ -325,7 +325,7 @@ struct BriefingView: View {
             }
         case .drive:
             if let dur = rec.durationMin {
-                Text("\(dur)분").font(pd(11)).foregroundStyle(Theme.muted)
+                Text(verbatim: String(format: L("%d분"), dur)).font(pd(11)).foregroundStyle(Theme.muted)
             }
         case .maintenance:
             if let amount = rec.amountWon {

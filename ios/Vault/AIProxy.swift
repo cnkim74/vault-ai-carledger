@@ -24,8 +24,12 @@ enum AIProxy {
     /// 첫 text 블록을 반환. 미설정/거부/오류 시 nil.
     static func complete(system: String, user: String, maxTokens: Int,
                          model: String = "claude-opus-4-8") async -> String? {
+        // 프롬프트에 어떤 언어가 명시되어 있든, 사람이 읽는 텍스트는 기기 언어로 출력.
+        let localizedSystem = system +
+            "\n\nIMPORTANT: Regardless of any language mentioned above, write ALL human-readable text " +
+            "(sentences, reasons, labels) in \(AppLocale.aiLanguageName). Keep JSON keys and numbers unchanged."
         let body = RequestBody(
-            model: model, max_tokens: maxTokens, system: system,
+            model: model, max_tokens: maxTokens, system: localizedSystem,
             messages: [.init(role: "user", content: user)]
         )
         guard let data = try? JSONEncoder().encode(body) else { return nil }

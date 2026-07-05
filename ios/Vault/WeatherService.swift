@@ -85,7 +85,7 @@ final class WeatherService: NSObject, ObservableObject {
             let score = Self.washScore(code: code, todayRain: today, tomorrowRain: tomorrow)
             carWashScore = score
             carWashGrade = Self.washGrade(score)
-            washReason = "오늘 강수 \(today)% · 내일 \(tomorrow)%"
+            washReason = String(format: L("오늘 강수 %d%% · 내일 %d%%"), today, tomorrow)
         } catch {
             print("[WeatherService] fetch failed: \(error)")
             didFetch = false
@@ -95,17 +95,17 @@ final class WeatherService: NSObject, ObservableObject {
     /// WMO weather code → (SF Symbol, 한국어 설명)
     private static func describe(code: Int) -> (String, String) {
         switch code {
-        case 0: return ("sun.max.fill", "맑음")
-        case 1, 2: return ("cloud.sun.fill", "대체로 맑음")
-        case 3: return ("cloud.fill", "흐림")
-        case 45, 48: return ("cloud.fog.fill", "안개")
-        case 51...57: return ("cloud.drizzle.fill", "이슬비")
-        case 61...67: return ("cloud.rain.fill", "비")
-        case 71...77: return ("cloud.snow.fill", "눈")
-        case 80...82: return ("cloud.heavyrain.fill", "소나기")
-        case 85, 86: return ("cloud.snow.fill", "소낙눈")
-        case 95...99: return ("cloud.bolt.rain.fill", "뇌우")
-        default: return ("cloud.fill", "흐림")
+        case 0: return ("sun.max.fill", L("맑음"))
+        case 1, 2: return ("cloud.sun.fill", L("대체로 맑음"))
+        case 3: return ("cloud.fill", L("흐림"))
+        case 45, 48: return ("cloud.fog.fill", L("안개"))
+        case 51...57: return ("cloud.drizzle.fill", L("이슬비"))
+        case 61...67: return ("cloud.rain.fill", L("비"))
+        case 71...77: return ("cloud.snow.fill", L("눈"))
+        case 80...82: return ("cloud.heavyrain.fill", L("소나기"))
+        case 85, 86: return ("cloud.snow.fill", L("소낙눈"))
+        case 95...99: return ("cloud.bolt.rain.fill", L("뇌우"))
+        default: return ("cloud.fill", L("흐림"))
         }
     }
 
@@ -128,11 +128,11 @@ final class WeatherService: NSObject, ObservableObject {
 
     static func washGrade(_ score: Int) -> String {
         switch score {
-        case 80...: return "매우 좋음"
-        case 60..<80: return "좋음"
-        case 40..<60: return "보통"
-        case 20..<40: return "나쁨"
-        default: return "매우 나쁨"
+        case 80...: return L("매우 좋음")
+        case 60..<80: return L("좋음")
+        case 40..<60: return L("보통")
+        case 20..<40: return L("나쁨")
+        default: return L("매우 나쁨")
         }
     }
 
@@ -140,16 +140,16 @@ final class WeatherService: NSObject, ObservableObject {
     private static func advice(code: Int, rainProb: Int, temp: Int) -> String? {
         switch code {
         case 71...77, 85, 86:
-            return "눈길 · 제설제 후 하부 세차 추천"
+            return L("눈길 · 제설제 후 하부 세차 추천")
         case 51...67, 80...82, 95...99:
-            return "비 오는 날 · 세차는 미루세요"
+            return L("비 오는 날 · 세차는 미루세요")
         case 45, 48:
-            return "안개 · 안전 운전하세요"
+            return L("안개 · 안전 운전하세요")
         default:
-            if rainProb >= 50 { return "비 예보 있음 · 세차는 미루세요" }
-            if temp >= 33 { return "폭염 · 냉각수·타이어 공기압 점검" }
-            if temp <= -5 { return "한파 · 배터리 방전 주의" }
-            if rainProb < 30 { return "세차하기 좋은 날이에요" }
+            if rainProb >= 50 { return L("비 예보 있음 · 세차는 미루세요") }
+            if temp >= 33 { return L("폭염 · 냉각수·타이어 공기압 점검") }
+            if temp <= -5 { return L("한파 · 배터리 방전 주의") }
+            if rainProb < 30 { return L("세차하기 좋은 날이에요") }
             return nil
         }
     }

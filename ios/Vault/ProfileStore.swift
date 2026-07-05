@@ -15,7 +15,10 @@ final class ProfileStore: ObservableObject {
     var isSet: Bool { !name.isEmpty }
 
     /// 헤더 인사용 (예: "지훈님", 미설정 시 "회원님")
-    var greetingName: String { name.isEmpty ? "회원님" : "\(name)님" }
+    var greetingName: String {
+        if name.isEmpty { return L("회원님") }
+        return AppLocale.languageCode.hasPrefix("ko") ? "\(name)님" : name
+    }
 
     /// 아바타 이니셜 (한글 첫 글자 또는 영문 앞 2자)
     var initials: String {

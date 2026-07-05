@@ -18,13 +18,13 @@ final class TeslaService: NSObject, ObservableObject, ASWebAuthenticationPresent
 
     func connect() async {
         guard let base = Secrets.supabaseURL, let key = Secrets.supabaseKey, !key.isEmpty else {
-            message = "Supabase 미설정"; return
+            message = L("Supabase 미설정"); return
         }
         connecting = true; message = nil
         defer { connecting = false }
 
         guard let authURL = await fetchAuthURL(base: base, key: key) else {
-            message = "인증 URL을 받지 못했어요"; return
+            message = L("인증 URL을 받지 못했어요"); return
         }
 
         let ok: Bool = await withCheckedContinuation { cont in
@@ -40,9 +40,9 @@ final class TeslaService: NSObject, ObservableObject, ASWebAuthenticationPresent
         if ok {
             connected = true
             UserDefaults.standard.set(true, forKey: "tesla.connected")
-            message = "연결됨"
+            message = L("연결됨")
         } else {
-            message = "연결이 취소되었어요"
+            message = L("연결이 취소되었어요")
         }
     }
 
@@ -74,7 +74,7 @@ final class TeslaService: NSObject, ObservableObject, ASWebAuthenticationPresent
 
         guard let (data, _) = try? await URLSession.shared.data(for: req),
               let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            message = "동기화 실패"; return false
+            message = L("동기화 실패"); return false
         }
 
         if let err = obj["error"] as? String {
@@ -82,11 +82,11 @@ final class TeslaService: NSObject, ObservableObject, ASWebAuthenticationPresent
             case "not_connected", "reauth":
                 connected = false
                 UserDefaults.standard.set(false, forKey: "tesla.connected")
-                message = "재연결이 필요해요"
+                message = L("재연결이 필요해요")
             case "vehicle_unavailable":
-                message = "차량이 응답하지 않아요 (잠자는 중)"
+                message = L("차량이 응답하지 않아요 (잠자는 중)")
             default:
-                message = "동기화 실패"
+                message = L("동기화 실패")
             }
             return false
         }
@@ -94,10 +94,10 @@ final class TeslaService: NSObject, ObservableObject, ASWebAuthenticationPresent
         var upsert = VaultStore.VehicleUpsert()
         if let b = obj["battery"] as? Int { upsert.battery = b }
         if let o = obj["odometerKm"] as? Int { upsert.odometer_km = o }
-        if upsert.battery == nil && upsert.odometer_km == nil { message = "데이터 없음"; return false }
+        if upsert.battery == nil && upsert.odometer_km == nil { message = L("데이터 없음"); return false }
 
         try? await store.updateVehicle(upsert)
-        message = "동기화 완료"
+        message = L("동기화 완료")
         return true
     }
 
@@ -116,7 +116,7 @@ final class TeslaService: NSObject, ObservableObject, ASWebAuthenticationPresent
 
         guard let (data, _) = try? await URLSession.shared.data(for: req),
               let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            message = "충전 이력 조회 실패"; return false
+            message = L("충전 이력 조회 실패"); return false
         }
 
         if let err = obj["error"] as? String {
@@ -124,20 +124,22 @@ final class TeslaService: NSObject, ObservableObject, ASWebAuthenticationPresent
             case "not_connected", "reauth":
                 connected = false
                 UserDefaults.standard.set(false, forKey: "tesla.connected")
-                message = "재연결이 필요해요"
+                message = L("재연결이 필요해요")
             case "scope":
-                message = "테슬라 재연결 필요 (충전 이력 권한)"
+                message = L("테슬라 재연결 필요 (충전 이력 권한)")
             case "no_vin":
-                message = "VIN 확인 실패"
+                message = L("VIN 확인 실패")
             default:
-                message = "충전 이력 조회 실패"
+                message = L("충전 이력 조회 실패")
             }
             return false
         }
 
         let imported = obj["imported"] as? Int ?? 0
         if imported > 0 { await store.load() }
-        message = imported > 0 ? "충전 \(imported)건 가져옴" : "새 충전 내역 없음"
+        message = imported > 0
+            ? String(format: L("충전 %d건 가져옴"), imported)
+            : L("새 충전 내역 없음")
         return true
     }
 

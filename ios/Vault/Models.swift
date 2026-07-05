@@ -5,10 +5,10 @@ enum RecordKind: String, Codable {
 
     var label: String {
         switch self {
-        case .charge: return "충전"
-        case .fuel: return "주유"
-        case .drive: return "주행"
-        case .maintenance: return "정비"
+        case .charge: return L("충전")
+        case .fuel: return L("주유")
+        case .drive: return L("주행")
+        case .maintenance: return L("정비")
         }
     }
 }
@@ -29,9 +29,9 @@ enum Ownership: String, Codable, CaseIterable {
 
     var label: String {
         switch self {
-        case .purchase: return "구매"
-        case .lease: return "리스"
-        case .rent: return "렌트"
+        case .purchase: return L("구매")
+        case .lease: return L("리스")
+        case .rent: return L("렌트")
         }
     }
 }
@@ -44,6 +44,9 @@ enum FuelType: String, CaseIterable {
     case hybrid = "하이브리드"
     case lpg = "LPG"
     case hydrogen = "수소"
+
+    /// 표시용 지역화 라벨 (rawValue는 DB 저장값이라 유지)
+    var label: String { L(rawValue) }
 
     /// 오피넷 유종 코드 (전기/수소는 없음)
     var opinetCode: String? {

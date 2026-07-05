@@ -1,0 +1,300 @@
+# -*- coding: utf-8 -*-
+import json
+
+# ko: (en, ja, zh-Hans)
+T = {
+    # 탭 / 공통
+    "홈": ("Home", "ホーム", "首页"),
+    "기록": ("Records", "記録", "记录"),
+    "통계": ("Stats", "統計", "统计"),
+    "차고": ("Garage", "ガレージ", "车库"),
+    "프로필": ("Profile", "プロフィール", "个人资料"),
+    "저장": ("Save", "保存", "保存"),
+    "취소": ("Cancel", "キャンセル", "取消"),
+    "완료": ("Done", "完了", "完成"),
+    "닫기": ("Close", "閉じる", "关闭"),
+    "등록": ("Register", "登録", "注册"),
+    "예약": ("Book", "予約", "预约"),
+    "직접 입력": ("Enter manually", "手動入力", "手动输入"),
+    "전체 보기": ("View all", "すべて表示", "查看全部"),
+    "사진 선택": ("Choose photo", "写真を選択", "选择照片"),
+    "사진 제거": ("Remove photo", "写真を削除", "移除照片"),
+    "앨범에서 선택": ("Choose from album", "アルバムから選択", "从相册选择"),
+
+    # 인사
+    "안녕하세요": ("Hello", "こんにちは", "您好"),
+    "좋은 아침이에요": ("Good morning", "おはようございます", "早上好"),
+    "좋은 오후예요": ("Good afternoon", "こんにちは", "下午好"),
+    "좋은 저녁이에요": ("Good evening", "こんばんは", "晚上好"),
+    "회원님": ("there", "ユーザー", "用户"),
+    "어떻게 불러드릴까요?": ("What should we call you?", "何とお呼びしますか？", "怎么称呼您？"),
+    "이름": ("Name", "名前", "姓名"),
+
+    # 날씨 / 세차
+    "맑음": ("Clear", "快晴", "晴"),
+    "대체로 맑음": ("Mostly clear", "おおむね晴れ", "大致晴朗"),
+    "흐림": ("Cloudy", "曇り", "阴"),
+    "안개": ("Fog", "霧", "雾"),
+    "이슬비": ("Drizzle", "霧雨", "毛毛雨"),
+    "비": ("Rain", "雨", "雨"),
+    "소나기": ("Showers", "にわか雨", "阵雨"),
+    "눈": ("Snow", "雪", "雪"),
+    "소낙눈": ("Snow showers", "にわか雪", "阵雪"),
+    "뇌우": ("Thunderstorm", "雷雨", "雷暴"),
+    "세차하기 좋은 날이에요": ("Great day for a car wash", "洗車日和です", "适合洗车的好天气"),
+    "비 예보 있음 · 세차는 미루세요": ("Rain expected · hold off on washing", "雨の予報 · 洗車は控えて", "有雨 · 建议暂缓洗车"),
+    "비 오는 날 · 세차는 미루세요": ("Rainy day · hold off on washing", "雨の日 · 洗車は控えて", "雨天 · 建议暂缓洗车"),
+    "눈길 · 제설제 후 하부 세차 추천": ("Snowy · underbody wash advised after de-icer", "雪道 · 融雪剤後は下回り洗車を", "雪路 · 建议融雪剂后清洗底盘"),
+    "안개 · 안전 운전하세요": ("Fog · drive safely", "霧 · 安全運転を", "雾 · 请安全驾驶"),
+    "폭염 · 냉각수·타이어 공기압 점검": ("Heat · check coolant & tire pressure", "猛暑 · 冷却水とタイヤ空気圧を点検", "高温 · 检查冷却液和胎压"),
+    "한파 · 배터리 방전 주의": ("Cold · watch for battery drain", "寒波 · バッテリー上がりに注意", "寒潮 · 注意电池亏电"),
+    "매우 좋음": ("Excellent", "非常に良い", "非常好"),
+    "좋음": ("Good", "良い", "好"),
+    "보통": ("Fair", "普通", "一般"),
+    "나쁨": ("Poor", "悪い", "差"),
+    "매우 나쁨": ("Very poor", "非常に悪い", "很差"),
+    "안전": ("Safe", "安全", "安全"),
+    "과속": ("Over pace", "超過", "超速"),
+    "위치 확인 중…": ("Locating…", "位置を確認中…", "正在定位…"),
+    "현재 위치": ("Current location", "現在地", "当前位置"),
+    "서울": ("Seoul", "ソウル", "首尔"),
+
+    # 홈 대시보드
+    "AI 인사이트": ("AI Insights", "AIインサイト", "AI 洞察"),
+    "약정거리 예측": ("Mileage forecast", "契約距離の予測", "约定里程预测"),
+    "약정거리": ("Contract mileage", "契約距離", "约定里程"),
+    "오늘 기준 적정 대비": ("vs. target as of today", "本日時点の適正比", "相对今日基准"),
+    "약정 100%": ("Limit 100%", "契約 100%", "约定 100%"),
+    "· 여유": ("· margin", "· 余裕", "· 余量"),
+    "누적 주행": ("Odometer", "総走行", "总里程"),
+    "누적 주행거리": ("Total mileage", "総走行距離", "总行驶里程"),
+    "주행 가능 거리": ("Range", "走行可能距離", "可行驶里程"),
+    "완충 시 주행": ("Range at full", "満充電時の距離", "满电续航"),
+    "현재 배터리": ("Current battery", "現在のバッテリー", "当前电量"),
+    "배터리": ("Battery", "バッテリー", "电量"),
+    "이번 주 예상 이동": ("Est. travel this week", "今週の予想移動", "本周预计行驶"),
+    "예상": ("Est.", "予想", "预计"),
+    "절약 플랜 보기": ("View savings plan", "節約プランを見る", "查看省钱方案"),
+    "자세히 물어보기": ("Ask more", "詳しく聞く", "了解更多"),
+    "이번 달 충전비 얼마 썼어?": ("How much did I spend charging this month?", "今月の充電費はいくら？", "本月充电花了多少？"),
+    "최근 기록": ("Recent records", "最近の記録", "最近记录"),
+    "아직 기록이 없어요": ("No records yet", "まだ記録がありません", "还没有记录"),
+    "이번 주 기록": ("This week's records", "今週の記録", "本周记录"),
+
+    # 길찾기
+    "길찾기": ("Directions", "経路案内", "路线导航"),
+    "일정": ("Schedule", "予定", "日程"),
+    "목적지 검색 (예: 강남역, 서울역)": ("Search destination (e.g. Gangnam Stn.)", "目的地を検索（例: 江南駅）", "搜索目的地（如：江南站）"),
+    "어떤 내비로 안내할까요?": ("Which navigation app?", "どのナビで案内しますか？", "使用哪个导航？"),
+    "티맵": ("TMAP", "TMAP", "TMAP"),
+    "카카오맵": ("KakaoMap", "カカオマップ", "Kakao地图"),
+
+    # 지출/기록 종류
+    "충전": ("Charge", "充電", "充电"),
+    "주유": ("Fuel", "給油", "加油"),
+    "주행": ("Drive", "走行", "行驶"),
+    "정비": ("Service", "整備", "保养"),
+    "주행 일지": ("Trip log", "走行日誌", "行驶日志"),
+    "기타": ("Other", "その他", "其他"),
+    "첫 지출 기록": ("First expense record", "最初の支出記録", "首次支出记录"),
+    "이번 달 첫 지출 기록": ("First expense this month", "今月最初の支出記録", "本月首次支出"),
+
+    # 기록 추가
+    "기록 추가": ("Add record", "記録を追加", "添加记录"),
+    "내용": ("Details", "内容", "内容"),
+    "금액 (원)": ("Amount (KRW)", "金額（ウォン）", "金额（韩元）"),
+    "충전량 (kWh)": ("Energy (kWh)", "充電量（kWh）", "充电量（kWh）"),
+    "주유량 (L)": ("Volume (L)", "給油量（L）", "加油量（L）"),
+    "거리 (km)": ("Distance (km)", "距離（km）", "距离（km）"),
+    "소요 시간 (분)": ("Duration (min)", "所要時間（分）", "用时（分钟）"),
+    "예상 정비 항목": ("Suggested service items", "予想整備項目", "预计保养项目"),
+    "제목 (아래에서 선택하거나 직접 입력)": ("Title (pick below or type)", "タイトル（下から選択または入力）", "标题（从下方选择或输入）"),
+    "제목 (예: 서울 → 판교)": ("Title (e.g. Seoul → Pangyo)", "タイトル（例: ソウル → 板橋）", "标题（如：首尔 → 板桥）"),
+    "제목 (예: 초급속 충전 · 42kWh)": ("Title (e.g. Supercharge · 42kWh)", "タイトル（例: 超急速充電 · 42kWh）", "标题（如：超快充 · 42kWh）"),
+    "제목 (예: 휘발유 · 40L)": ("Title (e.g. Gasoline · 40L)", "タイトル（例: ガソリン · 40L）", "标题（如：汽油 · 40L）"),
+    "장소 (예: 이마트 성수)": ("Place (e.g. E-Mart Seongsu)", "場所（例: イーマート聖水）", "地点（如：易买得城水店）"),
+    "정비소 (예: 테슬라 서비스센터)": ("Shop (e.g. Tesla Service Center)", "整備工場（例: テスラサービスセンター）", "维修点（如：特斯拉服务中心）"),
+    "주유소 (예: GS칼텍스 역삼)": ("Station (e.g. GS Caltex Yeoksam)", "スタンド（例: GSカルテックス駅三）", "加油站（如：GS加德士驿三）"),
+    "태그 (예: 출퇴근)": ("Tag (e.g. Commute)", "タグ（例: 通勤）", "标签（如：通勤）"),
+
+    # 정비 항목
+    "엔진오일": ("Engine oil", "エンジンオイル", "机油"),
+    "오일필터": ("Oil filter", "オイルフィルター", "机油滤清器"),
+    "에어클리너": ("Air cleaner", "エアクリーナー", "空气滤清器"),
+    "에어컨 필터": ("A/C filter", "エアコンフィルター", "空调滤清器"),
+    "실내필터": ("Cabin filter", "室内フィルター", "空调滤芯"),
+    "연료필터": ("Fuel filter", "燃料フィルター", "燃油滤清器"),
+    "브레이크 패드": ("Brake pads", "ブレーキパッド", "刹车片"),
+    "타이어 공기압": ("Tire pressure", "タイヤ空気圧", "胎压"),
+    "타이어 교체": ("Tire replacement", "タイヤ交換", "更换轮胎"),
+    "타이어 위치교환": ("Tire rotation", "タイヤローテーション", "轮胎换位"),
+    "냉각수 점검": ("Coolant check", "冷却水点検", "冷却液检查"),
+    "부동액": ("Antifreeze", "不凍液", "防冻液"),
+    "미션오일": ("Transmission oil", "ミッションオイル", "变速箱油"),
+    "점화플러그": ("Spark plugs", "点火プラグ", "火花塞"),
+    "와이퍼": ("Wipers", "ワイパー", "雨刮器"),
+    "하부 세차": ("Underbody wash", "下回り洗車", "底盘清洗"),
+    "정기 점검": ("Regular checkup", "定期点検", "定期检查"),
+    "엔진오일 교체 알림": ("Engine oil change reminder", "エンジンオイル交換のお知らせ", "机油更换提醒"),
+
+    # 차고 / 차량 정보
+    "차량": ("Vehicle", "車両", "车辆"),
+    "내 차": ("My car", "マイカー", "我的车"),
+    "차량 정보": ("Vehicle info", "車両情報", "车辆信息"),
+    "차량 정보 수정": ("Edit vehicle", "車両情報を編集", "编辑车辆信息"),
+    "차량 추가": ("Add vehicle", "車両を追加", "添加车辆"),
+    "차량 사진": ("Vehicle photo", "車両写真", "车辆照片"),
+    "탭해서 차량 사진을 선택하세요": ("Tap to choose a vehicle photo", "タップして車両写真を選択", "点击选择车辆照片"),
+    "등록 정보": ("Registration", "登録情報", "登记信息"),
+    "종류": ("Type", "種類", "类型"),
+    "연료": ("Fuel type", "燃料", "燃料"),
+    "모델": ("Model", "モデル", "型号"),
+    "제조사": ("Maker", "メーカー", "厂商"),
+    "소유 형태": ("Ownership", "所有形態", "拥有方式"),
+    "구매": ("Purchase", "購入", "购买"),
+    "리스": ("Lease", "リース", "租赁"),
+    "렌트": ("Rental", "レンタル", "长租"),
+    "구매가": ("Purchase price", "購入価格", "购买价格"),
+    "구매가 (원)": ("Purchase price (KRW)", "購入価格（ウォン）", "购买价格（韩元）"),
+    "월 납입금": ("Monthly payment", "月額支払い", "月供"),
+    "월납입금": ("Monthly payment", "月額支払い", "月供"),
+    "월 납입금 (원)": ("Monthly payment (KRW)", "月額支払い（ウォン）", "月供（韩元）"),
+    "약정거리 (km)": ("Contract mileage (km)", "契約距離（km）", "约定里程（km）"),
+    "렌트 약정거리": ("Rental mileage limit", "レンタル契約距離", "长租约定里程"),
+    "계약 시작": ("Contract start", "契約開始", "合同开始"),
+    "계약 시작일": ("Contract start date", "契約開始日", "合同开始日"),
+    "계약 시작일 설정": ("Set start date", "開始日を設定", "设置开始日期"),
+    "계약 시작 시 주행거리 (신차면 0)": ("Odometer at start (0 if new)", "契約開始時の走行距離（新車なら0）", "合同开始时里程（新车填0）"),
+    "계약 종료": ("Contract end", "契約終了", "合同结束"),
+    "계약 종료일": ("Contract end date", "契約終了日", "合同结束日"),
+    "계약 종료일 설정": ("Set end date", "終了日を設定", "设置结束日期"),
+    "계약 기간": ("Contract term", "契約期間", "合同期限"),
+    "계약일": ("Contract date", "契約日", "合同日期"),
+    "약정일": ("Term days", "契約日数", "约定天数"),
+    "누적 주행 (km)": ("Odometer (km)", "総走行（km）", "总里程（km）"),
+    "누적 주행 km": ("Odometer km", "総走行 km", "总里程 km"),
+    "차량 이름 (예: Model Y Long Range)": ("Vehicle name (e.g. Model Y Long Range)", "車両名（例: Model Y Long Range）", "车辆名称（如：Model Y Long Range）"),
+    "차량 번호 (예: 62가 3817)": ("Plate (e.g. 62GA 3817)", "ナンバー（例: 62가 3817）", "车牌（如：62가 3817）"),
+    "연식 (예: 2024)": ("Year (e.g. 2024)", "年式（例: 2024）", "年款（如：2024）"),
+
+    # 연료 종류
+    "전기차": ("EV", "EV", "电动车"),
+    "가솔린": ("Gasoline", "ガソリン", "汽油"),
+    "디젤": ("Diesel", "ディーゼル", "柴油"),
+    "하이브리드": ("Hybrid", "ハイブリッド", "混动"),
+    "수소": ("Hydrogen", "水素", "氢能"),
+
+    # 충전소 / 주유소
+    "충전소": ("Chargers", "充電スタンド", "充电站"),
+    "주변 주유소": ("Nearby stations", "近くのスタンド", "附近加油站"),
+    "주변 충전소 찾기": ("Find nearby chargers", "近くの充電器を探す", "查找附近充电站"),
+    "주변 검색 중…": ("Searching nearby…", "周辺を検索中…", "正在搜索附近…"),
+    "주변 정보를 불러오지 못했어요": ("Couldn't load nearby info", "周辺情報を取得できませんでした", "无法加载附近信息"),
+    "오피넷 키 설정 필요": ("Opinet key required", "Opinetキーの設定が必要", "需要设置 Opinet 密钥"),
+
+    # 테슬라
+    "테슬라": ("Tesla", "テスラ", "特斯拉"),
+    "테슬라 연결": ("Connect Tesla", "テスラを接続", "连接特斯拉"),
+    "테슬라 로그인 중…": ("Signing in to Tesla…", "テスラにログイン中…", "正在登录特斯拉…"),
+    "테슬라 동기화 (배터리·주행거리)": ("Sync Tesla (battery·odometer)", "テスラ同期（バッテリー·走行距離）", "同步特斯拉（电量·里程）"),
+    "슈퍼차저 충전 이력 가져오기": ("Import Supercharger history", "スーパーチャージャー履歴を取得", "导入超充记录"),
+    "테슬라 재연결 필요 (충전 이력 권한)": ("Reconnect Tesla (charging permission)", "テスラ再接続が必要（充電履歴の権限）", "需重新连接特斯拉（充电记录权限）"),
+    "충전 이력 가져오는 중…": ("Importing charging history…", "充電履歴を取得中…", "正在导入充电记录…"),
+    "충전 이력 조회 실패": ("Failed to load charging history", "充電履歴の取得に失敗", "获取充电记录失败"),
+    "새 충전 내역 없음": ("No new charging sessions", "新しい充電履歴なし", "没有新的充电记录"),
+    "동기화 중…": ("Syncing…", "同期中…", "同步中…"),
+    "동기화 완료": ("Synced", "同期完了", "同步完成"),
+    "동기화 실패": ("Sync failed", "同期に失敗", "同步失败"),
+    "연결됨": ("Connected", "接続済み", "已连接"),
+    "연결이 취소되었어요": ("Connection cancelled", "接続がキャンセルされました", "连接已取消"),
+    "재연결이 필요해요": ("Reconnection needed", "再接続が必要です", "需要重新连接"),
+    "데이터 없음": ("No data", "データなし", "无数据"),
+    "차량이 응답하지 않아요 (잠자는 중)": ("Vehicle not responding (asleep)", "車両が応答しません（スリープ中）", "车辆无响应（休眠中）"),
+    "인증 URL을 받지 못했어요": ("Couldn't get auth URL", "認証URLを取得できませんでした", "无法获取认证链接"),
+    "VIN 확인 실패": ("VIN check failed", "VIN確認に失敗", "VIN 校验失败"),
+    "Supabase 미설정": ("Supabase not configured", "Supabase未設定", "未配置 Supabase"),
+    "Supabase 미연결 상태 — 저장하려면 연결이 필요해요.": ("Supabase not connected — connection required to save.", "Supabase未接続 — 保存には接続が必要です。", "未连接 Supabase — 保存需要先连接。"),
+
+    # 계약서 PDF
+    "계약서 PDF 불러오기": ("Import contract PDF", "契約書PDFを読み込む", "导入合同 PDF"),
+    "계약서 분석 중…": ("Analyzing contract…", "契約書を解析中…", "正在分析合同…"),
+    "리스·렌트 계약서 PDF에서 계약일·약정일·약정거리를 자동으로 채워요.": ("Auto-fills dates and mileage limit from a lease/rental contract PDF.", "リース・レンタル契約書PDFから契約日・契約日数・契約距離を自動入力します。", "从租赁合同 PDF 自动填写合同日期与约定里程。"),
+    "인식된 항목이 없어요. 직접 입력해 주세요.": ("Nothing recognized. Please enter manually.", "認識項目がありません。手動で入力してください。", "未识别到内容，请手动输入。"),
+
+    # 프로필 / Apple
+    "Apple 계정에 이름이 없어요. 직접 입력해 주세요.": ("No name on your Apple account. Please enter manually.", "Appleアカウントに名前がありません。手動で入力してください。", "Apple 账户没有姓名，请手动输入。"),
+    "Apple 로그인을 사용할 수 없어요. 이름을 직접 입력해 주세요.": ("Sign in with Apple unavailable. Please enter your name.", "Appleでサインインを利用できません。名前を入力してください。", "无法使用 Apple 登录，请手动输入姓名。"),
+
+    # 입력 안내
+    "계기판의 현재 누적 주행거리(km)를 입력하세요.": ("Enter the current odometer reading (km).", "メーターの現在の総走行距離（km）を入力してください。", "请输入仪表盘当前总里程（km）。"),
+    "현재 배터리 잔량(%)을 입력하세요. 주행 가능 거리가 자동 계산돼요.": ("Enter current battery level (%). Range is calculated automatically.", "現在のバッテリー残量（%）を入力してください。走行可能距離が自動計算されます。", "请输入当前电量（%），可行驶里程将自动计算。"),
+
+    # 샘플 사진
+    "샘플 · 레드": ("Sample · Red", "サンプル · レッド", "示例 · 红"),
+    "샘플 · 블루": ("Sample · Blue", "サンプル · ブルー", "示例 · 蓝"),
+    "샘플 · 스카이": ("Sample · Sky", "サンプル · スカイ", "示例 · 天蓝"),
+
+    # 페이스
+    "과속 페이스": ("Over pace", "超過ペース", "超速节奏"),
+    "안전 페이스": ("Safe pace", "安全ペース", "安全节奏"),
+    "안전": ("Safe", "安全", "安全"),
+
+    # 날짜
+    "오늘": ("Today", "今日", "今天"),
+    "어제": ("Yesterday", "昨日", "昨天"),
+
+    # 포맷 문자열 (%d/%@ 등 위치자 유지)
+    "충전 %d건 가져옴": ("Imported %d charges", "%d件の充電を取得", "已导入 %d 条充电"),
+    "오늘 강수 %d%% · 내일 %d%%": ("Rain today %d%% · tomorrow %d%%", "本日の降水 %d%% · 明日 %d%%", "今日降水 %d%% · 明日 %d%%"),
+    "세차": ("Wash", "洗車", "洗车"),
+    "배터리 %d%%": ("Battery %d%%", "バッテリー %d%%", "电量 %d%%"),
+    "%d월 지출": ("Spend · mo. %d", "%d月の支出", "%d月支出"),
+    "%d월 총 지출": ("Total · mo. %d", "%d月の合計支出", "%d月总支出"),
+    "· %d%% 빠름": ("· %d%% fast", "· %d%% 速い", "· 快 %d%%"),
+    "오늘 적정 %@km · 현재 %@km": ("Target %@km · now %@km", "適正 %@km · 現在 %@km", "适宜 %@km · 当前 %@km"),
+    "하루 %d/%dkm": ("%d/%d km per day", "1日 %d/%dkm", "每天 %d/%dkm"),
+    "만료 시 예상 %@km / 약정 %@km": ("Est. %@km / limit %@km", "満了時 %@km / 契約 %@km", "到期预计 %@km / 约定 %@km"),
+    "%d분": ("%d min", "%d分", "%d分钟"),
+    " · %d분": (" · %d min", " · %d分", " · %d分钟"),
+    "지난달보다 %@ 아꼈어요": ("Saved %@ vs last month", "先月より %@ 節約", "比上月省 %@"),
+    "지난달보다 %@ 더 썼어요": ("Spent %@ more vs last month", "先月より %@ 増加", "比上月多花 %@"),
+    "잔여 %@km": ("%@km left", "残り %@km", "剩余 %@km"),
+    "%@km 주행": ("%@km driven", "%@km 走行", "已行驶 %@km"),
+    "약정 %@km": ("Limit %@km", "契約 %@km", "约定 %@km"),
+    "최저 %@ · %@": ("Lowest %@ · %@", "最安 %@ · %@", "最低 %@ · %@"),
+    "%@ 주변 · 카카오맵에서 보기": ("Near %@ · view on KakaoMap", "%@ 周辺 · カカオマップで見る", "%@ 附近 · Kakao地图查看"),
+    "평균 %@": ("Avg %@", "平均 %@", "均价 %@"),
+    "전국 평균 (%@)": ("National avg (%@)", "全国平均 (%@)", "全国均价 (%@)"),
+}
+
+# 코드에는 있으나 목업/데모 데이터 → 그대로 두면 한글 노출되므로 최소 번역
+MOCK = {
+    "62가 3817": ("62GA 3817", "62가 3817", "62가 3817"),
+    "강남 미팅": ("Gangnam meeting", "江南ミーティング", "江南会议"),
+    "강남역": ("Gangnam Stn.", "江南駅", "江南站"),
+    "판교역": ("Pangyo Stn.", "板橋駅", "板桥站"),
+    "판교 방문": ("Pangyo visit", "板橋訪問", "板桥拜访"),
+    "이마트 성수": ("E-Mart Seongsu", "イーマート聖水", "易买得城水"),
+    "출퇴근": ("Commute", "通勤", "通勤"),
+    "세컨카": ("Second car", "セカンドカー", "第二辆车"),
+    "주차 중": ("Parked", "駐車中", "停车中"),
+    "충전량 (kWh)": ("Energy (kWh)", "充電量（kWh）", "充电量（kWh）"),
+}
+T.update(MOCK)
+
+strings = {}
+for ko, (en, ja, zh) in T.items():
+    strings[ko] = {
+        "localizations": {
+            "en": {"stringUnit": {"state": "translated", "value": en}},
+            "ja": {"stringUnit": {"state": "translated", "value": ja}},
+            "zh-Hans": {"stringUnit": {"state": "translated", "value": zh}},
+        }
+    }
+
+catalog = {"sourceLanguage": "ko", "strings": strings, "version": "1.0"}
+out = "/Users/kimchannyeon/Documents/Claude/vault/ios/Vault/Localizable.xcstrings"
+with open(out, "w", encoding="utf-8") as f:
+    json.dump(catalog, f, ensure_ascii=False, indent=2)
+    f.write("\n")
+print("keys:", len(strings))

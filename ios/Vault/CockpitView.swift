@@ -148,7 +148,7 @@ struct CockpitView: View {
                     .frame(width: 46, height: 46)
                 Text("\(score)").font(gm(14, .bold)).foregroundStyle(color)
             }
-            Text("세차 \(grade)").font(pd(9)).foregroundStyle(color)
+            Text(verbatim: "\(L("세차")) \(grade)").font(pd(9)).foregroundStyle(color)
         }
     }
 
@@ -195,10 +195,10 @@ struct CockpitView: View {
     private var greeting: String {
         let h = Calendar.current.component(.hour, from: Date())
         switch h {
-        case 5..<11: return "좋은 아침이에요"
-        case 11..<17: return "좋은 오후예요"
-        case 17..<22: return "좋은 저녁이에요"
-        default: return "안녕하세요"
+        case 5..<11: return L("좋은 아침이에요")
+        case 11..<17: return L("좋은 오후예요")
+        case 17..<22: return L("좋은 저녁이에요")
+        default: return L("안녕하세요")
         }
     }
 
@@ -217,7 +217,7 @@ struct CockpitView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(store.vehicle.name)
                         .font(gm(17, .medium))
-                    Text("\(store.vehicle.plate ?? "") · \(store.vehicle.fuelType)")
+                    Text("\(store.vehicle.plate ?? "") · \(L(store.vehicle.fuelType))")
                         .font(pd(11))
                         .kerning(0.5)
                         .foregroundStyle(Theme.muted)
@@ -369,7 +369,7 @@ struct CockpitView: View {
 
     private func statRow(label: String, value: String) -> some View {
         HStack {
-            Text(label).font(pd(12)).foregroundStyle(Theme.muted)
+            Text(L(label)).font(pd(12)).foregroundStyle(Theme.muted)
             Spacer()
             Text(value).font(gm(12, .medium))
         }
@@ -433,7 +433,7 @@ struct CockpitView: View {
     private var statCards: some View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("\(store.monthlySpend?.month ?? 7)월 지출").font(pd(11)).foregroundStyle(Theme.muted)
+                Text(verbatim: String(format: L("%d월 지출"), store.monthlySpend?.month ?? 7)).font(pd(11)).foregroundStyle(Theme.muted)
                 Text(won(store.monthlySpend?.total ?? 186400)).font(gm(19, .bold))
                 spendDelta
             }
@@ -543,7 +543,7 @@ struct CockpitView: View {
                     Text("\(p.paceRatioPct)%")
                         .font(gm(24, .bold))
                         .foregroundStyle(paceColor)
-                    Text(paceOver ? "· \(p.paceRatioPct - 100)% 빠름" : "· 여유")
+                    Text(verbatim: paceOver ? String(format: L("· %d%% 빠름"), p.paceRatioPct - 100) : L("· 여유"))
                         .font(pd(10.5)).foregroundStyle(paceColor.opacity(0.9))
                 }
 
@@ -570,16 +570,16 @@ struct CockpitView: View {
 
                 // 적정/실제 주행 비교
                 HStack {
-                    Text("오늘 적정 \(grouped(p.allowedToDateKm))km · 현재 \(grouped(p.drivenKm))km")
+                    Text(verbatim: String(format: L("오늘 적정 %@km · 현재 %@km"), grouped(p.allowedToDateKm), grouped(p.drivenKm)))
                         .font(pd(10)).foregroundStyle(Theme.muted)
                     Spacer()
-                    Text("하루 \(Int(p.dailyPaceKm.rounded()))/\(p.allowedDailyKm)km")
+                    Text(verbatim: String(format: L("하루 %d/%dkm"), Int(p.dailyPaceKm.rounded()), p.allowedDailyKm))
                         .font(pd(10)).foregroundStyle(Theme.muted)
                 }
 
                 // 만료 예상 + 초과/여유
                 HStack {
-                    Text("만료 시 예상 \(grouped(p.projectedTotalKm))km / 약정 \(grouped(p.limitKm))km")
+                    Text(verbatim: String(format: L("만료 시 예상 %@km / 약정 %@km"), grouped(p.projectedTotalKm), grouped(p.limitKm)))
                         .font(pd(10.5)).foregroundStyle(Theme.silver)
                     Spacer()
                     Text(over ? "초과 +\(grouped(p.overageKm))km" : "여유 \(grouped(-p.overageKm))km")
@@ -683,7 +683,7 @@ struct CockpitView: View {
             if let amount = rec.amountWon {
                 Text(won(amount)).font(gm(13, .medium))
             } else if let dur = rec.durationMin {
-                Text("\(dur)분").font(pd(11)).foregroundStyle(Theme.muted)
+                Text(verbatim: String(format: L("%d분"), dur)).font(pd(11)).foregroundStyle(Theme.muted)
             } else if let tag = rec.tag {
                 Text(tag).font(pd(11)).foregroundStyle(Theme.muted)
             }
@@ -702,7 +702,7 @@ struct CockpitView: View {
             if rec.aiLogged { t = t + Text(" · AI 자동기록").foregroundStyle(Theme.gold) }
         } else {
             if let dist = rec.distanceKm { t = t + Text(" · \(String(format: "%.1f", dist))km") }
-            if let dur = rec.durationMin { t = t + Text(" · \(dur)분") }
+            if let dur = rec.durationMin { t = t + Text(verbatim: String(format: L(" · %d분"), dur)) }
         }
         return t.font(pd(10.5)).foregroundStyle(Theme.muted)
     }

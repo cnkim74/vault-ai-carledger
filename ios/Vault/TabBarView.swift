@@ -52,7 +52,7 @@ struct TabBarView: View {
             VStack(spacing: 4) {
                 Image(systemName: icon)
                     .font(.system(size: 21))
-                Text(label)
+                Text(L(label))
                     .font(pd(11.5))
             }
             .foregroundStyle(tab == target ? Theme.gold : Theme.muted)

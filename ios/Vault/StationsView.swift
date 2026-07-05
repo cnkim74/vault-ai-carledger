@@ -75,7 +75,7 @@ struct StationsCard: View {
         switch service.state {
         case .loaded:
             if let cheapest = service.stations.min(by: { $0.price < $1.price }) {
-                Text("최저 \(cheapest.brand) · \(cheapest.distanceLabel)")
+                Text(verbatim: String(format: L("최저 %@ · %@"), cheapest.brand, cheapest.distanceLabel))
                     .font(pd(10.5))
                     .foregroundStyle(Theme.muted)
             }
@@ -99,7 +99,7 @@ struct StationsCard: View {
                     VStack(alignment: .trailing, spacing: 1) {
                         Text(won(cheapest.price)).font(gm(14, .bold)).foregroundStyle(Theme.gold)
                         if let avg = service.averagePrice {
-                            Text("평균 \(won(avg))").font(pd(9.5)).foregroundStyle(Theme.muted)
+                            Text(verbatim: String(format: L("평균 %@"), won(avg))).font(pd(9.5)).foregroundStyle(Theme.muted)
                         }
                     }
                 }
@@ -131,7 +131,7 @@ struct StationsCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("주변 충전소 찾기")
                         .font(pd(12.5, .semibold))
-                    Text("\(weather.city) 주변 · 카카오맵에서 보기")
+                    Text(verbatim: String(format: L("%@ 주변 · 카카오맵에서 보기"), weather.city))
                         .font(pd(10.5))
                         .foregroundStyle(Theme.muted)
                 }
@@ -162,7 +162,7 @@ struct StationsSheet: View {
                 VStack(spacing: 8) {
                     if let avg = service.averagePrice {
                         HStack {
-                            Text("전국 평균 (\(fuel.rawValue))").font(pd(12)).foregroundStyle(Theme.muted)
+                            Text(verbatim: String(format: L("전국 평균 (%@)"), L(fuel.rawValue))).font(pd(12)).foregroundStyle(Theme.muted)
                             Spacer()
                             Text(won(avg)).font(gm(13, .medium)).foregroundStyle(Theme.silver)
                         }

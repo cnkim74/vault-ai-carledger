@@ -290,9 +290,9 @@ struct GarageView: View {
             // 뱃지
             HStack(spacing: 6) {
                 badge(v.ownership.label, color: Theme.gold)
-                badge(v.fuelType, color: Theme.silver)
+                badge(L(v.fuelType), color: Theme.silver)
                 if v.battery > 0 && v.fuelType == "전기차" {
-                    badge("배터리 \(v.battery)%", color: Theme.green)
+                    badge(String(format: L("배터리 %d%%"), v.battery), color: Theme.green)
                 }
             }
             .padding(.top, 10)
@@ -368,7 +368,7 @@ struct GarageView: View {
 
     private func infoRow(_ label: String, _ value: String) -> some View {
         HStack {
-            Text(label).font(pd(12)).foregroundStyle(Theme.muted)
+            Text(L(label)).font(pd(12)).foregroundStyle(Theme.muted)
             Spacer()
             Text(value).font(gm(13, .medium))
         }
