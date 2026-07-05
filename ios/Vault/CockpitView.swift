@@ -420,38 +420,40 @@ struct CockpitView: View {
         if let p = store.vehicle.leaseProjection() {
             let over = p.overageKm > 0
             let accent = over ? Theme.orange : Theme.green
+            let paceOver = p.paceRatioPct > 100
+            let paceColor = paceOver ? Theme.orange : Theme.green
             VStack(alignment: .leading, spacing: 10) {
                 HStack(alignment: .firstTextBaseline) {
                     HStack(spacing: 6) {
-                        Image(systemName: over ? "exclamationmark.triangle.fill" : "checkmark.seal.fill")
+                        Image(systemName: paceOver ? "exclamationmark.triangle.fill" : "checkmark.seal.fill")
                             .font(.system(size: 12))
-                            .foregroundStyle(accent)
+                            .foregroundStyle(paceColor)
                         Text("약정거리 예측")
                             .font(pd(12, .semibold))
                     }
                     Spacer()
                     Text(p.isOverPace ? "과속 페이스" : "안전 페이스")
                         .font(pd(10.5, .semibold))
-                        .foregroundStyle(accent)
+                        .foregroundStyle(paceColor)
                 }
 
-                // 만료 시 예상 주행 vs 약정
+                // 오늘 기준 적정 대비 현재 % (핵심 지표)
                 HStack(alignment: .lastTextBaseline, spacing: 6) {
-                    Text("만료 시 예상")
+                    Text("오늘 기준 적정 대비")
                         .font(pd(11)).foregroundStyle(Theme.muted)
-                    Text("\(grouped(p.projectedTotalKm))km")
-                        .font(gm(18, .bold))
-                    Text("/ 약정 \(grouped(p.limitKm))km")
-                        .font(pd(10.5)).foregroundStyle(Theme.muted)
+                    Text("\(p.paceRatioPct)%")
+                        .font(gm(24, .bold))
+                        .foregroundStyle(paceColor)
+                    Text(paceOver ? "· \(p.paceRatioPct - 100)% 빠름" : "· 여유")
+                        .font(pd(10.5)).foregroundStyle(paceColor.opacity(0.9))
                 }
 
-                // 이중 게이지: 시간 진행(회색) 위에 거리 진행(골드→오렌지)
+                // 이중 게이지: 오늘까지 적정(회색 마커) 위에 실제 주행(골드→오렌지)
                 GeometryReader { geo in
                     let distRatio = min(1.3, Double(p.drivenKm) / Double(p.limitKm))
                     let allowRatio = min(1.0, Double(p.allowedToDateKm) / Double(p.limitKm))
                     ZStack(alignment: .leading) {
                         Capsule().fill(Color.white.opacity(0.08))
-                        // 오늘까지 허용 페이스 마커
                         Capsule().fill(Color.white.opacity(0.18))
                             .frame(width: geo.size.width * CGFloat(allowRatio))
                         Capsule().fill(Theme.leaseGradient)
@@ -460,11 +462,21 @@ struct CockpitView: View {
                 }
                 .frame(height: 6)
 
+                // 적정/실제 주행 비교
                 HStack {
-                    Text("현재 \(grouped(p.drivenKm))km · 하루 \(Int(p.dailyPaceKm.rounded()))km")
+                    Text("오늘 적정 \(grouped(p.allowedToDateKm))km · 현재 \(grouped(p.drivenKm))km")
                         .font(pd(10)).foregroundStyle(Theme.muted)
                     Spacer()
-                    Text(over ? "예상 초과 +\(grouped(p.overageKm))km" : "예상 여유 \(grouped(-p.overageKm))km")
+                    Text("하루 \(Int(p.dailyPaceKm.rounded()))/\(p.allowedDailyKm)km")
+                        .font(pd(10)).foregroundStyle(Theme.muted)
+                }
+
+                // 만료 예상 + 초과/여유
+                HStack {
+                    Text("만료 시 예상 \(grouped(p.projectedTotalKm))km / 약정 \(grouped(p.limitKm))km")
+                        .font(pd(10.5)).foregroundStyle(Theme.silver)
+                    Spacer()
+                    Text(over ? "초과 +\(grouped(p.overageKm))km" : "여유 \(grouped(-p.overageKm))km")
                         .font(pd(11, .semibold))
                         .foregroundStyle(accent)
                 }

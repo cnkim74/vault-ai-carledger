@@ -198,17 +198,28 @@ struct BriefingView: View {
 
     // 렌트 약정거리
     private var leaseCard: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        let p = store.vehicle.leaseProjection()
+        let paceOver = (p?.paceRatioPct ?? 0) > 100
+        let accent = paceOver ? Theme.orange : Theme.green
+        return VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .firstTextBaseline) {
                 Text("렌트 약정거리").font(pd(12, .semibold))
                 Spacer()
-                Text("초과 위험 · 잔여 \(grouped(store.vehicle.leaseRemainKm))km")
-                    .font(pd(11))
-                    .foregroundStyle(Theme.orange)
+                if let p {
+                    Text("적정 대비 \(p.paceRatioPct)% · \(paceOver ? "과속" : "안전")")
+                        .font(pd(11, .semibold))
+                        .foregroundStyle(accent)
+                } else {
+                    Text("잔여 \(grouped(store.vehicle.leaseRemainKm))km")
+                        .font(pd(11)).foregroundStyle(Theme.orange)
+                }
             }
             GeometryReader { geo in
+                let allowRatio = p.map { min(1.0, Double($0.allowedToDateKm) / Double($0.limitKm)) } ?? 0
                 ZStack(alignment: .leading) {
                     Capsule().fill(Color.white.opacity(0.08))
+                    Capsule().fill(Color.white.opacity(0.18))
+                        .frame(width: geo.size.width * CGFloat(allowRatio))
                     Capsule()
                         .fill(Theme.leaseGradient)
                         .frame(width: geo.size.width * CGFloat(store.vehicle.leasePct ?? 0) / 100)
@@ -217,7 +228,11 @@ struct BriefingView: View {
             .frame(height: 6)
             .padding(.top, 10)
             HStack {
-                Text("\(grouped(store.vehicle.leaseDriven))km 주행")
+                if let p {
+                    Text("오늘 적정 \(grouped(p.allowedToDateKm))km · 현재 \(grouped(store.vehicle.leaseDriven))km")
+                } else {
+                    Text("\(grouped(store.vehicle.leaseDriven))km 주행")
+                }
                 Spacer()
                 Text("약정 \(grouped(store.vehicle.leaseLimitKm ?? 0))km")
             }
@@ -228,7 +243,7 @@ struct BriefingView: View {
         .padding(EdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16))
         .background(Theme.card)
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.orange.opacity(0.25), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(accent.opacity(0.25), lineWidth: 1))
         .padding(.horizontal, 16)
         .padding(.top, 12)
     }

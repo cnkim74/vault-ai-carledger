@@ -124,6 +124,8 @@ struct Vehicle: Codable, Identifiable {
             drivenKm: driven,
             limitKm: limit,
             dailyPaceKm: dailyPace,
+            elapsedDays: elapsed,
+            totalDays: totalDays,
             daysRemaining: remaining,
             isOverPace: distProgress > timeProgress
         )
@@ -170,8 +172,22 @@ struct LeaseProjection {
     let drivenKm: Int           // 현재 약정 주행
     let limitKm: Int            // 약정 km
     let dailyPaceKm: Double     // 하루 평균 주행
+    let elapsedDays: Int        // 계약 경과 일수
+    let totalDays: Int          // 총 계약 일수
     let daysRemaining: Int      // 계약 잔여 일수
     let isOverPace: Bool        // 시간 대비 과속 여부
+
+    /// 오늘까지 적정 주행 대비 현재 주행 비율(%). 100 = 딱 적정, >100 = 초과 페이스.
+    var paceRatioPct: Int {
+        guard allowedToDateKm > 0 else { return 0 }
+        return Int((Double(drivenKm) / Double(allowedToDateKm) * 100).rounded())
+    }
+
+    /// 약정 기준 적정 하루 주행 (약정 ÷ 총 계약일)
+    var allowedDailyKm: Int {
+        guard totalDays > 0 else { return 0 }
+        return Int((Double(limitKm) / Double(totalDays)).rounded())
+    }
 }
 
 struct VaultRecord: Codable, Identifiable {
