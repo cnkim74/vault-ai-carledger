@@ -144,7 +144,7 @@ struct GarageView: View {
             .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.cardBorder, lineWidth: 1))
         }
         .buttonStyle(.plain)
-        .sheet(isPresented: $showOBDGuide) { OBDGuideView(premium: premium) }
+        .sheet(isPresented: $showOBDGuide) { OBDGuideView(premium: premium, store: store) }
     }
 
     // 테슬라 연결/동기화 버튼

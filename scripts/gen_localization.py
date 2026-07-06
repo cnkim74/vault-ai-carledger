@@ -295,7 +295,27 @@ T = {
     "전기차 배터리 잔량은 표준 OBD로 안 나와요. 전기차는 테슬라 연동이 더 정확하고, 동글은 내연기관차에 강력해요.": ("EV battery level isn't exposed via standard OBD. For EVs, Tesla sync is more accurate; dongles shine for gas cars.", "EVのバッテリー残量は標準OBDでは取得できません。EVはテスラ連携が正確で、ドングルはガソリン車に強力です。", "标准OBD无法读取电动车电量。电动车用特斯拉同步更准确，OBD设备更适合燃油车。"),
     "동글 연결 준비하기": ("Get ready to connect", "接続の準備をする", "准备连接"),
     "프리미엄으로 동글 연동": ("Dongle sync with Premium", "プレミアムでドングル連携", "高级版设备同步"),
-    "BLE 동글 연결은 준비 중입니다.": ("BLE dongle connection is coming soon.", "BLEドングル接続は準備中です。", "BLE设备连接即将推出。"),
+    "동글 연결하기": ("Connect dongle", "ドングルを接続", "连接设备"),
+    "BLE(저전력 블루투스) 동글이 필요해요.": ("A BLE (low-energy Bluetooth) dongle is required.", "BLE（低消費電力Bluetooth）ドングルが必要です。", "需要BLE（低功耗蓝牙）设备。"),
+
+    # OBD 연결 화면
+    "OBD 동글 연결": ("Connect OBD dongle", "OBDドングル接続", "连接OBD设备"),
+    "동글을 꽂고 시동을 켠 뒤 스캔하세요": ("Plug in the dongle, start the car, then scan", "ドングルを挿し、エンジンをかけてスキャン", "插入设备并启动车辆后扫描"),
+    "동글 검색": ("Search dongles", "ドングルを検索", "搜索设备"),
+    "주변 동글 검색 중…": ("Searching nearby dongles…", "周辺のドングルを検索中…", "正在搜索附近设备…"),
+    "BLE 동글이 보이지 않으면, 동글이 켜져 있고 iOS 호환(BLE)인지 확인하세요.": ("If no BLE dongle appears, check it's powered and iOS-compatible (BLE).", "BLEドングルが表示されない場合、電源とiOS対応(BLE)を確認してください。", "若未显示BLE设备，请确认其已通电且兼容iOS(BLE)。"),
+    "동글 초기화 중…": ("Initializing dongle…", "ドングルを初期化中…", "正在初始化设备…"),
+    "차량 데이터 읽는 중…": ("Reading vehicle data…", "車両データを読み取り中…", "正在读取车辆数据…"),
+    "연결 중…": ("Connecting…", "接続中…", "连接中…"),
+    "서비스 탐색 중…": ("Discovering services…", "サービスを探索中…", "正在发现服务…"),
+    "연결에 실패했어요": ("Connection failed", "接続に失敗しました", "连接失败"),
+    "이 차량은 표준 OBD 값을 제공하지 않아요.": ("This vehicle doesn't expose standard OBD values.", "この車両は標準OBD値を提供しません。", "该车辆不提供标准OBD数据。"),
+    "읽기 완료": ("Read complete", "読み取り完了", "读取完成"),
+    "블루투스를 켜주세요.": ("Please turn on Bluetooth.", "Bluetoothをオンにしてください。", "请打开蓝牙。"),
+    "주행 트립": ("Trip distance", "走行トリップ", "行程"),
+    "누적 주행을 차량에 반영": ("Apply odometer to vehicle", "総走行を車両に反映", "将里程写入车辆"),
+    "반영됨": ("Applied", "反映済み", "已写入"),
+    "다시 검색": ("Search again", "再検索", "重新搜索"),
 
     # 기록 수정 / 상태
     "기록 수정": ("Edit record", "記録を編集", "编辑记录"),

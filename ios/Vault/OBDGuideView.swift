@@ -5,8 +5,9 @@ import SwiftUI
 struct OBDGuideView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var premium: PremiumStore
+    @ObservedObject var store: VaultStore
     @State private var showPaywall = false
-    @State private var showComingSoon = false
+    @State private var showConnect = false
 
     // 호환 동글 (iOS BLE) — 탭 시 검색으로 이동
     private struct Dongle: Identifiable {
@@ -46,11 +47,7 @@ struct OBDGuideView: View {
         .tint(Theme.gold)
         .preferredColorScheme(.dark)
         .sheet(isPresented: $showPaywall) { PaywallSheet(premium: premium) }
-        .alert("곧 제공돼요", isPresented: $showComingSoon) {
-            Button("확인", role: .cancel) {}
-        } message: {
-            Text("BLE 동글 연결은 준비 중이에요. 지원 동글을 미리 준비해두시면 출시되는 대로 바로 쓸 수 있어요.")
-        }
+        .sheet(isPresented: $showConnect) { OBDConnectView(store: store) }
     }
 
     private var hero: some View {
@@ -166,11 +163,11 @@ struct OBDGuideView: View {
     private var cta: some View {
         VStack(spacing: 8) {
             Button {
-                if premium.isPremium { showComingSoon = true } else { showPaywall = true }
+                if premium.isPremium { showConnect = true } else { showPaywall = true }
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "wave.3.right.circle.fill").font(.system(size: 16))
-                    Text(premium.isPremium ? "동글 연결 준비하기" : "프리미엄으로 동글 연동")
+                    Text(premium.isPremium ? "동글 연결하기" : "프리미엄으로 동글 연동")
                         .font(pd(15, .semibold))
                 }
                 .foregroundStyle(Theme.ink)
@@ -178,7 +175,7 @@ struct OBDGuideView: View {
                 .background(Theme.goldGradient)
                 .clipShape(RoundedRectangle(cornerRadius: 14))
             }
-            Text("BLE 동글 연결은 준비 중입니다.").font(pd(10)).foregroundStyle(Theme.muted)
+            Text("BLE(저전력 블루투스) 동글이 필요해요.").font(pd(10)).foregroundStyle(Theme.muted)
         }
         .padding(.top, 4)
     }

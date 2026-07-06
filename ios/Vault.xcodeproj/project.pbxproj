@@ -186,6 +186,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9926CG4H3K;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "OBD 동글과 연결해 차량 데이터를 자동으로 가져오기 위해 블루투스를 사용합니다.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "영수증·충전 화면을 촬영해 기록을 자동으로 채우기 위해 카메라를 사용합니다.";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "다가오는 일정의 장소로 길찾기를 제공하기 위해 캘린더를 읽습니다.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "다가오는 일정의 장소로 길찾기를 제공하기 위해 캘린더를 읽습니다.";
@@ -217,6 +218,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9926CG4H3K;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "OBD 동글과 연결해 차량 데이터를 자동으로 가져오기 위해 블루투스를 사용합니다.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "영수증·충전 화면을 촬영해 기록을 자동으로 채우기 위해 카메라를 사용합니다.";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "다가오는 일정의 장소로 길찾기를 제공하기 위해 캘린더를 읽습니다.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "다가오는 일정의 장소로 길찾기를 제공하기 위해 캘린더를 읽습니다.";
