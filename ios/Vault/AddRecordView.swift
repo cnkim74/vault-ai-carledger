@@ -1,11 +1,21 @@
 import SwiftUI
+import PhotosUI
 
 /// 기록 추가 시트 — 차량 종류에 맞춰 충전/주유·주행·정비 입력.
 struct AddRecordView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var store: VaultStore
+    @StateObject private var premium = PremiumStore()
+    @StateObject private var scanner = ReceiptScanner()
 
     let editing: VaultRecord?
+
+    // 스캔(프리미엄) 관련
+    @State private var showScanDialog = false
+    @State private var showCamera = false
+    @State private var showPhotoPicker = false
+    @State private var scanPhotoItem: PhotosPickerItem?
+    @State private var showPaywall = false
 
     @State private var kind: RecordKind
     @State private var title: String
@@ -48,6 +58,37 @@ struct AddRecordView: View {
     var body: some View {
         NavigationStack {
             Form {
+                // 영수증·충전 화면 스캔 → AI 자동입력 (프리미엄)
+                if !isEditing {
+                    Section {
+                        Button {
+                            if premium.isPremium { showScanDialog = true } else { showPaywall = true }
+                        } label: {
+                            HStack(spacing: 10) {
+                                if scanner.scanning {
+                                    ProgressView().controlSize(.small).tint(Theme.gold)
+                                } else {
+                                    Image(systemName: "camera.viewfinder").font(.system(size: 16)).foregroundStyle(Theme.gold)
+                                }
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(scanner.scanning ? "인식 중…" : "영수증·충전 화면 스캔")
+                                        .font(pd(14, .semibold)).foregroundStyle(Theme.text)
+                                    Text(premium.isPremium ? "촬영하면 AI가 자동으로 채워요" : "프리미엄 · 촬영으로 자동입력")
+                                        .font(pd(10.5)).foregroundStyle(Theme.muted)
+                                }
+                                Spacer()
+                                if !premium.isPremium {
+                                    Image(systemName: "crown.fill").font(.system(size: 12)).foregroundStyle(Theme.gold)
+                                }
+                            }
+                        }
+                        .disabled(scanner.scanning)
+                        if let err = scanner.error {
+                            Text(err).font(pd(11)).foregroundStyle(.red)
+                        }
+                    }
+                }
+
                 Section("종류") {
                     Picker("종류", selection: $kind) {
                         Text(energyKind.label).tag(energyKind)
@@ -127,6 +168,37 @@ struct AddRecordView: View {
             Button("기록 삭제", role: .destructive) { Task { await remove() } }
             Button("취소", role: .cancel) {}
         }
+        .confirmationDialog("스캔할 이미지", isPresented: $showScanDialog, titleVisibility: .visible) {
+            Button("카메라로 촬영") { showCamera = true }
+            Button("앨범에서 선택") { showPhotoPicker = true }
+            Button("취소", role: .cancel) {}
+        }
+        .fullScreenCover(isPresented: $showCamera) {
+            CameraPicker { img in Task { await handleScan(img) } }
+                .ignoresSafeArea()
+        }
+        .photosPicker(isPresented: $showPhotoPicker, selection: $scanPhotoItem, matching: .images)
+        .onChange(of: scanPhotoItem) { _, item in
+            Task {
+                if let data = try? await item?.loadTransferable(type: Data.self),
+                   let img = UIImage(data: data) {
+                    await handleScan(img)
+                }
+                scanPhotoItem = nil
+            }
+        }
+        .sheet(isPresented: $showPaywall) { PaywallSheet(premium: premium) }
+    }
+
+    /// 스캔 결과로 폼 필드 자동 채움.
+    private func handleScan(_ image: UIImage) async {
+        guard let s = await scanner.scan(image) else { return }
+        kind = s.kind
+        if let t = s.title { title = t }
+        if let a = s.amountWon { amount = String(a) }
+        if let q = s.quantity { volume = String(q) }
+        if let d = s.distanceKm { distance = String(d) }
+        if let loc = s.location { location = loc }
     }
 
     private var titlePlaceholder: String {

@@ -249,6 +249,24 @@ T = {
     "배터리가 부족해요. 충전이 필요해요.": ("Battery is low. Time to charge.", "バッテリーが不足しています。充電が必要です。", "电量不足，需要充电。"),
     "오늘은 세차하기 좋은 날이에요.": ("A great day for a car wash.", "今日は洗車日和です。", "今天适合洗车。"),
 
+    # 스캔 / 프리미엄
+    "영수증·충전 화면 스캔": ("Scan receipt / charging screen", "領収書・充電画面をスキャン", "扫描收据/充电界面"),
+    "촬영하면 AI가 자동으로 채워요": ("AI fills it in from a photo", "撮影するとAIが自動入力", "拍照后AI自动填写"),
+    "프리미엄 · 촬영으로 자동입력": ("Premium · auto-fill from a photo", "プレミアム · 撮影で自動入力", "高级版 · 拍照自动填写"),
+    "인식 중…": ("Recognizing…", "認識中…", "识别中…"),
+    "스캔할 이미지": ("Image to scan", "スキャンする画像", "要扫描的图片"),
+    "카메라로 촬영": ("Take a photo", "カメラで撮影", "拍照"),
+    "인식에 실패했어요. 다시 시도하거나 직접 입력해 주세요.": ("Couldn't recognize it. Try again or enter manually.", "認識できませんでした。もう一度試すか手動で入力してください。", "无法识别，请重试或手动输入。"),
+    "이미지를 처리할 수 없어요": ("Couldn't process the image", "画像を処理できません", "无法处理图片"),
+    "프리미엄": ("Premium", "プレミアム", "高级版"),
+    "촬영 한 번으로 기록을 자동으로 채워요.": ("Fill records automatically with a single photo.", "撮影1回で記録を自動入力。", "一张照片自动填写记录。"),
+    "영수증·충전 화면 촬영 → AI 자동 입력": ("Photo of receipt/charging → AI auto-fill", "領収書・充電画面の撮影 → AI自動入力", "拍摄收据/充电界面 → AI自动填写"),
+    "테슬라 등 차량 자동 연동": ("Auto-sync with Tesla and more", "テスラなど車両の自動連携", "特斯拉等车辆自动同步"),
+    "월간 AI 리포트 · 무제한 인사이트": ("Monthly AI report · unlimited insights", "月間AIレポート · 無制限インサイト", "月度AI报告 · 无限洞察"),
+    "스마트 알림 · 무제한 기록 보관": ("Smart alerts · unlimited history", "スマート通知 · 無制限の記録保存", "智能提醒 · 无限记录保存"),
+    "체험 시작": ("Start trial", "体験を開始", "开始体验"),
+    "결제 연동(App Store 구독)은 추후 제공됩니다.": ("App Store subscription billing is coming soon.", "決済連携（App Storeサブスク）は今後提供予定です。", "支付接入（App Store 订阅）即将推出。"),
+
     # 기록 수정 / 상태
     "기록 수정": ("Edit record", "記録を編集", "编辑记录"),
     "기록 삭제": ("Delete record", "記録を削除", "删除记录"),

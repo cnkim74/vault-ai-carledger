@@ -13,6 +13,25 @@ enum AIProxy {
         struct Msg: Encodable { let role: String; let content: String }
     }
 
+    // 비전(이미지) 요청용 — content가 블록 배열
+    private struct VisionBody: Encodable {
+        let model: String
+        let max_tokens: Int
+        let system: String
+        let messages: [Msg]
+        struct Msg: Encodable { let role: String; let content: [Block] }
+        struct Block: Encodable {
+            let type: String
+            var text: String? = nil
+            var source: Source? = nil
+        }
+        struct Source: Encodable {
+            let type = "base64"
+            let media_type: String
+            let data: String
+        }
+    }
+
     private struct ResponseBody: Decodable {
         struct Block: Decodable { let type: String; let text: String? }
         struct Err: Decodable { let type: String?; let message: String? }
@@ -24,7 +43,6 @@ enum AIProxy {
     /// 첫 text 블록을 반환. 미설정/거부/오류 시 nil.
     static func complete(system: String, user: String, maxTokens: Int,
                          model: String = "claude-opus-4-8") async -> String? {
-        // 프롬프트에 어떤 언어가 명시되어 있든, 사람이 읽는 텍스트는 기기 언어로 출력.
         let localizedSystem = system +
             "\n\nIMPORTANT: Regardless of any language mentioned above, write ALL human-readable text " +
             "(sentences, reasons, labels) in \(AppLocale.aiLanguageName). Keep JSON keys and numbers unchanged."
@@ -33,7 +51,24 @@ enum AIProxy {
             messages: [.init(role: "user", content: user)]
         )
         guard let data = try? JSONEncoder().encode(body) else { return nil }
+        return await post(data)
+    }
 
+    /// 이미지(영수증·충전 화면 등) + 프롬프트 → 첫 text 블록 반환.
+    static func completeWithImage(system: String, prompt: String, jpegBase64: String,
+                                  mediaType: String = "image/jpeg", maxTokens: Int = 512,
+                                  model: String = "claude-opus-4-8") async -> String? {
+        let msg = VisionBody.Msg(role: "user", content: [
+            VisionBody.Block(type: "image", source: .init(media_type: mediaType, data: jpegBase64)),
+            VisionBody.Block(type: "text", text: prompt),
+        ])
+        let body = VisionBody(model: model, max_tokens: maxTokens, system: system, messages: [msg])
+        guard let data = try? JSONEncoder().encode(body) else { return nil }
+        return await post(data)
+    }
+
+    /// 공통 HTTP 전송 + 응답 파싱.
+    private static func post(_ data: Data) async -> String? {
         var req: URLRequest
         if let key = Secrets.anthropicKey, !key.isEmpty {
             req = URLRequest(url: URL(string: "https://api.anthropic.com/v1/messages")!)
@@ -56,7 +91,7 @@ enum AIProxy {
                 return nil
             }
             let res = try JSONDecoder().decode(ResponseBody.self, from: respData)
-            if res.error != nil { return nil }              // no_key 등
+            if res.error != nil { return nil }
             if res.stop_reason == "refusal" { return nil }
             return res.content?.first(where: { $0.type == "text" })?.text?
                 .trimmingCharacters(in: .whitespacesAndNewlines)
