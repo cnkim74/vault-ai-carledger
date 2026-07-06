@@ -91,6 +91,9 @@ final class TeslaService: NSObject, ObservableObject, ASWebAuthenticationPresent
             return false
         }
 
+        // 실시간 상태 (운행/주차/충전)
+        if let s = obj["status"] as? String { store.liveStatus = VehicleLiveStatus(rawValue: s) }
+
         var upsert = VaultStore.VehicleUpsert()
         if let b = obj["battery"] as? Int { upsert.battery = b }
         if let o = obj["odometerKm"] as? Int { upsert.odometer_km = o }

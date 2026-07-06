@@ -5,24 +5,35 @@ struct AddRecordView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var store: VaultStore
 
+    let editing: VaultRecord?
+
     @State private var kind: RecordKind
-    @State private var title = ""
-    @State private var amount = ""
+    @State private var title: String
+    @State private var amount: String
     @State private var volume = ""
-    @State private var distance = ""
-    @State private var duration = ""
-    @State private var location = ""
-    @State private var tag = ""
+    @State private var distance: String
+    @State private var duration: String
+    @State private var location: String
+    @State private var tag: String
     @State private var saving = false
+    @State private var showDeleteConfirm = false
     @State private var errorMessage: String?
 
     // 전기차면 충전, 그 외엔 주유
     private var isEV: Bool { !store.vehicle.usesFuel }
     private var energyKind: RecordKind { isEV ? .charge : .fuel }
+    private var isEditing: Bool { editing != nil }
 
-    init(store: VaultStore) {
+    init(store: VaultStore, editing: VaultRecord? = nil) {
         self.store = store
-        _kind = State(initialValue: !store.vehicle.usesFuel ? .charge : .fuel)
+        self.editing = editing
+        _kind = State(initialValue: editing?.kind ?? (!store.vehicle.usesFuel ? .charge : .fuel))
+        _title = State(initialValue: editing?.title ?? "")
+        _amount = State(initialValue: editing?.amountWon.map(String.init) ?? "")
+        _distance = State(initialValue: editing?.distanceKm.map { String($0) } ?? "")
+        _duration = State(initialValue: editing?.durationMin.map(String.init) ?? "")
+        _location = State(initialValue: editing?.location ?? "")
+        _tag = State(initialValue: editing?.tag ?? "")
     }
 
     private var defaultTitle: String {
@@ -86,8 +97,19 @@ struct AddRecordView: View {
                             .foregroundStyle(Theme.muted).font(pd(12))
                     }
                 }
+
+                if isEditing {
+                    Section {
+                        Button(role: .destructive) {
+                            showDeleteConfirm = true
+                        } label: {
+                            HStack { Spacer(); Text("기록 삭제"); Spacer() }
+                        }
+                        .disabled(!store.live)
+                    }
+                }
             }
-            .navigationTitle("기록 추가")
+            .navigationTitle(isEditing ? "기록 수정" : "기록 추가")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -101,6 +123,10 @@ struct AddRecordView: View {
         }
         .tint(Theme.gold)
         .preferredColorScheme(.dark)
+        .confirmationDialog("이 기록을 삭제할까요?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+            Button("기록 삭제", role: .destructive) { Task { await remove() } }
+            Button("취소", role: .cancel) {}
+        }
     }
 
     private var titlePlaceholder: String {
@@ -124,18 +150,34 @@ struct AddRecordView: View {
         }
 
         do {
-            try await store.addRecord(
-                kind: kind,
-                title: finalTitle,
-                amountWon: Int(amount),
-                distanceKm: Double(distance),
-                durationMin: Int(duration),
-                location: location.isEmpty ? nil : location,
-                tag: tag.isEmpty ? nil : tag
-            )
+            if let editing {
+                try await store.updateRecord(
+                    id: editing.id, kind: kind, title: finalTitle,
+                    amountWon: Int(amount), distanceKm: Double(distance), durationMin: Int(duration),
+                    location: location.isEmpty ? nil : location, tag: tag.isEmpty ? nil : tag
+                )
+            } else {
+                try await store.addRecord(
+                    kind: kind, title: finalTitle,
+                    amountWon: Int(amount), distanceKm: Double(distance), durationMin: Int(duration),
+                    location: location.isEmpty ? nil : location, tag: tag.isEmpty ? nil : tag
+                )
+            }
             dismiss()
         } catch {
             errorMessage = "저장 실패: \(error.localizedDescription)"
+        }
+        saving = false
+    }
+
+    private func remove() async {
+        guard let editing else { return }
+        saving = true; errorMessage = nil
+        do {
+            try await store.deleteRecord(id: editing.id)
+            dismiss()
+        } catch {
+            errorMessage = "삭제 실패: \(error.localizedDescription)"
         }
         saving = false
     }

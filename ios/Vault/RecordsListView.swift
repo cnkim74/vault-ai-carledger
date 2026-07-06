@@ -3,6 +3,7 @@ import SwiftUI
 /// 기록 탭 — 전체 기록 타임라인
 struct RecordsListView: View {
     @ObservedObject var store: VaultStore
+    @State private var editingRecord: VaultRecord?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -28,7 +29,8 @@ struct RecordsListView: View {
                 ScrollView {
                     VStack(spacing: 8) {
                         ForEach(store.records) { rec in
-                            row(rec)
+                            Button { editingRecord = rec } label: { row(rec) }
+                                .buttonStyle(.plain)
                         }
                     }
                     .padding(.horizontal, 16)
@@ -40,6 +42,9 @@ struct RecordsListView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Theme.bgTop.ignoresSafeArea())
         .foregroundStyle(Theme.text)
+        .sheet(item: $editingRecord) { rec in
+            AddRecordView(store: store, editing: rec)
+        }
     }
 
     private func iconInfo(_ kind: RecordKind) -> (symbol: String, color: Color) {

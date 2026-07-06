@@ -235,6 +235,25 @@ struct VaultRecord: Codable, Identifiable {
     }
 }
 
+/// 차량 실시간 상태 (테슬라 shift_state·charging 기반)
+enum VehicleLiveStatus: String {
+    case driving, parked, charging
+    var label: String {
+        switch self {
+        case .driving: return L("운행 중")
+        case .parked: return L("주차 중")
+        case .charging: return L("충전 중")
+        }
+    }
+    var icon: String {
+        switch self {
+        case .driving: return "steeringwheel"
+        case .parked: return "parkingsign"
+        case .charging: return "bolt.fill"
+        }
+    }
+}
+
 // ── 표시 헬퍼 ─────────────────────────────────────────
 
 func relativeDay(_ date: Date) -> String {

@@ -10,6 +10,8 @@ final class VaultStore: ObservableObject {
     @Published var live = false
     @Published var selectedVehicleID: UUID?
     @Published var monthlySpend: MonthlySpend?
+    /// 테슬라 동기화 시 갱신되는 실시간 상태 (운행/주차/충전)
+    @Published var liveStatus: VehicleLiveStatus?
 
     private static let selectedKey = "vault.selectedVehicleID"
 
@@ -154,6 +156,58 @@ final class VaultStore: ObservableObject {
             ai_logged: false
         )
         try await send(method: "POST", path: "rest/v1/records", query: [], body: body)
+        await load()
+    }
+
+    /// 기존 기록 수정 (모든 필드 덮어쓰기 · nil은 명시적으로 null 저장)
+    func updateRecord(
+        id: UUID, kind: RecordKind, title: String,
+        amountWon: Int? = nil, distanceKm: Double? = nil, durationMin: Int? = nil,
+        location: String? = nil, tag: String? = nil
+    ) async throws {
+        struct RecordPatch: Encodable {
+            let kind: String, title: String
+            let amount_won: Int?, duration_min: Int?
+            let distance_km: Double?
+            let location: String?, tag: String?
+            enum CodingKeys: String, CodingKey {
+                case kind, title, amount_won, distance_km, duration_min, location, tag
+            }
+            func encode(to encoder: Encoder) throws {
+                var c = encoder.container(keyedBy: CodingKeys.self)
+                try c.encode(kind, forKey: .kind)
+                try c.encode(title, forKey: .title)
+                try c.encode(amount_won, forKey: .amount_won)      // nil → null (값 지우기 반영)
+                try c.encode(distance_km, forKey: .distance_km)
+                try c.encode(duration_min, forKey: .duration_min)
+                try c.encode(location, forKey: .location)
+                try c.encode(tag, forKey: .tag)
+            }
+        }
+        let body = RecordPatch(kind: kind.rawValue, title: title, amount_won: amountWon,
+                               duration_min: durationMin, distance_km: distanceKm,
+                               location: location, tag: tag)
+        try await send(method: "PATCH", path: "rest/v1/records",
+                       query: [URLQueryItem(name: "id", value: "eq.\(id.uuidString.lowercased())")],
+                       body: body)
+        await load()
+    }
+
+    /// 기록 삭제
+    func deleteRecord(id: UUID) async throws {
+        guard let base = Secrets.supabaseURL, let key = Secrets.supabaseKey, !key.isEmpty else {
+            throw URLError(.userAuthenticationRequired)
+        }
+        var comps = URLComponents(url: base.appendingPathComponent("rest/v1/records"), resolvingAgainstBaseURL: false)!
+        comps.queryItems = [URLQueryItem(name: "id", value: "eq.\(id.uuidString.lowercased())")]
+        var req = URLRequest(url: comps.url!)
+        req.httpMethod = "DELETE"
+        applyHeaders(&req, key: key)
+        req.setValue("return=minimal", forHTTPHeaderField: "Prefer")
+        let (_, resp) = try await URLSession.shared.data(for: req)
+        guard let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
         await load()
     }
 

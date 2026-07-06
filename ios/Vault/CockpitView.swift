@@ -218,6 +218,29 @@ struct CockpitView: View {
             .clipShape(Circle())
     }
 
+    // 상태 배지: 테슬라 연결 시 실시간(운행/주차/충전), 아니면 중립 표시
+    @ViewBuilder
+    private var statusBadge: some View {
+        let live = teslaConnected ? store.liveStatus : nil
+        let color: Color = {
+            switch live {
+            case .driving: return Theme.green
+            case .charging: return Theme.orange
+            default: return Theme.gold
+            }
+        }()
+        HStack(spacing: 4) {
+            if let live {
+                Image(systemName: live.icon).font(.system(size: 9))
+            }
+            Text(live?.label ?? L("주차 중")).font(pd(10.5))
+        }
+        .foregroundStyle(color)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 3)
+        .overlay(Capsule().stroke(color.opacity(0.4), lineWidth: 1))
+    }
+
     // 차량 히어로
     private var heroCard: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -231,12 +254,7 @@ struct CockpitView: View {
                         .foregroundStyle(Theme.muted)
                 }
                 Spacer()
-                Text("주차 중")
-                    .font(pd(10.5))
-                    .foregroundStyle(Theme.gold)
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 3)
-                    .overlay(Capsule().stroke(Theme.gold.opacity(0.4), lineWidth: 1))
+                statusBadge
             }
 
             // 차량 사진(비율 채움) + 배터리 도넛을 같은 줄에, 중간 여백 없이
