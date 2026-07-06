@@ -4907,6 +4907,622 @@
         }
       }
     },
+    "OBD 동글로 자동 연동": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto-sync via OBD dongle"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OBDドングルで自動連携"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通过OBD设备自动同步"
+          }
+        }
+      }
+    },
+    "브랜드 무관 · 연료·주행·정비 자동 기록": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Any brand · auto-log fuel, trips, service"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブランド不問 · 給油・走行・整備を自動記録"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不限品牌 · 自动记录油耗·行驶·保养"
+          }
+        }
+      }
+    },
+    "OBD 동글 연동": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OBD dongle sync"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OBDドングル連携"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OBD设备同步"
+          }
+        }
+      }
+    },
+    "곧 제공돼요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Coming soon"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "近日提供"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "即将推出"
+          }
+        }
+      }
+    },
+    "BLE 동글 연결은 준비 중이에요. 지원 동글을 미리 준비해두시면 출시되는 대로 바로 쓸 수 있어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "BLE dongle connection is in the works. Get a supported dongle ready so you can use it as soon as it launches."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "BLEドングル接続は準備中です。対応ドングルを用意しておくと公開後すぐ使えます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "BLE设备连接正在开发中。备好支持的设备，上线即可使用。"
+          }
+        }
+      }
+    },
+    "브랜드 상관없이 자동 기록": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto-log, any brand"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブランド不問で自動記録"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任意品牌自动记录"
+          }
+        }
+      }
+    },
+    "OBD 동글 하나면 연료·주행거리·정비코드를 자동으로": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One OBD dongle auto-captures fuel, mileage, and trouble codes"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OBDドングル1つで給油・走行距離・故障コードを自動取得"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一个OBD设备自动采集油耗、里程和故障码"
+          }
+        }
+      }
+    },
+    "이렇게 동작해요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How it works"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使い方"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "工作原理"
+          }
+        }
+      }
+    },
+    "동글을 OBD 단자에 꽂기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plug the dongle into the OBD port"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ドングルをOBD端子に挿す"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将设备插入OBD接口"
+          }
+        }
+      }
+    },
+    "운전석 아래 진단 단자에 연결 (2005년 이후 차량 대부분)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect to the port under the dash (most cars after 2005)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "運転席下の診断端子に接続（2005年以降の多くの車）"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连接方向盘下方的诊断口（2005年后多数车型）"
+          }
+        }
+      }
+    },
+    "블루투스로 연결": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect via Bluetooth"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bluetoothで接続"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通过蓝牙连接"
+          }
+        }
+      }
+    },
+    "앱이 BLE 동글을 찾아 자동 연결": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The app finds and connects the BLE dongle"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アプリがBLEドングルを見つけて自動接続"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用自动查找并连接BLE设备"
+          }
+        }
+      }
+    },
+    "시동 시 자동 기록": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto-log when you drive"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "始動時に自動記録"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启动时自动记录"
+          }
+        }
+      }
+    },
+    "주유·주행·정비 데이터가 자동으로 차계부에 반영": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fuel, trip, and service data flow into your log automatically"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "給油・走行・整備データが自動で記録に反映"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "油耗·行驶·保养数据自动记入账本"
+          }
+        }
+      }
+    },
+    "무엇이 채워지나요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What gets filled in"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "何が入力される？"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会填入哪些内容"
+          }
+        }
+      }
+    },
+    "연료 잔량": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fuel level"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "燃料残量"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "油量"
+          }
+        }
+      }
+    },
+    "주행거리": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mileage"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "走行距離"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "里程"
+          }
+        }
+      }
+    },
+    "VIN 자동인식": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto VIN"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "VIN自動認識"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动识别VIN"
+          }
+        }
+      }
+    },
+    "정비 경고(DTC)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Service alerts (DTC)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "整備警告(DTC)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保养警告(DTC)"
+          }
+        }
+      }
+    },
+    "주행 트립": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trip distance"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "走行トリップ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "行程"
+          }
+        }
+      }
+    },
+    "iPhone은 BLE(저전력 블루투스) 동글만 지원해요. 저가 ‘블루투스 클래식’ ELM327은 iOS에서 동작하지 않으니 아래 목록에서 고르세요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone supports only BLE (low-energy Bluetooth) dongles. Cheap ‘Bluetooth Classic’ ELM327 units don't work on iOS — pick from the list below."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhoneはBLE（低消費電力Bluetooth）ドングルのみ対応。安価な『Bluetoothクラシック』ELM327はiOSで動作しないため、下記から選んでください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone仅支持BLE（低功耗蓝牙）设备。廉价的‘经典蓝牙’ELM327在iOS上无法使用，请从下方选择。"
+          }
+        }
+      }
+    },
+    "iOS 호환 추천 동글": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recommended iOS-compatible dongles"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iOS対応おすすめドングル"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iOS兼容推荐设备"
+          }
+        }
+      }
+    },
+    "추천": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Top pick"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "おすすめ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "推荐"
+          }
+        }
+      }
+    },
+    "가성비": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Value"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コスパ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "高性价比"
+          }
+        }
+      }
+    },
+    "전기차 배터리 잔량은 표준 OBD로 안 나와요. 전기차는 테슬라 연동이 더 정확하고, 동글은 내연기관차에 강력해요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "EV battery level isn't exposed via standard OBD. For EVs, Tesla sync is more accurate; dongles shine for gas cars."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "EVのバッテリー残量は標準OBDでは取得できません。EVはテスラ連携が正確で、ドングルはガソリン車に強力です。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "标准OBD无法读取电动车电量。电动车用特斯拉同步更准确，OBD设备更适合燃油车。"
+          }
+        }
+      }
+    },
+    "동글 연결 준비하기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Get ready to connect"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接続の準備をする"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "准备连接"
+          }
+        }
+      }
+    },
+    "프리미엄으로 동글 연동": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dongle sync with Premium"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プレミアムでドングル連携"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "高级版设备同步"
+          }
+        }
+      }
+    },
+    "BLE 동글 연결은 준비 중입니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "BLE dongle connection is coming soon."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "BLEドングル接続は準備中です。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "BLE设备连接即将推出。"
+          }
+        }
+      }
+    },
     "기록 수정": {
       "localizations": {
         "en": {

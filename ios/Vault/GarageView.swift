@@ -5,6 +5,8 @@ import PhotosUI
 struct GarageView: View {
     @ObservedObject var store: VaultStore
     @StateObject private var tesla = TeslaService()
+    @StateObject private var premium = PremiumStore()
+    @State private var showOBDGuide = false
     @State private var carImage: UIImage?
     @State private var showPhotoDialog = false
     @State private var showPicker = false
@@ -89,6 +91,11 @@ struct GarageView: View {
                     }
                 }
 
+                // OBD 동글 자동 연동 (브랜드 무관)
+                obdButton
+                    .padding(.horizontal, 16)
+                    .padding(.top, 10)
+
                 Spacer(minLength: 24)
             }
         }
@@ -114,6 +121,30 @@ struct GarageView: View {
             VehicleEditView(store: store, mode: .create)
         }
         .onAppear { carImage = CarImageStore.load(for: v.id) }
+    }
+
+    // OBD 동글 안내/연동 버튼
+    private var obdButton: some View {
+        Button {
+            showOBDGuide = true
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "car.rear.and.tire.marks").font(.system(size: 14))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("OBD 동글로 자동 연동").font(pd(14, .semibold))
+                    Text("브랜드 무관 · 연료·주행·정비 자동 기록").font(pd(10)).foregroundStyle(Theme.muted)
+                }
+                Spacer()
+                Image(systemName: "chevron.right").font(.system(size: 12)).foregroundStyle(Theme.muted)
+            }
+            .foregroundStyle(Theme.silver)
+            .padding(.vertical, 12).padding(.horizontal, 14)
+            .background(Theme.card)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.cardBorder, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $showOBDGuide) { OBDGuideView(premium: premium) }
     }
 
     // 테슬라 연결/동기화 버튼
