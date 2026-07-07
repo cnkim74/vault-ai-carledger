@@ -15,6 +15,12 @@ final class ResaleService: ObservableObject {
     @Published var estimate: ResaleEstimate?
     @Published var error: String?
 
+    /// 차량 전환 시 이전 결과 초기화
+    func reset() {
+        estimate = nil
+        error = nil
+    }
+
     private static let system = """
     너는 한국 중고차 시세 추정 도우미다. 주어진 차량 정보로 한국 중고차 시장 기준 \
     예상 시세를 추정한다. 실거래가가 아닌 추정치이므로 합리적 범위를 제시한다. \

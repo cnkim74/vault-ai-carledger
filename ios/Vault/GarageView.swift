@@ -125,6 +125,7 @@ struct GarageView: View {
         }
         .onChange(of: store.vehicle.id) { _, newID in
             carImage = CarImageStore.load(for: newID)
+            resale.reset()   // 차량 바뀌면 시세 초기화 → 새 차량으로 재조회
         }
         .sheet(isPresented: $showEdit) {
             VehicleEditView(store: store, mode: .edit)
