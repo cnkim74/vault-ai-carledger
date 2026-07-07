@@ -7,6 +7,8 @@ struct CockpitView: View {
     @ObservedObject var insight: InsightService
     @ObservedObject var profile: ProfileStore
     var onEditProfile: () -> Void = {}
+    var onShowRecords: () -> Void = {}
+    @State private var editingRecord: VaultRecord?
     @State private var carImage: UIImage?
     @State private var showPhotoDialog = false
     @State private var showPicker = false
@@ -65,6 +67,9 @@ struct CockpitView: View {
         .task { await calendar.load() }
         .task(id: store.vehicle.id) {
             await notif.refreshIfEnabled(store: store, weather: weather)
+        }
+        .sheet(item: $editingRecord) { rec in
+            AddRecordView(store: store, editing: rec)
         }
         .alert("현재 배터리", isPresented: $showBatteryEdit) {
             TextField("0~100", text: $batteryInput).keyboardType(.numberPad)
@@ -701,12 +706,22 @@ struct CockpitView: View {
             HStack(alignment: .firstTextBaseline) {
                 Text("최근 기록").font(pd(13, .semibold))
                 Spacer()
-                Text("전체 보기").font(pd(11)).foregroundStyle(Theme.muted)
+                Button(action: onShowRecords) {
+                    HStack(spacing: 2) {
+                        Text("전체 보기").font(pd(11))
+                        Image(systemName: "chevron.right").font(.system(size: 9))
+                    }
+                    .foregroundStyle(Theme.muted)
+                }
             }
             .padding(.bottom, 0)
 
+            if store.records.isEmpty {
+                Text("아직 기록이 없어요").font(pd(11)).foregroundStyle(Theme.muted).padding(.vertical, 8)
+            }
             ForEach(store.records.prefix(3)) { rec in
-                recordRow(rec)
+                Button { editingRecord = rec } label: { recordRow(rec) }
+                    .buttonStyle(.plain)
             }
         }
         .padding(.horizontal, 16)

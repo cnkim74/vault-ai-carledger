@@ -16,7 +16,8 @@ struct ContentView: View {
             Group {
                 switch tab {
                 case .home: CockpitView(store: store, insight: insight, profile: profile,
-                                        onEditProfile: { showProfile = true })
+                                        onEditProfile: { showProfile = true },
+                                        onShowRecords: { tab = .records })
                 case .records: RecordsListView(store: store)
                 case .stats: BriefingView(store: store, insight: insight)
                 case .garage: GarageView(store: store)
