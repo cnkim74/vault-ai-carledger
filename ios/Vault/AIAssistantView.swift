@@ -12,6 +12,10 @@ struct AIAssistantView: View {
     @State private var input = ""
     @State private var loading = false
     @State private var started = false
+    @StateObject private var speech = SpeechRecognizer()
+    @StateObject private var chats = ChatStore()
+    @State private var currentID = UUID()
+    @State private var showHistory = false
 
     private let suggestions = ["이번 달 지출 분석해줘", "절약 플랜 알려줘", "연비/전비 어때?", "다음 정비는 언제야?"]
 
@@ -45,7 +49,13 @@ struct AIAssistantView: View {
             .foregroundStyle(Theme.text)
             .navigationTitle("AI 어시스턴트")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("닫기") { dismiss() } } }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("닫기") { dismiss() } }
+                ToolbarItemGroup(placement: .primaryAction) {
+                    Button { showHistory = true } label: { Image(systemName: "clock.arrow.circlepath") }
+                    Button { newConversation() } label: { Image(systemName: "square.and.pencil") }
+                }
+            }
         }
         .tint(Theme.gold)
         .preferredColorScheme(.dark)
@@ -54,6 +64,29 @@ struct AIAssistantView: View {
             started = true
             if let p = initialPrompt { await send(p) }
         }
+        .onChange(of: speech.transcript) { _, t in if speech.isRecording { input = t } }
+        .sheet(isPresented: $showHistory) {
+            ChatHistoryView(chats: chats) { conv in
+                loadConversation(conv)
+                showHistory = false
+            }
+        }
+    }
+
+    private func newConversation() {
+        speech.stop()
+        messages = []; input = ""; currentID = UUID()
+    }
+    private func loadConversation(_ conv: Conversation) {
+        speech.stop()
+        currentID = conv.id
+        messages = conv.messages.map { Msg(role: $0.role, text: $0.text) }
+    }
+    private func saveCurrent() {
+        guard !messages.isEmpty else { return }
+        let title = messages.first(where: { $0.role == "user" })?.text ?? L("대화")
+        chats.upsert(id: currentID, title: String(title.prefix(40)),
+                     messages: messages.map { StoredMsg(role: $0.role, text: $0.text) })
     }
 
     private var emptyState: some View {
@@ -90,21 +123,44 @@ struct AIAssistantView: View {
     }
 
     private var inputBar: some View {
-        HStack(spacing: 10) {
-            TextField("메시지 입력", text: $input, axis: .vertical)
-                .font(pd(13)).foregroundStyle(Theme.text)
-                .lineLimit(1...4)
-                .submitLabel(.send)
-                .onSubmit { let t = input; Task { await send(t) } }
-            Button {
-                let t = input; Task { await send(t) }
-            } label: {
-                Image(systemName: "arrow.up.circle.fill").font(.system(size: 26))
-                    .foregroundStyle(input.trimmingCharacters(in: .whitespaces).isEmpty || loading ? Theme.muted : Theme.gold)
+        VStack(spacing: 0) {
+            if speech.isRecording {
+                HStack(spacing: 6) {
+                    Circle().fill(Theme.red).frame(width: 7, height: 7)
+                    Text("듣는 중… 마이크를 다시 누르면 완료").font(pd(10.5)).foregroundStyle(Theme.muted)
+                    Spacer()
+                }
+                .padding(.horizontal, 16).padding(.top, 8)
+            } else if speech.denied {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 10)).foregroundStyle(Theme.orange)
+                    Text("설정에서 마이크·음성 인식 권한을 켜주세요.").font(pd(10.5)).foregroundStyle(Theme.muted)
+                    Spacer()
+                }
+                .padding(.horizontal, 16).padding(.top, 8)
             }
-            .disabled(input.trimmingCharacters(in: .whitespaces).isEmpty || loading)
+            HStack(spacing: 10) {
+                // 음성 입력 (녹음 시작/종료 토글)
+                Button { speech.toggle() } label: {
+                    Image(systemName: speech.isRecording ? "stop.circle.fill" : "mic.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(speech.isRecording ? Theme.red : Theme.silver)
+                }
+                TextField("메시지 입력", text: $input, axis: .vertical)
+                    .font(pd(13)).foregroundStyle(Theme.text)
+                    .lineLimit(1...4)
+                    .submitLabel(.send)
+                    .onSubmit { let t = input; Task { await send(t) } }
+                Button {
+                    let t = input; Task { await send(t) }
+                } label: {
+                    Image(systemName: "arrow.up.circle.fill").font(.system(size: 26))
+                        .foregroundStyle(input.trimmingCharacters(in: .whitespaces).isEmpty || loading ? Theme.muted : Theme.gold)
+                }
+                .disabled(input.trimmingCharacters(in: .whitespaces).isEmpty || loading)
+            }
+            .padding(.horizontal, 14).padding(.vertical, 10)
         }
-        .padding(.horizontal, 14).padding(.vertical, 10)
         .background(Theme.cardAlt)
         .overlay(Rectangle().frame(height: 1).foregroundStyle(Color.white.opacity(0.06)), alignment: .top)
     }
@@ -112,6 +168,7 @@ struct AIAssistantView: View {
     private func send(_ text: String) async {
         let q = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty, !loading else { return }
+        if speech.isRecording { speech.stop() }
         input = ""
         messages.append(Msg(role: "user", text: q))
         loading = true; defer { loading = false }
@@ -120,6 +177,7 @@ struct AIAssistantView: View {
         let convo = messages.map { ($0.role == "user" ? "Q: " : "A: ") + $0.text }.joined(separator: "\n")
         let answer = await AIProxy.complete(system: Self.systemPrompt(store: store), user: convo, maxTokens: 600)
         messages.append(Msg(role: "ai", text: answer ?? L("답변을 가져오지 못했어요. 잠시 후 다시 시도해 주세요.")))
+        saveCurrent()   // 대화 저장/갱신
     }
 
     private static func systemPrompt(store: VaultStore) -> String {
@@ -152,5 +210,50 @@ struct AIAssistantView: View {
         [데이터]
         \(ctx.joined(separator: "\n"))
         """
+    }
+}
+
+/// 저장된 대화 목록
+struct ChatHistoryView: View {
+    @Environment(\.dismiss) private var dismiss
+    @ObservedObject var chats: ChatStore
+    var onSelect: (Conversation) -> Void
+
+    private static let df: DateFormatter = {
+        let f = DateFormatter(); f.locale = Locale(identifier: "ko_KR"); f.dateFormat = "M/d HH:mm"; return f
+    }()
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if chats.conversations.isEmpty {
+                    VStack(spacing: 8) {
+                        Image(systemName: "clock").font(.system(size: 28)).foregroundStyle(Theme.muted)
+                        Text("저장된 대화가 없어요").font(pd(13)).foregroundStyle(Theme.muted)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    List {
+                        ForEach(chats.conversations) { conv in
+                            Button { onSelect(conv) } label: {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(conv.title).font(pd(13.5, .medium)).foregroundStyle(Theme.text).lineLimit(1)
+                                    Text(Self.df.string(from: conv.updatedAt)).font(pd(10.5)).foregroundStyle(Theme.muted)
+                                }
+                            }
+                            .listRowBackground(Theme.card)
+                        }
+                        .onDelete { idx in idx.map { chats.conversations[$0].id }.forEach(chats.delete) }
+                    }
+                    .scrollContentBackground(.hidden)
+                }
+            }
+            .background(Theme.bgTop.ignoresSafeArea())
+            .navigationTitle("대화 기록")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("닫기") { dismiss() } } }
+        }
+        .tint(Theme.gold)
+        .preferredColorScheme(.dark)
     }
 }

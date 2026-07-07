@@ -147,6 +147,11 @@ T = {
     "다음 정비는 언제야?": ("When's my next service?", "次の整備はいつ？", "下次保养什么时候？"),
     "이번 지출을 분석해서 절약 플랜을 알려줘": ("Analyze my spending and suggest a savings plan", "支出を分析して節約プランを提案して", "分析我的支出并给出省钱方案"),
     "답변을 가져오지 못했어요. 잠시 후 다시 시도해 주세요.": ("Couldn't get an answer. Please try again shortly.", "回答を取得できませんでした。しばらくして再試行してください。", "无法获取回答，请稍后再试。"),
+    "듣는 중… 마이크를 다시 누르면 완료": ("Listening… tap mic again to finish", "認識中… マイクを再度押すと完了", "聆听中… 再次点击麦克风结束"),
+    "설정에서 마이크·음성 인식 권한을 켜주세요.": ("Enable microphone & speech permissions in Settings.", "設定でマイク・音声認識の権限をオンにしてください。", "请在设置中开启麦克风和语音识别权限。"),
+    "대화 기록": ("Chat history", "会話履歴", "对话记录"),
+    "저장된 대화가 없어요": ("No saved conversations", "保存された会話がありません", "没有已保存的对话"),
+    "대화": ("Conversation", "会話", "对话"),
 
     # 정비 체크리스트
     "정비 체크리스트": ("Service checklist", "整備チェックリスト", "保养清单"),
