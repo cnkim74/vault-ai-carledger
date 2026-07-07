@@ -46,3 +46,52 @@ enum NavLauncher {
         }
     }
 }
+
+/// 지도 앱 선택지 (단골 센터 길찾기용 — 구글맵 포함)
+enum MapApp: String, CaseIterable, Identifiable {
+    case tmap, kakao, google
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .tmap: return "티맵"
+        case .kakao: return "카카오맵"
+        case .google: return "구글맵"
+        }
+    }
+    var appStore: URL {
+        switch self {
+        case .tmap: return URL(string: "https://apps.apple.com/kr/app/id431589174")!
+        case .kakao: return URL(string: "https://apps.apple.com/kr/app/id304608425")!
+        case .google: return URL(string: "https://apps.apple.com/kr/app/id585027354")!
+        }
+    }
+}
+
+/// 주소/장소명 기반 검색·전화
+enum PlaceLauncher {
+    /// 주소(또는 장소명)로 지도 앱에서 검색. 구글맵은 https로 열려 미설치 시 웹으로 폴백.
+    @MainActor
+    static func search(_ query: String, app: MapApp) {
+        let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else { return }
+        let enc = q.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let scheme: String
+        switch app {
+        case .tmap: scheme = "tmap://search?name=\(enc)"
+        case .kakao: scheme = "kakaomap://look?q=\(enc)"
+        case .google: scheme = "https://www.google.com/maps/search/?api=1&query=\(enc)"
+        }
+        guard let url = URL(string: scheme) else { return }
+        UIApplication.shared.open(url, options: [:]) { ok in
+            if !ok, app != .google { UIApplication.shared.open(app.appStore) }
+        }
+    }
+
+    /// 전화 걸기
+    @MainActor
+    static func call(_ phone: String) {
+        let digits = phone.filter { $0.isNumber || $0 == "+" }
+        guard !digits.isEmpty, let url = URL(string: "tel://\(digits)") else { return }
+        UIApplication.shared.open(url)
+    }
+}

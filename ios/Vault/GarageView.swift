@@ -7,6 +7,7 @@ struct GarageView: View {
     @StateObject private var tesla = TeslaService()
     @StateObject private var premium = PremiumStore()
     @State private var showOBDGuide = false
+    @State private var showPlaces = false
     @State private var carImage: UIImage?
     @State private var showPhotoDialog = false
     @State private var showPicker = false
@@ -96,6 +97,11 @@ struct GarageView: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 10)
 
+                // 단골 센터 (정비소·서비스센터)
+                placesButton
+                    .padding(.horizontal, 16)
+                    .padding(.top, 10)
+
                 Spacer(minLength: 24)
             }
         }
@@ -121,6 +127,31 @@ struct GarageView: View {
             VehicleEditView(store: store, mode: .create)
         }
         .onAppear { carImage = CarImageStore.load(for: v.id) }
+    }
+
+    // 단골 센터 관리 버튼
+    private var placesButton: some View {
+        Button { showPlaces = true } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "mappin.and.ellipse").font(.system(size: 14))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("단골 센터").font(pd(14, .semibold))
+                    Text("정비소·서비스센터 · 전화·길찾기").font(pd(10)).foregroundStyle(Theme.muted)
+                }
+                Spacer()
+                if !store.places.isEmpty {
+                    Text("\(store.places.count)").font(pd(12, .semibold)).foregroundStyle(Theme.gold)
+                }
+                Image(systemName: "chevron.right").font(.system(size: 12)).foregroundStyle(Theme.muted)
+            }
+            .foregroundStyle(Theme.silver)
+            .padding(.vertical, 12).padding(.horizontal, 14)
+            .background(Theme.card)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.cardBorder, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $showPlaces) { ServicePlacesView(store: store) }
     }
 
     // OBD 동글 안내/연동 버튼

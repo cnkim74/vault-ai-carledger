@@ -36,6 +36,7 @@ struct ContentView: View {
         }
         .task {
             await store.load()
+            await store.loadPlaces()
             await insight.generate(vehicle: store.vehicle, records: store.records)
         }
         .onAppear {

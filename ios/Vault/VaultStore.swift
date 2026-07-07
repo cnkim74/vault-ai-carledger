@@ -12,6 +12,8 @@ final class VaultStore: ObservableObject {
     @Published var monthlySpend: MonthlySpend?
     /// 테슬라 동기화 시 갱신되는 실시간 상태 (운행/주차/충전)
     @Published var liveStatus: VehicleLiveStatus?
+    /// 단골 센터
+    @Published var places: [ServicePlace] = []
 
     private static let selectedKey = "vault.selectedVehicleID"
 
@@ -193,6 +195,50 @@ final class VaultStore: ObservableObject {
                        query: [URLQueryItem(name: "id", value: "eq.\(id.uuidString.lowercased())")],
                        body: body)
         await load()
+    }
+
+    // ── 단골 센터 ─────────────────────────────────────
+    struct PlaceUpsert: Encodable {
+        var name: String?
+        var category: String?
+        var address: String?
+        var phone: String?
+        var memo: String?
+    }
+
+    func loadPlaces() async {
+        guard let base = Secrets.supabaseURL, let key = Secrets.supabaseKey, !key.isEmpty else { return }
+        let rows: [ServicePlace]? = try? await fetch(
+            base: base, key: key, path: "rest/v1/service_places",
+            query: [URLQueryItem(name: "select", value: "*"),
+                    URLQueryItem(name: "order", value: "created_at.desc")]
+        )
+        if let rows { places = rows }
+    }
+
+    func addPlace(_ p: PlaceUpsert) async throws {
+        try await send(method: "POST", path: "rest/v1/service_places", query: [], body: p)
+        await loadPlaces()
+    }
+
+    func updatePlace(id: UUID, _ p: PlaceUpsert) async throws {
+        try await send(method: "PATCH", path: "rest/v1/service_places",
+                       query: [URLQueryItem(name: "id", value: "eq.\(id.uuidString.lowercased())")], body: p)
+        await loadPlaces()
+    }
+
+    func deletePlace(id: UUID) async throws {
+        guard let base = Secrets.supabaseURL, let key = Secrets.supabaseKey, !key.isEmpty else {
+            throw URLError(.userAuthenticationRequired)
+        }
+        var comps = URLComponents(url: base.appendingPathComponent("rest/v1/service_places"), resolvingAgainstBaseURL: false)!
+        comps.queryItems = [URLQueryItem(name: "id", value: "eq.\(id.uuidString.lowercased())")]
+        var req = URLRequest(url: comps.url!)
+        req.httpMethod = "DELETE"
+        applyHeaders(&req, key: key)
+        req.setValue("return=minimal", forHTTPHeaderField: "Prefer")
+        _ = try await URLSession.shared.data(for: req)
+        await loadPlaces()
     }
 
     /// 기록 삭제

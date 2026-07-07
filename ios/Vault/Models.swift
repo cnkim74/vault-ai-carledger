@@ -338,6 +338,46 @@ enum VehicleLiveStatus: String {
     }
 }
 
+/// 단골 센터 분류
+enum PlaceCategory: String, CaseIterable {
+    case garage, repair, service, wash, charge, other
+    var label: String {
+        switch self {
+        case .garage: return L("정비소")
+        case .repair: return L("카센터")
+        case .service: return L("서비스센터")
+        case .wash: return L("세차장")
+        case .charge: return L("충전소")
+        case .other: return L("기타")
+        }
+    }
+    var icon: String {
+        switch self {
+        case .garage, .repair: return "wrench.and.screwdriver.fill"
+        case .service: return "building.2.fill"
+        case .wash: return "drop.fill"
+        case .charge: return "bolt.fill"
+        case .other: return "mappin.circle.fill"
+        }
+    }
+}
+
+/// 단골 정비소·카센터·서비스센터 등
+struct ServicePlace: Codable, Identifiable {
+    let id: UUID
+    var name: String
+    var category: String
+    var address: String?
+    var phone: String?
+    var memo: String?
+
+    var placeCategory: PlaceCategory { PlaceCategory(rawValue: category) ?? .garage }
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, category, address, phone, memo
+    }
+}
+
 // ── 표시 헬퍼 ─────────────────────────────────────────
 
 func relativeDay(_ date: Date) -> String {
