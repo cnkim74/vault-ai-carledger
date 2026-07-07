@@ -66,10 +66,6 @@ struct GarageView: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
 
-                resaleCard
-                    .padding(.horizontal, 16)
-                    .padding(.top, 12)
-
                 Button {
                     showEdit = true
                 } label: {
@@ -107,6 +103,11 @@ struct GarageView: View {
                 placesButton
                     .padding(.horizontal, 16)
                     .padding(.top, 10)
+
+                // 중고 시세 (제일 아래)
+                resaleCard
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
 
                 Spacer(minLength: 24)
             }
