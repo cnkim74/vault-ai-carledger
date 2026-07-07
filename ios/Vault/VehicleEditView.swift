@@ -65,9 +65,12 @@ struct VehicleEditView: View {
         }
 
         let v = store.vehicle
-        let knownMaker = v.maker.flatMap { CarCatalog.makers.contains($0) ? $0 : nil }
-        _maker = State(initialValue: knownMaker ?? CarCatalog.makers[0])
-        let models = CarCatalog.models(for: knownMaker ?? CarCatalog.makers[0])
+        let cat = v.vehicleCategory
+        let makers = cat == .car ? CarCatalog.makers : BikeCatalog.makers
+        let knownMaker = v.maker.flatMap { makers.contains($0) ? $0 : nil }
+        let baseMaker = knownMaker ?? makers[0]
+        _maker = State(initialValue: baseMaker)
+        let models = cat == .car ? CarCatalog.models(for: baseMaker) : BikeCatalog.models(for: baseMaker)
         let knownModel = v.model.flatMap { models.contains($0) ? $0 : nil }
         _model = State(initialValue: knownModel ?? models.first ?? "")
         _useCustomName = State(initialValue: knownMaker == nil || knownModel == nil)
@@ -88,6 +91,14 @@ struct VehicleEditView: View {
         let end = v.contractEnd.flatMap { Vehicle.parseDay($0) }
         _contractEnd = State(initialValue: end ?? Date())
         _hasContractEnd = State(initialValue: end != nil)
+    }
+
+    // 현재 차종에 맞는 제조사/모델 카탈로그
+    private var catalogMakers: [String] {
+        category == .car ? CarCatalog.makers : BikeCatalog.makers
+    }
+    private func catalogModels(_ maker: String) -> [String] {
+        category == .car ? CarCatalog.models(for: maker) : BikeCatalog.models(for: maker)
     }
 
     var body: some View {
@@ -117,18 +128,29 @@ struct VehicleEditView: View {
                 }
 
                 Section("차량") {
+                    Picker("차종", selection: $category) {
+                        ForEach(VehicleCategory.allCases, id: \.self) { Text($0.label).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    .onChange(of: category) { _, _ in
+                        // 차종 바뀌면 제조사/모델을 해당 카탈로그 첫 항목으로 재설정
+                        if !useCustomName {
+                            maker = catalogMakers.first ?? ""
+                            model = catalogModels(maker).first ?? ""
+                        }
+                    }
                     Toggle("직접 입력", isOn: $useCustomName)
                     if useCustomName {
                         TextField("차량 이름 (예: Model Y Long Range)", text: $customName)
                     } else {
                         Picker("제조사", selection: $maker) {
-                            ForEach(CarCatalog.makers, id: \.self) { Text($0).tag($0) }
+                            ForEach(catalogMakers, id: \.self) { Text($0).tag($0) }
                         }
                         .onChange(of: maker) { _, newMaker in
-                            model = CarCatalog.models(for: newMaker).first ?? ""
+                            model = catalogModels(newMaker).first ?? ""
                         }
                         Picker("모델", selection: $model) {
-                            ForEach(CarCatalog.models(for: maker), id: \.self) { Text($0).tag($0) }
+                            ForEach(catalogModels(maker), id: \.self) { Text($0).tag($0) }
                         }
                     }
                     TextField("연식 (예: 2024)", text: $year)
@@ -136,10 +158,6 @@ struct VehicleEditView: View {
                 }
 
                 Section("등록 정보") {
-                    Picker("차종", selection: $category) {
-                        ForEach(VehicleCategory.allCases, id: \.self) { Text($0.label).tag($0) }
-                    }
-                    .pickerStyle(.segmented)
                     TextField("차량 번호 (예: 62가 3817)", text: $plate)
                     Picker("연료", selection: $fuel) {
                         ForEach(FuelType.allCases, id: \.rawValue) { Text($0.rawValue).tag($0.rawValue) }
