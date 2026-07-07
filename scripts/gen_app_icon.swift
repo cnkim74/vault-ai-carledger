@@ -2,72 +2,71 @@ import AppKit
 
 let S: CGFloat = 1024
 
-// 정확히 1024×1024, 알파 없는(불투명) 비트맵
-let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 1024, pixelsHigh: 1024,
-                           bitsPerSample: 8, samplesPerPixel: 3, hasAlpha: false, isPlanar: false,
-                           colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
-NSGraphicsContext.saveGraphicsState()
-NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
-
 func col(_ hex: UInt32, _ a: CGFloat = 1) -> NSColor {
     NSColor(red: CGFloat((hex>>16)&0xFF)/255, green: CGFloat((hex>>8)&0xFF)/255, blue: CGFloat(hex&0xFF)/255, alpha: a)
 }
-let goldLight = col(0xE9CD8D), goldDark = col(0xB78F3E), gold = col(0xD4B36A)
+let gold = col(0xD4B36A), goldLight = col(0xE9CD8D), goldDark = col(0xB78F3E), ink = col(0x0E0E11)
 
-// 배경: 어두운 세로 그라데이션
+// SF Symbol → 골드 틴트 NSImage (중첩 lockFocus)
+func goldSymbol(_ name: String, point: CGFloat, weight: NSFont.Weight = .semibold) -> NSImage {
+    let cfg = NSImage.SymbolConfiguration(pointSize: point, weight: weight)
+    let base = NSImage(systemSymbolName: name, accessibilityDescription: nil)!.withSymbolConfiguration(cfg)!
+    let out = NSImage(size: base.size)
+    out.lockFocus()
+    base.draw(at: .zero, from: NSRect(origin: .zero, size: base.size), operation: .sourceOver, fraction: 1)
+    gold.setFill()
+    NSRect(origin: .zero, size: base.size).fill(using: .sourceAtop)
+    out.unlockFocus()
+    return out
+}
+func drawCentered(_ img: NSImage, cx: CGFloat, cy: CGFloat, w: CGFloat) {
+    let h = w * img.size.height / img.size.width
+    img.draw(in: NSRect(x: cx - w/2, y: cy - h/2, width: w, height: h),
+             from: NSRect(origin: .zero, size: img.size), operation: .sourceOver, fraction: 1)
+}
+
+// ── 메인 렌더 (lockFocus) ──
+let canvas = NSImage(size: NSSize(width: S, height: S))
+canvas.lockFocus()
+
 NSGradient(colors: [col(0x1B1B20), col(0x0A0A0C)])!.draw(in: NSRect(x: 0, y: 0, width: S, height: S), angle: -90)
+NSGradient(colors: [col(0xD4B36A, 0.18), col(0xD4B36A, 0.0)])!
+    .draw(in: NSBezierPath(ovalIn: NSRect(x: S/2-440, y: S/2-440, width: 880, height: 880)),
+          relativeCenterPosition: .zero)
 
-let c = CGPoint(x: S/2, y: S/2)
+// 자동차 (측면) — 메인, 위쪽
+drawCentered(goldSymbol("car.side.fill", point: 300), cx: S/2, cy: 610, w: 680)
 
-// 중앙 골드 글로우
-NSGradient(colors: [col(0xD4B36A, 0.20), col(0xD4B36A, 0.0)])!
-    .draw(in: NSBezierPath(ovalIn: NSRect(x: c.x-430, y: c.y-430, width: 860, height: 860)),
-          relativeCenterPosition: NSPoint(x: 0, y: 0))
-
-func fillGold(_ path: NSBezierPath) {
-    NSGraphicsContext.saveGraphicsState()
-    path.addClip()
-    NSGradient(colors: [goldLight, goldDark])!.draw(in: path.bounds, angle: -60)
-    NSGraphicsContext.restoreGraphicsState()
-}
-
-let rimOuter: CGFloat = 340, rimInner: CGFloat = 292
-
-// 스포크 (6개)
-gold.setStroke()
-for i in 0..<6 {
-    let a = CGFloat(i) * .pi / 3.0
-    let p = NSBezierPath()
-    p.lineWidth = 40; p.lineCapStyle = .round
-    p.move(to: NSPoint(x: c.x + cos(a)*90, y: c.y + sin(a)*90))
-    p.line(to: NSPoint(x: c.x + cos(a)*rimInner, y: c.y + sin(a)*rimInner))
-    p.stroke()
-}
-
-// 바깥 림 (도넛)
-let ring = NSBezierPath(ovalIn: NSRect(x: c.x-rimOuter, y: c.y-rimOuter, width: rimOuter*2, height: rimOuter*2))
-ring.append(NSBezierPath(ovalIn: NSRect(x: c.x-rimInner, y: c.y-rimInner, width: rimInner*2, height: rimInner*2)))
-ring.windingRule = .evenOdd
-fillGold(ring)
-
-// 중앙 허브
-fillGold(NSBezierPath(ovalIn: NSRect(x: c.x-118, y: c.y-118, width: 236, height: 236)))
-col(0x0E0E11).setFill()
-NSBezierPath(ovalIn: NSRect(x: c.x-82, y: c.y-82, width: 164, height: 164)).fill()
-
-// 중앙 'W'
-let w = "W" as NSString
+// ₩ 코인 (지갑/돈) — 우하단 배지
+let coinR: CGFloat = 172
+let coinC = CGPoint(x: 675, y: 330)
+let coinRect = NSRect(x: coinC.x-coinR, y: coinC.y-coinR, width: coinR*2, height: coinR*2)
+// 코인 뒤 다크 테두리(분리감)
+ink.setStroke()
+let halo = NSBezierPath(ovalIn: coinRect.insetBy(dx: -16, dy: -16)); halo.lineWidth = 32; halo.stroke()
+NSGraphicsContext.saveGraphicsState()
+NSBezierPath(ovalIn: coinRect).addClip()
+NSGradient(colors: [goldLight, goldDark])!.draw(in: coinRect, angle: -60)
+NSGraphicsContext.restoreGraphicsState()
+// ₩
+let won = "₩" as NSString
 let para = NSMutableParagraphStyle(); para.alignment = .center
 let attrs: [NSAttributedString.Key: Any] = [
-    .font: NSFont.systemFont(ofSize: 138, weight: .heavy),
-    .foregroundColor: gold, .paragraphStyle: para,
+    .font: NSFont.systemFont(ofSize: 200, weight: .heavy), .foregroundColor: ink, .paragraphStyle: para,
 ]
-let size = w.size(withAttributes: attrs)
-w.draw(at: NSPoint(x: c.x - size.width/2, y: c.y - size.height/2), withAttributes: attrs)
+let ws = won.size(withAttributes: attrs)
+won.draw(at: NSPoint(x: coinC.x - ws.width/2, y: coinC.y - ws.height/2 - 6), withAttributes: attrs)
 
-NSGraphicsContext.restoreGraphicsState()
+canvas.unlockFocus()
 
+// ── 정확히 1024×1024로 래스터화 ──
+let cg = canvas.cgImage(forProposedRect: nil, context: nil, hints: nil)!
+let ctx = CGContext(data: nil, width: 1024, height: 1024, bitsPerComponent: 8, bytesPerRow: 0,
+                    space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)!
+ctx.interpolationQuality = .high
+ctx.draw(cg, in: CGRect(x: 0, y: 0, width: 1024, height: 1024))
+let final = ctx.makeImage()!
+let rep = NSBitmapImageRep(cgImage: final)
 let png = rep.representation(using: .png, properties: [:])!
-let out = "/Users/kimchannyeon/Documents/Claude/vault/ios/Vault/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png"
-try! png.write(to: URL(fileURLWithPath: out))
-print("icon written \(rep.pixelsWide)x\(rep.pixelsHigh) alpha=\(rep.hasAlpha)")
+try! png.write(to: URL(fileURLWithPath: "/Users/kimchannyeon/Documents/Claude/vault/ios/Vault/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png"))
+print("icon written \(final.width)x\(final.height)")
