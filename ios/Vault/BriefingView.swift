@@ -25,6 +25,7 @@ struct BriefingView: View {
                 header
                 briefing
                 spendCard
+                ridingStatsCard
                 leaseCard
                 timeline
                 aiInputBar
@@ -57,6 +58,56 @@ struct BriefingView: View {
         .padding(.horizontal, 20)
         .padding(.top, 8)
         .padding(.bottom, 4)
+    }
+
+    // 이번 달 주행/라이딩 통계 (drive 기록 집계)
+    private var monthDrives: (km: Double, count: Int, min: Int) {
+        let cal = Calendar.current
+        let drives = store.records.filter {
+            $0.kind == .drive && cal.isDate($0.occurredAt, equalTo: Date(), toGranularity: .month)
+        }
+        return (drives.compactMap { $0.distanceKm }.reduce(0, +),
+                drives.count,
+                drives.compactMap { $0.durationMin }.reduce(0, +))
+    }
+
+    @ViewBuilder
+    private var ridingStatsCard: some View {
+        let s = monthDrives
+        if s.count > 0 {
+            let isBike = store.vehicle.isBike
+            VStack(alignment: .leading, spacing: 12) {
+                Text(isBike ? "이번 달 라이딩" : "이번 달 주행").font(pd(13, .semibold)).foregroundStyle(Theme.silver)
+                HStack(spacing: 0) {
+                    statCell(L("거리"), "\(grouped(Int(s.km.rounded())))km")
+                    cellDivider
+                    statCell(isBike ? L("라이딩") : L("주행"), String(format: L("%d회"), s.count))
+                    cellDivider
+                    statCell(L("시간"), timeLabel(s.min))
+                }
+            }
+            .padding(EdgeInsets(top: 16, leading: 18, bottom: 16, trailing: 18))
+            .background(Theme.card)
+            .clipShape(RoundedRectangle(cornerRadius: 18))
+            .overlay(RoundedRectangle(cornerRadius: 18).stroke(Theme.cardBorder, lineWidth: 1))
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+        }
+    }
+
+    private func statCell(_ label: String, _ value: String) -> some View {
+        VStack(spacing: 4) {
+            Text(value).font(gm(18, .bold))
+            Text(label).font(pd(10.5)).foregroundStyle(Theme.muted)
+        }
+        .frame(maxWidth: .infinity)
+    }
+    private var cellDivider: some View {
+        Rectangle().fill(Color.white.opacity(0.08)).frame(width: 1, height: 30)
+    }
+    private func timeLabel(_ minutes: Int) -> String {
+        if minutes >= 60 { return String(format: L("%d시간 %d분"), minutes / 60, minutes % 60) }
+        return String(format: L("%d분"), minutes)
     }
 
     // AI 브리핑
