@@ -255,62 +255,25 @@ struct AddRecordView: View {
     }
 }
 
-/// 정비 항목 빠른 선택 칩 (줄바꿈 흐름 배치)
+/// 정비 항목 빠른 선택 칩 (자동 줄바꿈 · 콘텐츠에 맞춰 높이 조절)
 struct FlowChips: View {
     let items: [String]
     var onTap: (String) -> Void
 
     var body: some View {
-        FlexibleGrid(items: items) { item in
-            Button { onTap(item) } label: {
-                Text(item)
-                    .font(pd(12))
-                    .foregroundStyle(Theme.gold)
-                    .padding(.horizontal, 11)
-                    .padding(.vertical, 6)
-                    .background(Theme.gold.opacity(0.12))
-                    .clipShape(Capsule())
-            }
-            .buttonStyle(.plain)
-        }
-    }
-}
-
-/// 간단한 가변 폭 흐름 배치
-struct FlexibleGrid: View {
-    let items: [String]
-    var content: (String) -> AnyView
-
-    init(items: [String], @ViewBuilder content: @escaping (String) -> some View) {
-        self.items = items
-        self.content = { AnyView(content($0)) }
-    }
-
-    var body: some View {
-        var width = CGFloat.zero
-        var height = CGFloat.zero
-        return GeometryReader { geo in
-            ZStack(alignment: .topLeading) {
-                ForEach(items, id: \.self) { item in
-                    content(item)
-                        .padding(.trailing, 6)
-                        .padding(.bottom, 8)
-                        .alignmentGuide(.leading) { d in
-                            if abs(width - d.width) > geo.size.width {
-                                width = 0; height -= d.height
-                            }
-                            let result = width
-                            if item == items.last { width = 0 } else { width -= d.width }
-                            return result
-                        }
-                        .alignmentGuide(.top) { _ in
-                            let result = height
-                            if item == items.last { height = 0 }
-                            return result
-                        }
+        FlowLayout(spacing: 6, lineSpacing: 8) {
+            ForEach(items, id: \.self) { item in
+                Button { onTap(item) } label: {
+                    Text(item)
+                        .font(pd(12))
+                        .foregroundStyle(Theme.gold)
+                        .padding(.horizontal, 11)
+                        .padding(.vertical, 6)
+                        .background(Theme.gold.opacity(0.12))
+                        .clipShape(Capsule())
                 }
+                .buttonStyle(.plain)
             }
         }
-        .frame(height: 140)
     }
 }

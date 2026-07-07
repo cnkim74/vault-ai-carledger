@@ -13,14 +13,16 @@
         }
       }
     },
-    "NSCameraUsageDescription" : {
-      "comment" : "Privacy - Camera Usage Description",
+    "NSBluetoothAlwaysUsageDescription" : {
+      "comment" : "Privacy - Bluetooth Always Usage Description",
       "extractionState" : "extracted_with_value",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "needs_review", "value" : "Uses the camera to scan receipts and charging screens to auto-fill records." } },
-        "ja" : { "stringUnit" : { "state" : "needs_review", "value" : "領収書や充電画面を撮影して記録を自動入力するためにカメラを使用します。" } },
-        "ko" : { "stringUnit" : { "state" : "new", "value" : "영수증·충전 화면을 촬영해 기록을 자동으로 채우기 위해 카메라를 사용합니다." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "needs_review", "value" : "使用相机拍摄收据或充电界面以自动填写记录。" } }
+        "ko" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "OBD 동글과 연결해 차량 데이터를 자동으로 가져오기 위해 블루투스를 사용합니다."
+          }
+        }
       }
     },
     "NSCalendarsFullAccessUsageDescription" : {
@@ -79,6 +81,36 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "读取日历，以便为即将到来的日程地点提供路线导航。"
+          }
+        }
+      }
+    },
+    "NSCameraUsageDescription" : {
+      "comment" : "Privacy - Camera Usage Description",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Uses the camera to scan receipts and charging screens to auto-fill records."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "領収書や充電画面を撮影して記録を自動入力するためにカメラを使用します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "영수증·충전 화면을 촬영해 기록을 자동으로 채우기 위해 카메라를 사용합니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "使用相机拍摄收据或充电界面以自动填写记录。"
           }
         }
       }

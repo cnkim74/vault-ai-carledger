@@ -91,13 +91,14 @@ struct OBDGuideView: View {
     private var dataChips: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("무엇이 채워지나요").font(pd(13, .semibold)).foregroundStyle(Theme.silver)
-            FlexibleGrid(items: ["연료 잔량", "주행거리", "VIN 자동인식", "정비 경고(DTC)", "주행 트립"]) { item in
-                Text(L(item))
-                    .font(pd(12)).foregroundStyle(Theme.gold)
-                    .padding(.horizontal, 11).padding(.vertical, 6)
-                    .background(Theme.gold.opacity(0.12)).clipShape(Capsule())
+            FlowLayout(spacing: 8, lineSpacing: 8) {
+                ForEach(["연료 잔량", "주행거리", "VIN 자동인식", "정비 경고(DTC)", "주행 트립"], id: \.self) { item in
+                    Text(L(item))
+                        .font(pd(12)).foregroundStyle(Theme.gold)
+                        .padding(.horizontal, 11).padding(.vertical, 6)
+                        .background(Theme.gold.opacity(0.12)).clipShape(Capsule())
+                }
             }
-            .frame(height: 80)
         }
     }
 
