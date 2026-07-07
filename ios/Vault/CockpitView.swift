@@ -119,11 +119,15 @@ struct CockpitView: View {
                             }
                         }
                         Spacer()
-                        if let score = weather.carWashScore {
-                            washGauge(score: score, grade: weather.carWashGrade)
+                        if store.vehicle.isBike {
+                            if let score = weather.ridingScore {
+                                scoreGauge(score: score, grade: weather.ridingGrade, label: L("라이딩"))
+                            }
+                        } else if let score = weather.carWashScore {
+                            scoreGauge(score: score, grade: weather.carWashGrade, label: L("세차"))
                         }
                     }
-                    if let advice = weather.carAdvice {
+                    if let advice = store.vehicle.isBike ? weather.ridingAdvice : weather.carAdvice {
                         HStack(spacing: 5) {
                             Image(systemName: "sparkles").font(.system(size: 9)).foregroundStyle(Theme.gold)
                             Text(advice).font(pd(11, .semibold)).foregroundStyle(Theme.gold)
@@ -145,8 +149,8 @@ struct CockpitView: View {
         }
     }
 
-    // 세차지수 게이지 (원형)
-    private func washGauge(score: Int, grade: String) -> some View {
+    // 지수 게이지 (원형) — 세차/라이딩 공용
+    private func scoreGauge(score: Int, grade: String, label: String) -> some View {
         let color: Color = score >= 60 ? Theme.green : (score >= 40 ? Theme.gold : Theme.orange)
         return VStack(spacing: 2) {
             ZStack {
@@ -157,7 +161,7 @@ struct CockpitView: View {
                     .frame(width: 46, height: 46)
                 Text("\(score)").font(gm(14, .bold)).foregroundStyle(color)
             }
-            Text(verbatim: "\(L("세차")) \(grade)").font(pd(9)).foregroundStyle(color)
+            Text(verbatim: "\(label) \(grade)").font(pd(9)).foregroundStyle(color)
         }
     }
 
