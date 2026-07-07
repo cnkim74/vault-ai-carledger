@@ -136,6 +136,18 @@ T = {
     "%d회": ("%d rides", "%d回", "%d次"),
     "%d시간 %d분": ("%dh %dm", "%d時間%d分", "%d小时%d分"),
 
+    # AI 어시스턴트
+    "AI 어시스턴트": ("AI Assistant", "AIアシスタント", "AI 助手"),
+    "무엇이든 물어보세요": ("Ask me anything", "何でも聞いてください", "有问必答"),
+    "생각 중…": ("Thinking…", "考え中…", "思考中…"),
+    "메시지 입력": ("Type a message", "メッセージを入力", "输入消息"),
+    "이번 달 지출 분석해줘": ("Analyze this month's spending", "今月の支出を分析して", "分析本月支出"),
+    "절약 플랜 알려줘": ("Show me a savings plan", "節約プランを教えて", "给我一个省钱方案"),
+    "연비/전비 어때?": ("How's my fuel/energy efficiency?", "燃費/電費はどう？", "油耗/电耗如何？"),
+    "다음 정비는 언제야?": ("When's my next service?", "次の整備はいつ？", "下次保养什么时候？"),
+    "이번 지출을 분석해서 절약 플랜을 알려줘": ("Analyze my spending and suggest a savings plan", "支出を分析して節約プランを提案して", "分析我的支出并给出省钱方案"),
+    "답변을 가져오지 못했어요. 잠시 후 다시 시도해 주세요.": ("Couldn't get an answer. Please try again shortly.", "回答を取得できませんでした。しばらくして再試行してください。", "无法获取回答，请稍后再试。"),
+
     # 정비 체크리스트
     "정비 체크리스트": ("Service checklist", "整備チェックリスト", "保养清单"),
     "주기 %@km": ("Every %@km", "%@kmごと", "每 %@km"),

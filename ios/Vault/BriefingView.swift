@@ -5,6 +5,8 @@ struct BriefingView: View {
     @ObservedObject var store: VaultStore
     @ObservedObject var insight: InsightService
     @State private var showChecklist = false
+    @State private var showAssistant = false
+    @State private var assistantPrompt: String?
 
     private var shortName: String {
         store.vehicle.name.split(separator: " ").prefix(2).joined(separator: " ")
@@ -37,6 +39,7 @@ struct BriefingView: View {
         .background(Theme.bgTop.ignoresSafeArea())
         .foregroundStyle(Theme.text)
         .sheet(isPresented: $showChecklist) { MaintenanceChecklistView(store: store) }
+        .sheet(isPresented: $showAssistant) { AIAssistantView(store: store, initialPrompt: assistantPrompt) }
     }
 
     // 헤더
@@ -170,8 +173,16 @@ struct BriefingView: View {
                 )
 
                 HStack(spacing: 6) {
-                    chip("절약 플랜 보기", color: Theme.gold, border: Theme.gold.opacity(0.4))
-                    chip("자세히 물어보기", color: Theme.silver, border: Color.white.opacity(0.12))
+                    Button {
+                        assistantPrompt = L("이번 지출을 분석해서 절약 플랜을 알려줘")
+                        showAssistant = true
+                    } label: { chip("절약 플랜 보기", color: Theme.gold, border: Theme.gold.opacity(0.4)) }
+                    .buttonStyle(.plain)
+                    Button {
+                        assistantPrompt = nil
+                        showAssistant = true
+                    } label: { chip("자세히 물어보기", color: Theme.silver, border: Color.white.opacity(0.12)) }
+                    .buttonStyle(.plain)
                 }
             }
             Spacer(minLength: 0)
@@ -426,25 +437,31 @@ struct BriefingView: View {
         }
     }
 
-    // AI 입력 바
+    // AI 입력 바 → 어시스턴트 열기
     private var aiInputBar: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Theme.gold)
-            Text("이번 달 충전비 얼마 썼어?")
-                .font(pd(12.5))
-                .foregroundStyle(Theme.muted)
-            Spacer()
-            Image(systemName: "arrow.up")
-                .font(.system(size: 14))
-                .foregroundStyle(Theme.silver)
+        Button {
+            assistantPrompt = nil
+            showAssistant = true
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Theme.gold)
+                Text("무엇이든 물어보세요")
+                    .font(pd(12.5))
+                    .foregroundStyle(Theme.muted)
+                Spacer()
+                Image(systemName: "arrow.up")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Theme.silver)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 13)
+            .background(Theme.cardAlt)
+            .clipShape(Capsule())
+            .overlay(Capsule().stroke(Theme.gold.opacity(0.3), lineWidth: 1))
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 13)
-        .background(Theme.cardAlt)
-        .clipShape(Capsule())
-        .overlay(Capsule().stroke(Theme.gold.opacity(0.3), lineWidth: 1))
+        .buttonStyle(.plain)
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
     }
