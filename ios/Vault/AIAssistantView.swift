@@ -14,7 +14,9 @@ struct AIAssistantView: View {
     @State private var started = false
     @StateObject private var speech = SpeechRecognizer()
     @StateObject private var chats = ChatStore()
+    @StateObject private var speaker = Speaker()
     @State private var currentID = UUID()
+    @State private var convTitle: String?
     @State private var showHistory = false
 
     private let suggestions = ["이번 달 지출 분석해줘", "절약 플랜 알려줘", "연비/전비 어때?", "다음 정비는 언제야?"]
@@ -65,6 +67,7 @@ struct AIAssistantView: View {
             if let p = initialPrompt { await send(p) }
         }
         .onChange(of: speech.transcript) { _, t in if speech.isRecording { input = t } }
+        .onDisappear { speaker.stop(); speech.stop() }
         .sheet(isPresented: $showHistory) {
             ChatHistoryView(chats: chats) { conv in
                 loadConversation(conv)
@@ -74,19 +77,29 @@ struct AIAssistantView: View {
     }
 
     private func newConversation() {
-        speech.stop()
-        messages = []; input = ""; currentID = UUID()
+        speech.stop(); speaker.stop()
+        messages = []; input = ""; currentID = UUID(); convTitle = nil
     }
     private func loadConversation(_ conv: Conversation) {
-        speech.stop()
-        currentID = conv.id
+        speech.stop(); speaker.stop()
+        currentID = conv.id; convTitle = conv.title
         messages = conv.messages.map { Msg(role: $0.role, text: $0.text) }
     }
     private func saveCurrent() {
         guard !messages.isEmpty else { return }
-        let title = messages.first(where: { $0.role == "user" })?.text ?? L("대화")
-        chats.upsert(id: currentID, title: String(title.prefix(40)),
+        let fallback = messages.first(where: { $0.role == "user" })?.text ?? L("대화")
+        let title = convTitle ?? String(fallback.prefix(40))
+        chats.upsert(id: currentID, title: title,
                      messages: messages.map { StoredMsg(role: $0.role, text: $0.text) })
+    }
+
+    /// 첫 문답을 6단어 이내 제목으로 요약
+    private static func summarizeTitle(_ q: String, _ a: String) async -> String? {
+        let sys = "다음 대화를 6단어 이내의 아주 짧은 제목으로 요약한다. 따옴표·마침표 없이 제목만 출력한다."
+        let t = await AIProxy.complete(system: sys, user: "질문: \(q)\n답변: \(a)", maxTokens: 30)
+        let clean = t?.trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "\"", with: "")
+        return (clean?.isEmpty == false) ? clean : nil
     }
 
     private var emptyState: some View {
@@ -107,16 +120,31 @@ struct AIAssistantView: View {
     }
 
     private func bubble(_ m: Msg) -> some View {
-        HStack {
+        HStack(alignment: .top) {
             if m.role == "user" { Spacer(minLength: 40) }
-            Text(m.text)
-                .font(pd(13))
-                .foregroundStyle(m.role == "user" ? Theme.ink : Theme.text)
-                .padding(EdgeInsets(top: 10, leading: 13, bottom: 10, trailing: 13))
-                .background(m.role == "user" ? AnyShapeStyle(Theme.goldGradient) : AnyShapeStyle(Theme.card))
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-                .overlay(RoundedRectangle(cornerRadius: 14)
-                    .stroke(m.role == "user" ? Color.clear : Theme.cardBorder, lineWidth: 1))
+            VStack(alignment: m.role == "user" ? .trailing : .leading, spacing: 4) {
+                Text(m.text)
+                    .font(pd(13))
+                    .foregroundStyle(m.role == "user" ? Theme.ink : Theme.text)
+                    .padding(EdgeInsets(top: 10, leading: 13, bottom: 10, trailing: 13))
+                    .background(m.role == "user" ? AnyShapeStyle(Theme.goldGradient) : AnyShapeStyle(Theme.card))
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .overlay(RoundedRectangle(cornerRadius: 14)
+                        .stroke(m.role == "user" ? Color.clear : Theme.cardBorder, lineWidth: 1))
+                // AI 답변: 음성 읽어주기
+                if m.role != "user" {
+                    Button { speaker.toggle(m.id, text: m.text) } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: speaker.speakingID == m.id ? "stop.fill" : "speaker.wave.2.fill")
+                                .font(.system(size: 10))
+                            Text(speaker.speakingID == m.id ? "정지" : "듣기").font(pd(10))
+                        }
+                        .foregroundStyle(speaker.speakingID == m.id ? Theme.gold : Theme.muted)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.leading, 4)
+                }
+            }
             if m.role != "user" { Spacer(minLength: 40) }
         }
         .id(m.id)
@@ -176,8 +204,13 @@ struct AIAssistantView: View {
         // 대화 이력을 하나의 사용자 메시지로 (다중 턴 맥락 유지)
         let convo = messages.map { ($0.role == "user" ? "Q: " : "A: ") + $0.text }.joined(separator: "\n")
         let answer = await AIProxy.complete(system: Self.systemPrompt(store: store), user: convo, maxTokens: 600)
-        messages.append(Msg(role: "ai", text: answer ?? L("답변을 가져오지 못했어요. 잠시 후 다시 시도해 주세요.")))
-        saveCurrent()   // 대화 저장/갱신
+        let reply = answer ?? L("답변을 가져오지 못했어요. 잠시 후 다시 시도해 주세요.")
+        messages.append(Msg(role: "ai", text: reply))
+        // 첫 문답이면 제목 자동 요약
+        if convTitle == nil, answer != nil, messages.count == 2 {
+            convTitle = await Self.summarizeTitle(q, reply)
+        }
+        saveCurrent()   // 로컬 + Supabase 저장
     }
 
     private static func systemPrompt(store: VaultStore) -> String {
