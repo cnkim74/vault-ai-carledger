@@ -123,7 +123,7 @@ struct AddRecordView: View {
                 // 정비: 차량 종류에 맞는 예상 정비 항목 빠른 선택
                 if kind == .maintenance {
                     Section("예상 정비 항목") {
-                        FlowChips(items: MaintenancePresets.items(ev: isEV).map { L($0) }) { item in
+                        FlowChips(items: MaintenancePresets.items(category: store.vehicle.vehicleCategory, ev: isEV).map { L($0) }) { item in
                             title = item
                         }
                     }

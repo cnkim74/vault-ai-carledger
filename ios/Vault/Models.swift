@@ -13,14 +13,44 @@ enum RecordKind: String, Codable {
     }
 }
 
-/// 연료 종류별 예상 정비 항목 (기록 추가 시 빠른 선택)
+/// 차종 (자동차 / 바이크 / 스쿠터) — 정비 항목·아이콘·지수 전환의 기반
+enum VehicleCategory: String, CaseIterable {
+    case car, motorcycle, scooter
+    var label: String {
+        switch self {
+        case .car: return L("자동차")
+        case .motorcycle: return L("바이크")
+        case .scooter: return L("스쿠터")
+        }
+    }
+    var icon: String {
+        switch self {
+        case .car: return "car.fill"
+        case .motorcycle: return "motorcycle"
+        case .scooter: return "scooter"
+        }
+    }
+    var isBike: Bool { self != .car }
+}
+
+/// 차종·연료별 예상 정비 항목 (기록 추가 시 빠른 선택)
 enum MaintenancePresets {
-    static func items(ev: Bool) -> [String] {
-        ev
-            ? ["타이어 위치교환", "타이어 교체", "브레이크 패드", "냉각수 점검",
-               "에어컨 필터", "와이퍼", "하부 세차", "실내필터", "타이어 공기압", "정기 점검"]
-            : ["엔진오일", "오일필터", "에어클리너", "점화플러그", "미션오일",
-               "브레이크 패드", "타이어 교체", "부동액", "연료필터", "와이퍼", "배터리", "정기 점검"]
+    static func items(category: VehicleCategory, ev: Bool) -> [String] {
+        switch category {
+        case .motorcycle:
+            return ["엔진오일", "오일필터", "체인 청소", "체인 급유", "체인 조정", "체인 교체",
+                    "스프라켓", "앞 타이어", "뒤 타이어", "브레이크 패드", "브레이크 오일",
+                    "에어필터", "스파크플러그", "밸브 간극", "배터리", "냉각수"]
+        case .scooter:
+            return ["엔진오일", "기어오일", "구동벨트", "구동롤러", "앞 타이어", "뒤 타이어",
+                    "브레이크 패드", "에어필터", "스파크플러그", "배터리", "냉각수"]
+        case .car:
+            return ev
+                ? ["타이어 위치교환", "타이어 교체", "브레이크 패드", "냉각수 점검",
+                   "에어컨 필터", "와이퍼", "하부 세차", "실내필터", "타이어 공기압", "정기 점검"]
+                : ["엔진오일", "오일필터", "에어클리너", "점화플러그", "미션오일",
+                   "브레이크 패드", "타이어 교체", "부동액", "연료필터", "와이퍼", "배터리", "정기 점검"]
+        }
     }
 }
 
@@ -77,9 +107,10 @@ struct Vehicle: Codable, Identifiable {
     var monthlyFeeWon: Int?
     var contractStart: String?
     var contractEnd: String?
+    var category: String?       // 차종: car / motorcycle / scooter (기본 car)
 
     enum CodingKeys: String, CodingKey {
-        case id, name, plate, battery, ownership, maker, model, year
+        case id, name, plate, battery, ownership, maker, model, year, category
         case fuelType = "fuel_type"
         case odometerKm = "odometer_km"
         case odometerStartKm = "odometer_start_km"
@@ -90,6 +121,10 @@ struct Vehicle: Codable, Identifiable {
         case contractStart = "contract_start"
         case contractEnd = "contract_end"
     }
+
+    /// 차종 (기본 car)
+    var vehicleCategory: VehicleCategory { VehicleCategory(rawValue: category ?? "car") ?? .car }
+    var isBike: Bool { vehicleCategory.isBike }
 
     /// 디자인 로직과 동일: rangeKm = battery × 5.03
     var rangeKm: Int { Int((Double(battery) * 5.03).rounded()) }

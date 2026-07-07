@@ -26,6 +26,7 @@ struct VehicleEditView: View {
     @State private var year: String
     @State private var odometer: String
     @State private var ownership: Ownership
+    @State private var category: VehicleCategory
     @State private var purchasePrice: String
     @State private var monthlyFee: String
     @State private var leaseLimit: String
@@ -51,6 +52,7 @@ struct VehicleEditView: View {
             _year = State(initialValue: "")
             _odometer = State(initialValue: "0")
             _ownership = State(initialValue: .purchase)
+            _category = State(initialValue: .car)
             _purchasePrice = State(initialValue: "")
             _monthlyFee = State(initialValue: "")
             _leaseLimit = State(initialValue: "")
@@ -75,6 +77,7 @@ struct VehicleEditView: View {
         _year = State(initialValue: v.year.map(String.init) ?? "")
         _odometer = State(initialValue: String(v.odometerKm))
         _ownership = State(initialValue: v.ownership)
+        _category = State(initialValue: v.vehicleCategory)
         _purchasePrice = State(initialValue: v.purchasePriceWon.map(String.init) ?? "")
         _monthlyFee = State(initialValue: v.monthlyFeeWon.map(String.init) ?? "")
         _leaseLimit = State(initialValue: v.leaseLimitKm.map(String.init) ?? "")
@@ -133,6 +136,10 @@ struct VehicleEditView: View {
                 }
 
                 Section("등록 정보") {
+                    Picker("차종", selection: $category) {
+                        ForEach(VehicleCategory.allCases, id: \.self) { Text($0.label).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
                     TextField("차량 번호 (예: 62가 3817)", text: $plate)
                     Picker("연료", selection: $fuel) {
                         ForEach(FuelType.allCases, id: \.rawValue) { Text($0.rawValue).tag($0.rawValue) }
@@ -254,6 +261,7 @@ struct VehicleEditView: View {
         upsert.name = name.isEmpty ? (mode == .create ? "내 차" : store.vehicle.name) : name
         upsert.plate = plate.isEmpty ? nil : plate
         upsert.fuel_type = fuel
+        upsert.category = category.rawValue
         upsert.odometer_km = Int(odometer)
         upsert.ownership = ownership.rawValue
         upsert.maker = useCustomName ? nil : maker

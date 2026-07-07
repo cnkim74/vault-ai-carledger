@@ -229,6 +229,7 @@ final class VaultStore: ObservableObject {
         var monthly_fee_won: Int?
         var contract_start: String?
         var contract_end: String?
+        var category: String?
     }
 
     /// 새 차량을 등록하고 그 차량을 선택한다.

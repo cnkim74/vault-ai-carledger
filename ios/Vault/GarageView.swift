@@ -212,7 +212,7 @@ struct GarageView: View {
             store.select(veh.id)
         } label: {
             HStack(spacing: 6) {
-                Image(systemName: "car.fill")
+                Image(systemName: veh.vehicleCategory.icon)
                     .font(.system(size: 11))
                 VStack(alignment: .leading, spacing: 1) {
                     Text(veh.name)
