@@ -1,6 +1,16 @@
 {
   "sourceLanguage" : "ko",
   "strings" : {
+    "CFBundleDisplayName" : {
+      "comment" : "App display name",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Wheelet" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "Wheelet" } },
+        "ko" : { "stringUnit" : { "state" : "translated", "value" : "휠렛" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Wheelet" } }
+      }
+    },
     "CFBundleName" : {
       "comment" : "Bundle name",
       "extractionState" : "extracted_with_value",

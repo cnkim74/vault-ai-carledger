@@ -177,9 +177,9 @@ struct CockpitView: View {
     private var header: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text("VAULT")
+                Text("Wheelet")
                     .font(pd(22, .black))
-                    .kerning(1)
+                    .kerning(0.5)
                     .foregroundStyle(Theme.goldGradient)
                 Text("\(greeting), \(profile.greetingName)")
                     .font(pd(11))

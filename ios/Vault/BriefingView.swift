@@ -39,7 +39,7 @@ struct BriefingView: View {
     // 헤더
     private var header: some View {
         HStack {
-            (Text("VAULT") + Text(".").foregroundStyle(Theme.gold))
+            (Text("Wheelet") + Text(".").foregroundStyle(Theme.gold))
                 .font(pd(20, .black))
                 .kerning(1)
             Spacer()

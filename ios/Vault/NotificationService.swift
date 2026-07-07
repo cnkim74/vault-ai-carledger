@@ -80,7 +80,7 @@ final class NotificationService: ObservableObject {
 
     private func add(_ c: UNUserNotificationCenter, id: String, body: String, trigger: UNNotificationTrigger) {
         let content = UNMutableNotificationContent()
-        content.title = "VAULT"
+        content.title = "Wheelet"
         content.body = body
         content.sound = .default
         c.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
