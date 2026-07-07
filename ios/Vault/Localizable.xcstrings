@@ -3081,6 +3081,28 @@
         }
       }
     },
+    "단골 센터에서 선택": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pick from my centers"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "行きつけの店から選択"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从常用中心选择"
+          }
+        }
+      }
+    },
     "차종": {
       "localizations": {
         "en": {

@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreLocation
 
 /// 단골 센터(정비소·카센터·서비스센터 등) 관리 — 전화·길찾기(구글/티맵/카카오).
 struct ServicePlacesView: View {
@@ -45,7 +46,7 @@ struct ServicePlacesView: View {
             ForEach(MapApp.allCases) { app in
                 Button(app.label) {
                     if let p = navTarget {
-                        PlaceLauncher.search(p.address?.isEmpty == false ? p.address! : p.name, app: app)
+                        PlaceLauncher.route(name: p.name, address: p.address, lat: p.latitude, lng: p.longitude, app: app)
                     }
                     navTarget = nil
                 }
@@ -185,17 +186,30 @@ struct PlaceEditSheet: View {
 
     private func save() async {
         saving = true; defer { saving = false }
-        let up = VaultStore.PlaceUpsert(
+        var up = VaultStore.PlaceUpsert(
             name: name, category: category.rawValue,
             address: address.isEmpty ? nil : address,
             phone: phone.isEmpty ? nil : phone,
             memo: memo.isEmpty ? nil : memo
         )
+        // 주소 → 좌표 지오코딩 (실패해도 저장은 진행, 길찾기는 주소 검색으로 폴백)
+        if !address.isEmpty, address != editing?.address, let c = await geocode(address) {
+            up.latitude = c.latitude
+            up.longitude = c.longitude
+        } else if address == editing?.address {
+            up.latitude = editing?.latitude
+            up.longitude = editing?.longitude
+        }
         do {
             if let editing { try await store.updatePlace(id: editing.id, up) }
             else { try await store.addPlace(up) }
             dismiss()
         } catch { /* 무시: 상단 재시도 */ }
+    }
+
+    private func geocode(_ address: String) async -> CLLocationCoordinate2D? {
+        let placemarks = try? await CLGeocoder().geocodeAddressString(address)
+        return placemarks?.first?.location?.coordinate
     }
 
     private func remove() async {

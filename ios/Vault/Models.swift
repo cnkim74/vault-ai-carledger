@@ -370,11 +370,14 @@ struct ServicePlace: Codable, Identifiable {
     var address: String?
     var phone: String?
     var memo: String?
+    var latitude: Double?
+    var longitude: Double?
 
     var placeCategory: PlaceCategory { PlaceCategory(rawValue: category) ?? .garage }
+    var hasCoordinate: Bool { latitude != nil && longitude != nil }
 
     enum CodingKeys: String, CodingKey {
-        case id, name, category, address, phone, memo
+        case id, name, category, address, phone, memo, latitude, longitude
     }
 }
 

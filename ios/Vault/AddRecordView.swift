@@ -118,6 +118,25 @@ struct AddRecordView: View {
                         TextField("금액 (원)", text: $amount).keyboardType(.numberPad)
                         TextField("정비소 (예: 테슬라 서비스센터)", text: $location)
                     }
+
+                    // 단골 센터에서 장소 자동 입력 (충전/주유/정비)
+                    if kind != .drive && !store.places.isEmpty {
+                        Menu {
+                            ForEach(store.places) { p in
+                                Button {
+                                    location = p.name
+                                } label: { Label(p.name, systemImage: p.placeCategory.icon) }
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "mappin.and.ellipse").font(.system(size: 12))
+                                Text("단골 센터에서 선택").font(pd(13))
+                                Spacer()
+                                Image(systemName: "chevron.up.chevron.down").font(.system(size: 10))
+                            }
+                            .foregroundStyle(Theme.gold)
+                        }
+                    }
                 }
 
                 // 정비: 차량 종류에 맞는 예상 정비 항목 빠른 선택

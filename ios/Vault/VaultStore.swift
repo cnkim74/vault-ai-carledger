@@ -204,6 +204,8 @@ final class VaultStore: ObservableObject {
         var address: String?
         var phone: String?
         var memo: String?
+        var latitude: Double?
+        var longitude: Double?
     }
 
     func loadPlaces() async {

@@ -69,6 +69,26 @@ enum MapApp: String, CaseIterable, Identifiable {
 
 /// 주소/장소명 기반 검색·전화
 enum PlaceLauncher {
+    /// 좌표가 있으면 정확한 좌표로 길찾기, 없으면 주소/이름으로 검색.
+    @MainActor
+    static func route(name: String, address: String?, lat: Double?, lng: Double?, app: MapApp) {
+        guard let lat, let lng else {
+            search((address?.isEmpty == false ? address! : name), app: app)
+            return
+        }
+        let enc = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let scheme: String
+        switch app {
+        case .tmap:  scheme = "tmap://route?goalname=\(enc)&goalx=\(lng)&goaly=\(lat)"
+        case .kakao: scheme = "kakaomap://route?ep=\(lat),\(lng)&by=CAR"
+        case .google: scheme = "https://www.google.com/maps/dir/?api=1&destination=\(lat),\(lng)"
+        }
+        guard let url = URL(string: scheme) else { return }
+        UIApplication.shared.open(url, options: [:]) { ok in
+            if !ok, app != .google { UIApplication.shared.open(app.appStore) }
+        }
+    }
+
     /// 주소(또는 장소명)로 지도 앱에서 검색. 구글맵은 https로 열려 미설치 시 웹으로 폴백.
     @MainActor
     static func search(_ query: String, app: MapApp) {
