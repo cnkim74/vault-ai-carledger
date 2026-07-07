@@ -18,7 +18,7 @@ struct ContentView: View {
                 case .home: CockpitView(store: store, insight: insight, profile: profile,
                                         onEditProfile: { showProfile = true })
                 case .records: RecordsListView(store: store)
-                case .stats: BriefingView(store: store)
+                case .stats: BriefingView(store: store, insight: insight)
                 case .garage: GarageView(store: store)
                 }
             }

@@ -218,27 +218,27 @@ struct CockpitView: View {
             .clipShape(Circle())
     }
 
-    // 상태 배지: 테슬라 연결 시 실시간(운행/주차/충전), 아니면 중립 표시
+    // 상태 배지: 실시간 데이터(테슬라 연결+동기화)가 있을 때만 표시.
+    // 데이터 소스가 없으면(미연결) 오해를 주지 않도록 숨긴다.
     @ViewBuilder
     private var statusBadge: some View {
-        let live = teslaConnected ? store.liveStatus : nil
-        let color: Color = {
-            switch live {
-            case .driving: return Theme.green
-            case .charging: return Theme.orange
-            default: return Theme.gold
-            }
-        }()
-        HStack(spacing: 4) {
-            if let live {
+        if teslaConnected, let live = store.liveStatus {
+            let color: Color = {
+                switch live {
+                case .driving: return Theme.green
+                case .charging: return Theme.orange
+                case .parked: return Theme.gold
+                }
+            }()
+            HStack(spacing: 4) {
                 Image(systemName: live.icon).font(.system(size: 9))
+                Text(live.label).font(pd(10.5))
             }
-            Text(live?.label ?? L("주차 중")).font(pd(10.5))
+            .foregroundStyle(color)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 3)
+            .overlay(Capsule().stroke(color.opacity(0.4), lineWidth: 1))
         }
-        .foregroundStyle(color)
-        .padding(.horizontal, 9)
-        .padding(.vertical, 3)
-        .overlay(Capsule().stroke(color.opacity(0.4), lineWidth: 1))
     }
 
     // 차량 히어로

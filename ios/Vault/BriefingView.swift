@@ -3,9 +3,20 @@ import SwiftUI
 /// 1b 브리핑형 — AI 브리핑 + 지출 중심 레저
 struct BriefingView: View {
     @ObservedObject var store: VaultStore
+    @ObservedObject var insight: InsightService
 
     private var shortName: String {
         store.vehicle.name.split(separator: " ").prefix(2).joined(separator: " ")
+    }
+
+    /// 실제 데이터 기반 브리핑 문구. AI 인사이트 우선, 없으면 실데이터 요약, 그것도 없으면 안내.
+    private var briefingText: String {
+        if let tip = insight.tip, !tip.isEmpty { return tip }
+        var parts: [String] = []
+        if let s = store.monthlySpend { parts.append(String(format: L("이번 달 지출 %@"), won(s.total))) }
+        if let p = store.vehicle.leaseProjection() { parts.append(String(format: L("적정 대비 %d%%"), p.paceRatioPct)) }
+        if !store.records.isEmpty { parts.append(String(format: L("기록 %d건"), store.records.count)) }
+        return parts.isEmpty ? L("기록을 추가하면 맞춤 브리핑을 보여드려요.") : parts.joined(separator: " · ")
     }
 
     var body: some View {
@@ -61,13 +72,7 @@ struct BriefingView: View {
                 )
                 .shadow(color: Theme.gold.opacity(0.3), radius: 7, y: 4)
             VStack(alignment: .leading, spacing: 6) {
-                (
-                    Text("오늘 아침 브리핑이에요. 어제 ")
-                    + Text("판교 왕복 76km").bold().foregroundStyle(Theme.gold)
-                    + Text("를 자동 기록했고, 약정거리 소진 속도가 빨라요. 이대로면 ")
-                    + Text("11월 말 초과").bold().foregroundStyle(Theme.orange)
-                    + Text("가 예상돼요.")
-                )
+                Text(briefingText)
                 .font(pd(13))
                 .lineSpacing(4)
                 .foregroundStyle(Theme.textStrong)
