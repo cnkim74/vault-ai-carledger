@@ -47,6 +47,7 @@ struct CockpitView: View {
         .foregroundStyle(Theme.text)
         .task(id: store.vehicle.id) {
             await prediction.predict(vehicle: store.vehicle, records: store.records, placeName: weather.city)
+            await insight.generate(vehicle: store.vehicle, records: store.records)
         }
         .photosPicker(isPresented: $showPicker, selection: $photoItem, matching: .images)
         .onChange(of: photoItem) { _, item in
@@ -256,8 +257,28 @@ struct CockpitView: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(store.vehicle.name)
-                        .font(gm(17, .medium))
+                    if store.vehicles.count > 1 {
+                        // 여러 대면 원탭 전환 메뉴 (차↔바이크 즉시 전환)
+                        Menu {
+                            ForEach(store.vehicles) { v in
+                                Button {
+                                    store.select(v.id)
+                                } label: {
+                                    Label(v.name, systemImage: v.vehicleCategory.icon)
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: store.vehicle.vehicleCategory.icon)
+                                    .font(.system(size: 13)).foregroundStyle(Theme.gold)
+                                Text(store.vehicle.name).font(gm(17, .medium)).foregroundStyle(Theme.text)
+                                Image(systemName: "chevron.down").font(.system(size: 10)).foregroundStyle(Theme.muted)
+                            }
+                        }
+                    } else {
+                        Text(store.vehicle.name)
+                            .font(gm(17, .medium))
+                    }
                     Text("\(store.vehicle.plate ?? "") · \(L(store.vehicle.fuelType))")
                         .font(pd(11))
                         .kerning(0.5)
