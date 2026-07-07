@@ -4,6 +4,7 @@ import SwiftUI
 struct BriefingView: View {
     @ObservedObject var store: VaultStore
     @ObservedObject var insight: InsightService
+    @State private var showChecklist = false
 
     private var shortName: String {
         store.vehicle.name.split(separator: " ").prefix(2).joined(separator: " ")
@@ -26,6 +27,7 @@ struct BriefingView: View {
                 briefing
                 spendCard
                 ridingStatsCard
+                maintenanceEntry
                 leaseCard
                 timeline
                 aiInputBar
@@ -34,6 +36,7 @@ struct BriefingView: View {
         }
         .background(Theme.bgTop.ignoresSafeArea())
         .foregroundStyle(Theme.text)
+        .sheet(isPresented: $showChecklist) { MaintenanceChecklistView(store: store) }
     }
 
     // 헤더
@@ -58,6 +61,37 @@ struct BriefingView: View {
         .padding(.horizontal, 20)
         .padding(.top, 8)
         .padding(.bottom, 4)
+    }
+
+    // 정비 체크리스트 진입 (임박/초과 건수 요약)
+    private var maintenanceEntry: some View {
+        let checks = MaintenanceSchedule.checklist(vehicle: store.vehicle, records: store.records)
+        let alert = checks.filter { $0.isOverdue || $0.isSoon }.count
+        return Button { showChecklist = true } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "checklist").font(.system(size: 15)).foregroundStyle(Theme.gold)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("정비 체크리스트").font(pd(13.5, .semibold))
+                    Text(store.vehicle.vehicleCategory.label + " · " + String(format: L("점검 항목 %d개"), checks.count))
+                        .font(pd(10.5)).foregroundStyle(Theme.muted)
+                }
+                Spacer()
+                if alert > 0 {
+                    Text(String(format: L("%d건 임박"), alert))
+                        .font(pd(10.5, .bold)).foregroundStyle(Theme.ink)
+                        .padding(.horizontal, 8).padding(.vertical, 3)
+                        .background(Theme.orange).clipShape(Capsule())
+                }
+                Image(systemName: "chevron.right").font(.system(size: 12)).foregroundStyle(Theme.muted)
+            }
+            .padding(EdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16))
+            .background(Theme.card)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.cardBorder, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 16)
+        .padding(.top, 12)
     }
 
     // 이번 달 주행/라이딩 통계 (drive 기록 집계)

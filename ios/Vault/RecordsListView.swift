@@ -4,14 +4,27 @@ import SwiftUI
 struct RecordsListView: View {
     @ObservedObject var store: VaultStore
     @State private var editingRecord: VaultRecord?
+    @State private var showChecklist = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("기록")
-                .font(pd(22, .black))
-                .kerning(1)
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
+            HStack(alignment: .firstTextBaseline) {
+                Text("기록")
+                    .font(pd(22, .black))
+                    .kerning(1)
+                Spacer()
+                Button { showChecklist = true } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "checklist").font(.system(size: 11))
+                        Text("정비 체크리스트").font(pd(12, .semibold))
+                    }
+                    .foregroundStyle(Theme.gold)
+                    .padding(.horizontal, 11).padding(.vertical, 6)
+                    .overlay(Capsule().stroke(Theme.gold.opacity(0.4), lineWidth: 1))
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
 
             if store.records.isEmpty {
                 Spacer()
@@ -44,6 +57,9 @@ struct RecordsListView: View {
         .foregroundStyle(Theme.text)
         .sheet(item: $editingRecord) { rec in
             AddRecordView(store: store, editing: rec)
+        }
+        .sheet(isPresented: $showChecklist) {
+            MaintenanceChecklistView(store: store)
         }
     }
 

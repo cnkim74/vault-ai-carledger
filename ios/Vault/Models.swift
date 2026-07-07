@@ -283,6 +283,17 @@ struct MaintenanceDue: Identifiable {
     var isOverdue: Bool { remainingKm < 0 }
 }
 
+/// 정비 체크리스트 항목 (기록 없는 항목 포함)
+struct MaintenanceCheck: Identifiable {
+    let id = UUID()
+    let item: String
+    let intervalKm: Int
+    let lastKm: Int?        // nil = 정비 기록 없음
+    let remainingKm: Int?   // nil = 기록 없음
+    var isOverdue: Bool { (remainingKm ?? .max) < 0 }
+    var isSoon: Bool { if let r = remainingKm { return r >= 0 && r <= 1000 }; return false }
+}
+
 /// 차종별 정비 주기(km) + 기록 기반 다음 정비 계산
 enum MaintenanceSchedule {
     /// (항목, 주기 km) — 차종·연료별 기본값
@@ -300,6 +311,31 @@ enum MaintenanceSchedule {
                 ? [("타이어 위치교환", 10000), ("타이어 교체", 50000), ("브레이크 패드", 40000), ("에어컨 필터", 15000)]
                 : [("엔진오일", 10000), ("오일필터", 10000), ("에어클리너", 20000),
                    ("타이어 위치교환", 10000), ("브레이크 패드", 30000), ("점화플러그", 40000)]
+        }
+    }
+
+    /// 전체 점검 체크리스트 — 기록 없는 항목도 포함(상태 표시용). 임박/초과 우선 정렬.
+    static func checklist(vehicle: Vehicle, records: [VaultRecord]) -> [MaintenanceCheck] {
+        let odo = vehicle.odometerKm
+        var out: [MaintenanceCheck] = []
+        for (item, interval) in intervals(category: vehicle.vehicleCategory, ev: !vehicle.usesFuel) {
+            let last = records
+                .filter { $0.kind == .maintenance && $0.odometerKm != nil && $0.title.contains(item) }
+                .max(by: { $0.occurredAt < $1.occurredAt })
+            if let lastKm = last?.odometerKm {
+                out.append(.init(item: item, intervalKm: interval, lastKm: lastKm, remainingKm: lastKm + interval - odo))
+            } else {
+                out.append(.init(item: item, intervalKm: interval, lastKm: nil, remainingKm: nil))
+            }
+        }
+        // 정렬: 초과 → 임박 → 기록있음(남은거리 오름) → 기록없음
+        return out.sorted { a, b in
+            switch (a.remainingKm, b.remainingKm) {
+            case let (ra?, rb?): return ra < rb
+            case (_?, nil): return true
+            case (nil, _?): return false
+            default: return false
+            }
         }
     }
 

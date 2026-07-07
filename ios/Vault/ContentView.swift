@@ -6,17 +6,19 @@ struct ContentView: View {
     @StateObject private var store = VaultStore()
     @StateObject private var insight = InsightService()
     @StateObject private var profile = ProfileStore()
+    @StateObject private var premium = PremiumStore()
     @State private var tab: MainTab =
         MainTab(rawValue: ProcessInfo.processInfo.environment["TAB"] ?? "") ?? .home
     @State private var showAddRecord = false
     @State private var showProfile = false
+    @State private var showAccount = false
 
     var body: some View {
         VStack(spacing: 0) {
             Group {
                 switch tab {
                 case .home: CockpitView(store: store, insight: insight, profile: profile,
-                                        onEditProfile: { showProfile = true },
+                                        onEditProfile: { showAccount = true },
                                         onShowRecords: { tab = .records })
                 case .records: RecordsListView(store: store)
                 case .stats: BriefingView(store: store, insight: insight)
@@ -33,6 +35,9 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showProfile) {
             ProfileSheet(profile: profile)
+        }
+        .sheet(isPresented: $showAccount) {
+            AccountView(profile: profile, premium: premium)
         }
         .task {
             await store.load()
