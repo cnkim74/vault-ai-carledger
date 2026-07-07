@@ -6,8 +6,10 @@ struct GarageView: View {
     @ObservedObject var store: VaultStore
     @StateObject private var tesla = TeslaService()
     @StateObject private var premium = PremiumStore()
+    @StateObject private var resale = ResaleService()
     @State private var showOBDGuide = false
     @State private var showPlaces = false
+    @State private var showPaywall = false
     @State private var carImage: UIImage?
     @State private var showPhotoDialog = false
     @State private var showPicker = false
@@ -61,6 +63,10 @@ struct GarageView: View {
                     .padding(.top, 14)
 
                 infoSection
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+
+                resaleCard
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
 
@@ -127,6 +133,73 @@ struct GarageView: View {
             VehicleEditView(store: store, mode: .create)
         }
         .onAppear { carImage = CarImageStore.load(for: v.id) }
+    }
+
+    // 중고 시세 (프리미엄 · AI 추정)
+    private var resaleCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: "wonsign.circle.fill").font(.system(size: 13)).foregroundStyle(Theme.gold)
+                Text("중고 시세").font(pd(13, .semibold))
+                Spacer()
+                if !premium.isPremium {
+                    Image(systemName: "crown.fill").font(.system(size: 12)).foregroundStyle(Theme.gold)
+                }
+            }
+
+            if !premium.isPremium {
+                Button { showPaywall = true } label: {
+                    Text("프리미엄으로 AI 추정 시세 확인")
+                        .font(pd(12.5, .semibold)).foregroundStyle(Theme.ink)
+                        .frame(maxWidth: .infinity).padding(.vertical, 11)
+                        .background(Theme.goldGradient).clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+            } else if let e = resale.estimate {
+                VStack(spacing: 6) {
+                    priceRow(L("최저"), e.low)
+                    priceRow(L("평균"), e.avg, emphasized: true)
+                    priceRow(L("최고"), e.high)
+                }
+                if let n = e.note, !n.isEmpty {
+                    Text(n).font(pd(10.5)).foregroundStyle(Theme.muted)
+                }
+                Text("AI 추정치 · 실제 시세는 엔카·KB차차차에서 확인").font(pd(9.5)).foregroundStyle(Theme.muted2)
+                Button { Task { await resale.fetch(vehicle: v) } } label: {
+                    Text(resale.loading ? "조회 중…" : "다시 조회").font(pd(11)).foregroundStyle(Theme.muted)
+                }.disabled(resale.loading)
+            } else {
+                Button { Task { await resale.fetch(vehicle: v) } } label: {
+                    HStack(spacing: 8) {
+                        if resale.loading { ProgressView().controlSize(.small).tint(Theme.gold) }
+                        else { Image(systemName: "sparkles").font(.system(size: 13)) }
+                        Text(resale.loading ? "시세 추정 중…" : "AI 시세 조회").font(pd(13, .semibold))
+                    }
+                    .foregroundStyle(Theme.gold)
+                    .frame(maxWidth: .infinity).padding(.vertical, 11)
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.gold.opacity(0.4), lineWidth: 1))
+                }
+                .disabled(resale.loading)
+                if let err = resale.error {
+                    Text(err).font(pd(10.5)).foregroundStyle(.red)
+                }
+            }
+        }
+        .padding(EdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16))
+        .background(Theme.card)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.cardBorder, lineWidth: 1))
+        .sheet(isPresented: $showPaywall) { PaywallSheet(premium: premium) }
+    }
+
+    private func priceRow(_ label: String, _ manwon: Int, emphasized: Bool = false) -> some View {
+        HStack {
+            Text(label).font(pd(emphasized ? 12.5 : 12, emphasized ? .semibold : .regular))
+                .foregroundStyle(emphasized ? Theme.text : Theme.muted)
+            Spacer()
+            Text(won(manwon * 10000))   // 만원 → 원
+                .font(gm(emphasized ? 16 : 13, emphasized ? .bold : .medium))
+                .foregroundStyle(emphasized ? Theme.gold : Theme.text)
+        }
     }
 
     // 단골 센터 관리 버튼
