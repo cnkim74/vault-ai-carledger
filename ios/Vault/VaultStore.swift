@@ -134,6 +134,7 @@ final class VaultStore: ObservableObject {
         let location: String?
         let tag: String?
         let ai_logged: Bool
+        let odometer_km: Int?
     }
 
     /// 새 기록을 Supabase에 저장하고 목록을 새로고침한다.
@@ -153,7 +154,8 @@ final class VaultStore: ObservableObject {
             duration_min: durationMin,
             location: location,
             tag: tag,
-            ai_logged: false
+            ai_logged: false,
+            odometer_km: vehicle.odometerKm    // 기록 시점 주행거리 (정비 주기 계산용)
         )
         try await send(method: "POST", path: "rest/v1/records", query: [], body: body)
         await load()

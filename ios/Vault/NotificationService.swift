@@ -63,6 +63,15 @@ final class NotificationService: ObservableObject {
                 body: L("오늘은 세차하기 좋은 날이에요."),
                 trigger: soon(12))
         }
+
+        // 정비 시기 임박/초과
+        if let d = MaintenanceSchedule.upcoming(vehicle: store.vehicle, records: store.records)
+            .first(where: { $0.remainingKm <= 500 }) {
+            let body = d.isOverdue
+                ? String(format: L("%@ 정비 시기가 지났어요."), L(d.item))
+                : String(format: L("%@ 정비 시기가 다가와요."), L(d.item))
+            add(c, id: "maintenance-due", body: body, trigger: soon(15))
+        }
     }
 
     private func soon(_ seconds: TimeInterval) -> UNNotificationTrigger {

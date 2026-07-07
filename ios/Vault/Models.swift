@@ -259,6 +259,7 @@ struct VaultRecord: Codable, Identifiable {
     var location: String?
     var tag: String?
     var aiLogged: Bool
+    var odometerKm: Int?    // 기록 시점 누적 주행거리 (정비 주기 계산용)
 
     enum CodingKeys: String, CodingKey {
         case id, kind, title, location, tag
@@ -267,6 +268,54 @@ struct VaultRecord: Codable, Identifiable {
         case distanceKm = "distance_km"
         case durationMin = "duration_min"
         case aiLogged = "ai_logged"
+        case odometerKm = "odometer_km"
+    }
+}
+
+/// 정비 예정 항목 (다음 정비까지 남은 거리)
+struct MaintenanceDue: Identifiable {
+    let id = UUID()
+    let item: String
+    let intervalKm: Int
+    let lastKm: Int
+    let dueKm: Int
+    var remainingKm: Int   // 음수면 초과(지남)
+    var isOverdue: Bool { remainingKm < 0 }
+}
+
+/// 차종별 정비 주기(km) + 기록 기반 다음 정비 계산
+enum MaintenanceSchedule {
+    /// (항목, 주기 km) — 차종·연료별 기본값
+    static func intervals(category: VehicleCategory, ev: Bool) -> [(String, Int)] {
+        switch category {
+        case .motorcycle:
+            return [("엔진오일", 5000), ("오일필터", 10000), ("체인 급유", 800), ("체인 조정", 2000),
+                    ("앞 타이어", 12000), ("뒤 타이어", 8000), ("브레이크 패드", 15000),
+                    ("스파크플러그", 12000), ("에어필터", 12000)]
+        case .scooter:
+            return [("엔진오일", 4000), ("기어오일", 8000), ("구동벨트", 20000),
+                    ("앞 타이어", 10000), ("뒤 타이어", 10000), ("브레이크 패드", 15000), ("에어필터", 12000)]
+        case .car:
+            return ev
+                ? [("타이어 위치교환", 10000), ("타이어 교체", 50000), ("브레이크 패드", 40000), ("에어컨 필터", 15000)]
+                : [("엔진오일", 10000), ("오일필터", 10000), ("에어클리너", 20000),
+                   ("타이어 위치교환", 10000), ("브레이크 패드", 30000), ("점화플러그", 40000)]
+        }
+    }
+
+    /// 정비 기록의 주행거리를 기준으로 다음 정비까지 남은 거리 계산 (가까운 순)
+    static func upcoming(vehicle: Vehicle, records: [VaultRecord]) -> [MaintenanceDue] {
+        let odo = vehicle.odometerKm
+        var out: [MaintenanceDue] = []
+        for (item, interval) in intervals(category: vehicle.vehicleCategory, ev: !vehicle.usesFuel) {
+            let last = records
+                .filter { $0.kind == .maintenance && $0.odometerKm != nil && $0.title.contains(item) }
+                .max(by: { $0.occurredAt < $1.occurredAt })
+            guard let lastKm = last?.odometerKm else { continue }
+            let due = lastKm + interval
+            out.append(.init(item: item, intervalKm: interval, lastKm: lastKm, dueKm: due, remainingKm: due - odo))
+        }
+        return out.sorted { $0.remainingKm < $1.remainingKm }
     }
 }
 

@@ -32,6 +32,7 @@ struct CockpitView: View {
                 DestinationCard(calendar: calendar)
                 statCards
                 leaseProjectionCard
+                maintenanceCard
                 predictionCard
                 StationsCard(store: store, weather: weather)
                     .padding(.top, 12)
@@ -656,6 +657,39 @@ struct CockpitView: View {
             .background(Theme.card)
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(accent.opacity(0.3), lineWidth: 1))
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+        }
+    }
+
+    // 정비 예정 (주행거리 기반) — 임박/초과 항목만
+    @ViewBuilder
+    private var maintenanceCard: some View {
+        let due = MaintenanceSchedule.upcoming(vehicle: store.vehicle, records: store.records)
+            .filter { $0.remainingKm <= 2000 }
+        if !due.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 6) {
+                    Image(systemName: "wrench.and.screwdriver.fill").font(.system(size: 12)).foregroundStyle(Theme.gold)
+                    Text("정비 예정").font(pd(12, .semibold))
+                }
+                ForEach(due.prefix(3)) { d in
+                    HStack {
+                        Text(L(d.item)).font(pd(12.5, .medium))
+                        Spacer()
+                        Text(verbatim: d.isOverdue
+                             ? String(format: L("%dkm 초과"), -d.remainingKm)
+                             : String(format: L("%dkm 남음"), d.remainingKm))
+                            .font(gm(12, .medium))
+                            .foregroundStyle(d.isOverdue ? Theme.red : (d.remainingKm <= 500 ? Theme.orange : Theme.silver))
+                    }
+                    .padding(.vertical, 2)
+                }
+            }
+            .padding(EdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16))
+            .background(Theme.card)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.cardBorder, lineWidth: 1))
             .padding(.horizontal, 16)
             .padding(.top, 12)
         }
