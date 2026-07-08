@@ -18,6 +18,11 @@ struct FleetView: View {
     @State private var groupByDriver = false
     @State private var joinCode = ""
     @State private var joinError: String?
+    @State private var quickRecordVehicle: FleetVehicle?
+    @State private var showChooseVehicle = false
+    @State private var vehicleFilter: DashFilter = .all
+
+    enum DashFilter { case all, due, over }
 
     var body: some View {
         NavigationStack {
@@ -70,7 +75,13 @@ struct FleetView: View {
         .sheet(isPresented: $showAddVehicle) { FleetVehicleEditView(fleet: fleet, editing: nil) }
         .sheet(item: $editingVehicle) { FleetVehicleEditView(fleet: fleet, editing: $0) }
         .sheet(item: $detailVehicle) { FleetVehicleDetailView(fleet: fleet, vehicle: $0) }
+        .sheet(item: $quickRecordVehicle) { FleetRecordAddView(fleet: fleet, vehicle: $0) }
         .sheet(isPresented: $showReport) { FleetReportView(fleet: fleet) }
+        .confirmationDialog("어느 차량 기록을 추가할까요?", isPresented: $showChooseVehicle, titleVisibility: .visible) {
+            ForEach(fleet.vehicles) { v in
+                Button(v.plate ?? v.model ?? v.name ?? "-") { quickRecordVehicle = v }
+            }
+        }
         .sheet(isPresented: $showPaywall) { PaywallSheet(premium: premium) }
         .fileImporter(isPresented: $showImporter, allowedContentTypes: [.commaSeparatedText, .plainText, .text], allowsMultipleSelection: false) { result in
             handleImport(result)
@@ -155,7 +166,7 @@ struct FleetView: View {
         }
     }
 
-    // 기사 대시보드: 배정된 차량만
+    // 기사 대시보드: 배정된 차량만 + 빠른 기록
     private var driverDashboard: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
@@ -172,6 +183,24 @@ struct FleetView: View {
                         Text("관리자가 차량을 배정하면 여기에 표시돼요").font(pd(10.5)).foregroundStyle(Theme.muted2)
                     }.frame(maxWidth: .infinity).padding(.top, 40)
                 } else {
+                    // 내 요약: 배정 대수 · 이번 달 내 비용
+                    HStack(spacing: 10) {
+                        summaryCell(L("내 차량"), fleet.vehicles.count, Theme.silver)
+                        valueCell(L("이번 달 비용"), won(driverMonthCost), Theme.gold)
+                    }
+                    // 정비 임박/초과 경고
+                    if let w = serviceWarning(fleet.vehicles) { warnBanner(w.text, w.color) }
+                    // 빠른 기록 추가
+                    Button {
+                        if fleet.vehicles.count == 1 { quickRecordVehicle = fleet.vehicles[0] }
+                        else { showChooseVehicle = true }
+                    } label: {
+                        Label("주유·주행 기록 추가", systemImage: "plus.circle.fill")
+                            .font(pd(14, .semibold)).foregroundStyle(Theme.ink)
+                            .frame(maxWidth: .infinity).padding(.vertical, 13)
+                            .background(Theme.goldGradient).clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    Text("내 차량").font(pd(12, .semibold)).foregroundStyle(Theme.silver).padding(.top, 4)
                     ForEach(fleet.vehicles) { v in
                         Button { detailVehicle = v } label: { vehicleRow(v) }.buttonStyle(.plain)
                     }
@@ -179,6 +208,8 @@ struct FleetView: View {
             }.padding(16)
         }
     }
+    // 기사: 이번 달 배정 차량 비용 합
+    private var driverMonthCost: Int { fleet.vehicles.map { fleet.monthlyCost(vehicleId: $0.id) }.reduce(0, +) }
 
     // 대시보드
     private var dashboard: some View {
@@ -219,6 +250,8 @@ struct FleetView: View {
                     emptyVehicles
                 } else {
                     summaryBar
+                    costCard
+                    if let w = serviceWarning(fleet.vehicles), vehicleFilter == .all { warnBanner(w.text, w.color) }
                     // 보기 전환
                     Picker("", selection: $groupByDriver) {
                         Text("전체").tag(false)
@@ -240,10 +273,15 @@ struct FleetView: View {
                             }
                         }
                     } else {
-                        ForEach(fleet.vehicles) { v in
+                        if filteredVehicles.isEmpty {
+                            Text("해당하는 차량이 없어요").font(pd(12)).foregroundStyle(Theme.muted).frame(maxWidth: .infinity).padding(.vertical, 20)
+                        }
+                        ForEach(filteredVehicles) { v in
                             Button { detailVehicle = v } label: { vehicleRow(v) }.buttonStyle(.plain)
                         }
                     }
+
+                    driverSection
                 }
                 if let msg = importMsg {
                     Text(msg).font(pd(11)).foregroundStyle(Theme.green).padding(.top, 4)
@@ -253,15 +291,28 @@ struct FleetView: View {
         }
     }
 
-    // 요약: 전체 · 정비 임박 · 초과
+    // 요약: 전체 · 정비 임박 · 초과 (탭하면 목록 필터)
     private var summaryBar: some View {
-        let due = fleet.vehicles.filter { if let r = $0.serviceRemaining { return r >= 0 && r <= 2000 }; return false }.count
-        let over = fleet.vehicles.filter { ($0.serviceRemaining ?? 1) < 0 }.count
-        return HStack(spacing: 10) {
-            summaryCell(L("전체"), fleet.vehicles.count, Theme.silver)
-            summaryCell(L("정비 임박"), due, Theme.orange)
-            summaryCell(L("정비 초과"), over, Theme.red)
+        HStack(spacing: 10) {
+            filterCell(L("전체"), fleet.vehicles.count, Theme.silver, .all)
+            filterCell(L("정비 임박"), dueCount, Theme.orange, .due)
+            filterCell(L("정비 초과"), overCount, Theme.red, .over)
         }
+    }
+    private var dueCount: Int { fleet.vehicles.filter { if let r = $0.serviceRemaining { return r >= 0 && r <= 2000 }; return false }.count }
+    private var overCount: Int { fleet.vehicles.filter { ($0.serviceRemaining ?? 1) < 0 }.count }
+
+    private func filterCell(_ label: String, _ n: Int, _ color: Color, _ f: DashFilter) -> some View {
+        let on = vehicleFilter == f
+        return Button { vehicleFilter = (on && f != .all) ? .all : f } label: {
+            VStack(spacing: 3) {
+                Text("\(n)").font(gm(19, .bold)).foregroundStyle(n > 0 ? color : Theme.text)
+                Text(label).font(pd(10)).foregroundStyle(Theme.muted)
+            }
+            .frame(maxWidth: .infinity).padding(.vertical, 12)
+            .background(on ? color.opacity(0.14) : Theme.card).clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(on ? color.opacity(0.6) : Theme.cardBorder, lineWidth: 1))
+        }.buttonStyle(.plain)
     }
     private func summaryCell(_ label: String, _ n: Int, _ color: Color) -> some View {
         VStack(spacing: 3) {
@@ -272,12 +323,109 @@ struct FleetView: View {
         .background(Theme.card).clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.cardBorder, lineWidth: 1))
     }
+    // 금액용 타일
+    private func valueCell(_ label: String, _ value: String, _ color: Color) -> some View {
+        VStack(spacing: 3) {
+            Text(value).font(gm(16, .bold)).foregroundStyle(color)
+            Text(label).font(pd(10)).foregroundStyle(Theme.muted)
+        }
+        .frame(maxWidth: .infinity).padding(.vertical, 12)
+        .background(Theme.card).clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.cardBorder, lineWidth: 1))
+    }
+    // 정비 임박/초과 경고 배너
+    private func serviceWarning(_ vs: [FleetVehicle]) -> (text: String, color: Color)? {
+        let over = vs.filter { ($0.serviceRemaining ?? 1) < 0 }.count
+        let due = vs.filter { if let r = $0.serviceRemaining { return r >= 0 && r <= 2000 }; return false }.count
+        if over > 0 { return (String(format: L("정비 시기를 지난 차량 %d대가 있어요"), over), Theme.red) }
+        if due > 0 { return (String(format: L("정비 시기가 임박한 차량 %d대"), due), Theme.orange) }
+        return nil
+    }
+    private func warnBanner(_ text: String, _ color: Color) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "wrench.and.screwdriver.fill").font(.system(size: 12)).foregroundStyle(color)
+            Text(text).font(pd(11.5, .semibold)).foregroundStyle(color)
+            Spacer()
+        }
+        .padding(.horizontal, 12).padding(.vertical, 10)
+        .background(color.opacity(0.10)).clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(color.opacity(0.35), lineWidth: 1))
+    }
+    // 현재 필터가 적용된 차량 목록
+    private var filteredVehicles: [FleetVehicle] {
+        switch vehicleFilter {
+        case .all: return fleet.vehicles
+        case .due: return fleet.vehicles.filter { if let r = $0.serviceRemaining { return r >= 0 && r <= 2000 }; return false }
+        case .over: return fleet.vehicles.filter { ($0.serviceRemaining ?? 1) < 0 }
+        }
+    }
     // 기사별 그룹 (담당 없음은 마지막)
     private var driverGroups: [(String, [FleetVehicle])] {
-        let grouped = Dictionary(grouping: fleet.vehicles) { $0.driverName?.isEmpty == false ? $0.driverName! : L("담당 없음") }
+        let grouped = Dictionary(grouping: filteredVehicles) { $0.driverName?.isEmpty == false ? $0.driverName! : L("담당 없음") }
         return grouped.sorted { a, b in
             if a.key == L("담당 없음") { return false }; if b.key == L("담당 없음") { return true }
             return a.key < b.key
+        }
+    }
+
+    // 이번 달 비용 카드 (탭 → 월간 리포트)
+    private var costCard: some View {
+        let t = fleet.monthlyTotals()
+        return Button { showReport = true } label: {
+            VStack(spacing: 8) {
+                HStack {
+                    Label("이번 달 비용", systemImage: "wonsign.circle.fill").font(pd(12, .semibold)).foregroundStyle(Theme.muted)
+                    Spacer()
+                    Text(won(t.total)).font(gm(18, .bold)).foregroundStyle(Theme.gold)
+                    Image(systemName: "chevron.right").font(.system(size: 11)).foregroundStyle(Theme.muted)
+                }
+                HStack(spacing: 14) {
+                    costLegend(L("주유·충전"), won(t.fuel), Theme.gold)
+                    costLegend(L("정비"), won(t.maintenance), Theme.green)
+                    costLegend(L("기타"), won(t.other), Theme.silver)
+                    Spacer()
+                }
+            }
+            .padding(14).background(Theme.card).clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.cardBorder, lineWidth: 1))
+        }.buttonStyle(.plain)
+    }
+    private func costLegend(_ label: String, _ value: String, _ color: Color) -> some View {
+        HStack(spacing: 5) {
+            Circle().fill(color).frame(width: 6, height: 6)
+            VStack(alignment: .leading, spacing: 0) {
+                Text(label).font(pd(9)).foregroundStyle(Theme.muted)
+                Text(value).font(pd(10.5, .semibold))
+            }
+        }
+    }
+
+    // 기사 관리 — 참여한 기사 목록 + 담당 대수
+    private var driverSection: some View {
+        Group {
+            if !fleet.members.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "person.2.fill").font(.system(size: 12)).foregroundStyle(Theme.silver)
+                        Text("기사 관리").font(pd(12, .semibold)).foregroundStyle(Theme.silver)
+                        Text("\(fleet.members.count)").font(pd(11)).foregroundStyle(Theme.muted)
+                    }
+                    ForEach(fleet.members) { m in
+                        HStack(spacing: 10) {
+                            RoundedRectangle(cornerRadius: 9).fill(Theme.silver.opacity(0.12)).frame(width: 32, height: 32)
+                                .overlay(Image(systemName: "person.fill").font(.system(size: 13)).foregroundStyle(Theme.silver))
+                            Text(m.email ?? m.user_id.prefix(8).description).font(pd(12.5)).lineLimit(1)
+                            Spacer()
+                            let n = fleet.vehicles.filter { $0.assignedUserId == m.user_id }.count
+                            Text(n > 0 ? String(format: L("담당 %d대"), n) : L("미배정"))
+                                .font(pd(10.5, .semibold)).foregroundStyle(n > 0 ? Theme.gold : Theme.muted)
+                        }
+                        .padding(11).background(Theme.card).clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.cardBorder, lineWidth: 1))
+                    }
+                }
+                .padding(.top, 8)
+            }
         }
     }
 

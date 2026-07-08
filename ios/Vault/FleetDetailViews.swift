@@ -28,10 +28,12 @@ struct FleetVehicleDetailView: View {
                                 .frame(maxWidth: .infinity).padding(.vertical, 12).background(Theme.goldGradient)
                                 .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
-                        Button { showEdit = true } label: {
-                            Label("차량 수정", systemImage: "pencil").font(pd(13, .semibold)).foregroundStyle(Theme.gold)
-                                .frame(maxWidth: .infinity).padding(.vertical, 12)
-                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.gold.opacity(0.4), lineWidth: 1))
+                        if fleet.role == .manager {
+                            Button { showEdit = true } label: {
+                                Label("차량 수정", systemImage: "pencil").font(pd(13, .semibold)).foregroundStyle(Theme.gold)
+                                    .frame(maxWidth: .infinity).padding(.vertical, 12)
+                                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.gold.opacity(0.4), lineWidth: 1))
+                            }
                         }
                     }
                     Text("기록").font(pd(13, .semibold)).foregroundStyle(Theme.silver).padding(.top, 4)
