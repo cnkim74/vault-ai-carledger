@@ -4819,6 +4819,72 @@
         }
       }
     },
+    "정비 알림 받기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Get service alerts"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "整備通知を受け取る"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接收保养提醒"
+          }
+        }
+      }
+    },
+    "[%@] %@ 정비 시기가 지났어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[%@] %@ is overdue for service."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[%@] %@ の整備時期が過ぎました。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[%@] %@ 已过保养期。"
+          }
+        }
+      }
+    },
+    "[%@] %@ 정비가 임박했어요 (%dkm 남음).": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[%@] %@ service due soon (%dkm left)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[%@] %@ の整備が近づいています（残り%dkm）。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "[%@] %@ 临近保养（剩余%dkm）。"
+          }
+        }
+      }
+    },
     "비용": {
       "localizations": {
         "en": {

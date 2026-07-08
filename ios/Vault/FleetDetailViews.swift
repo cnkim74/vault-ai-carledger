@@ -263,6 +263,26 @@ struct FleetReportView: View {
                     .padding(14).background(Theme.card).clipShape(RoundedRectangle(cornerRadius: 14))
                     .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.cardBorder, lineWidth: 1))
 
+                    if !driverRanks.isEmpty {
+                        Text("기사별 이번 달 순위").font(pd(13, .semibold)).foregroundStyle(Theme.silver).padding(.top, 4)
+                        ForEach(Array(driverRanks.enumerated()), id: \.element.id) { idx, s in
+                            HStack(spacing: 8) {
+                                Text("\(idx + 1)").font(gm(12, .bold))
+                                    .foregroundStyle(idx == 0 ? Theme.gold : idx == 1 ? Theme.silver : idx == 2 ? Theme.orange : Theme.muted)
+                                    .frame(width: 16)
+                                Text(s.name).font(pd(12.5, .medium)).lineLimit(1)
+                                Text(String(format: L("%d대"), s.vehicleCount)).font(pd(9.5)).foregroundStyle(Theme.muted2)
+                                Spacer()
+                                VStack(alignment: .trailing, spacing: 0) {
+                                    Text(won(s.cost)).font(gm(12.5, .bold))
+                                    Text("\(grouped(s.distanceKm))km").font(pd(9.5)).foregroundStyle(Theme.muted)
+                                }
+                            }
+                            .padding(11).background(Theme.card).clipShape(RoundedRectangle(cornerRadius: 12))
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.cardBorder, lineWidth: 1))
+                        }
+                    }
+
                     Text("차량별 이번 달 비용").font(pd(13, .semibold)).foregroundStyle(Theme.silver).padding(.top, 4)
                     ForEach(fleet.vehicles) { v in
                         HStack {
@@ -290,6 +310,13 @@ struct FleetReportView: View {
         .sheet(item: $shareURL) { url in ShareSheet(items: [url]) }
     }
 
+    // 기사별 순위 (비용 desc, 활동 있는 기사만)
+    private var driverRanks: [FleetStore.DriverStat] {
+        fleet.driverStats()
+            .filter { $0.cost > 0 || $0.distanceKm > 0 }
+            .sorted { ($0.cost, $0.distanceKm) > ($1.cost, $1.distanceKm) }
+    }
+
     private func tile(_ label: String, _ amount: Int, _ color: Color) -> some View {
         VStack(spacing: 3) {
             Text(won(amount)).font(gm(13, .bold)).foregroundStyle(color)
@@ -300,14 +327,20 @@ struct FleetReportView: View {
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.cardBorder, lineWidth: 1))
     }
 
-    /// 차량 목록 + 이번 달 비용 CSV 생성 → 임시 파일 URL
+    /// 차량별 비용 + 기사별 순위 CSV 생성 → 임시 파일 URL
     private func makeCSV() -> URL? {
+        func esc(_ cols: [String]) -> String {
+            cols.map { "\"\($0.replacingOccurrences(of: "\"", with: "\"\""))\"" }.joined(separator: ",") + "\n"
+        }
         var csv = "차량번호,모델,담당기사,연락처,누적주행(km),이번달비용(원)\n"
         for v in fleet.vehicles {
-            let cols = [v.plate ?? "", v.model ?? "", v.driverName ?? "", v.driverPhone ?? "",
-                        "\(v.odometerKm)", "\(fleet.monthlyCost(vehicleId: v.id))"]
-                .map { "\"\($0.replacingOccurrences(of: "\"", with: "\"\""))\"" }
-            csv += cols.joined(separator: ",") + "\n"
+            csv += esc([v.plate ?? "", v.model ?? "", v.driverName ?? "", v.driverPhone ?? "",
+                        "\(v.odometerKm)", "\(fleet.monthlyCost(vehicleId: v.id))"])
+        }
+        // 기사별 순위 표 (빈 줄로 구분)
+        csv += "\n순위,기사,담당대수,이번달주행(km),이번달비용(원)\n"
+        for (i, s) in driverRanks.enumerated() {
+            csv += esc(["\(i + 1)", s.name, "\(s.vehicleCount)", "\(s.distanceKm)", "\(s.cost)"])
         }
         let name = (fleet.fleet?.name ?? "fleet") + "_report.csv"
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(name)

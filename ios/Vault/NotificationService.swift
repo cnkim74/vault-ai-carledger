@@ -74,6 +74,54 @@ final class NotificationService: ObservableObject {
         }
     }
 
+    // MARK: Fleet — 기사 정비 알림 (배정 차량 정비 임박/초과, 매일 오전 9시)
+    @Published var fleetEnabled = UserDefaults.standard.bool(forKey: "fleet.notif.enabled")
+
+    /// 기사: 정비 알림 켜기/끄기
+    func toggleFleet(vehicles: [FleetVehicle], fleetName: String) async {
+        let ids = vehicles.map { "fleet-maint-\($0.id.uuidString)" }
+        if fleetEnabled {
+            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ids)
+            fleetEnabled = false
+            UserDefaults.standard.set(false, forKey: "fleet.notif.enabled")
+        } else {
+            guard await requestAuth() else { return }
+            fleetEnabled = true
+            UserDefaults.standard.set(true, forKey: "fleet.notif.enabled")
+            scheduleFleet(vehicles: vehicles, fleetName: fleetName)
+        }
+    }
+
+    /// 켜져 있으면 최신 차량 상태로 재예약 (대시보드 로드 시 호출)
+    func refreshFleetIfEnabled(vehicles: [FleetVehicle], fleetName: String) async {
+        guard fleetEnabled else { return }
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        guard settings.authorizationStatus == .authorized else { return }
+        scheduleFleet(vehicles: vehicles, fleetName: fleetName)
+    }
+
+    private func scheduleFleet(vehicles: [FleetVehicle], fleetName: String) {
+        let c = UNUserNotificationCenter.current()
+        // 현재 차량들의 기존 예약 정리 후 정비 대상만 재예약
+        c.removePendingNotificationRequests(withIdentifiers: vehicles.map { "fleet-maint-\($0.id.uuidString)" })
+        var morning = DateComponents(); morning.hour = 9; morning.minute = 0
+        let trigger = UNCalendarNotificationTrigger(dateMatching: morning, repeats: true)
+        for v in vehicles {
+            guard let r = v.serviceRemaining else { continue }
+            let plate = v.plate ?? v.name ?? v.model ?? "-"
+            let body: String
+            if r < 0 { body = String(format: L("[%@] %@ 정비 시기가 지났어요."), fleetName, plate) }
+            else if r <= 2000 { body = String(format: L("[%@] %@ 정비가 임박했어요 (%dkm 남음)."), fleetName, plate, r) }
+            else { continue }
+            add(c, id: "fleet-maint-\(v.id.uuidString)", body: body, trigger: trigger)
+        }
+    }
+
+    /// 정비 대상 차량 수 (버튼 노출 판단용)
+    static func maintenanceDueCount(_ vehicles: [FleetVehicle]) -> Int {
+        vehicles.filter { if let r = $0.serviceRemaining { return r < 0 || r <= 2000 }; return false }.count
+    }
+
     private func soon(_ seconds: TimeInterval) -> UNNotificationTrigger {
         UNTimeIntervalNotificationTrigger(timeInterval: seconds, repeats: false)
     }

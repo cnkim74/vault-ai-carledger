@@ -7,6 +7,7 @@ struct FleetView: View {
     @ObservedObject var premium: PremiumStore
     @StateObject private var fleet = FleetStore()
     @StateObject private var auth = AuthService()
+    @StateObject private var notifier = NotificationService()
     @State private var newFleetName = ""
     @State private var showAddVehicle = false
     @State private var editingVehicle: FleetVehicle?
@@ -69,11 +70,21 @@ struct FleetView: View {
         .preferredColorScheme(.dark)
         .task {
             fleet.auth = auth
-            if premium.isPremium && auth.isAuthenticated { await fleet.load(uid: auth.userID) }
+            if premium.isPremium && auth.isAuthenticated {
+                await fleet.load(uid: auth.userID)
+                if fleet.role == .driver {
+                    await notifier.refreshFleetIfEnabled(vehicles: fleet.vehicles, fleetName: fleet.fleet?.name ?? "")
+                }
+            }
         }
         .onChange(of: auth.isAuthenticated) { _, signedIn in
             fleet.auth = auth
-            if signedIn { Task { await fleet.load(uid: auth.userID) } }
+            if signedIn { Task {
+                await fleet.load(uid: auth.userID)
+                if fleet.role == .driver {
+                    await notifier.refreshFleetIfEnabled(vehicles: fleet.vehicles, fleetName: fleet.fleet?.name ?? "")
+                }
+            } }
         }
         .sheet(isPresented: $showAddVehicle) { FleetVehicleEditView(fleet: fleet, editing: nil) }
         .sheet(item: $editingVehicle) { FleetVehicleEditView(fleet: fleet, editing: $0) }
@@ -174,9 +185,15 @@ struct FleetView: View {
     private var driverDashboard: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                HStack {
+                HStack(spacing: 8) {
                     Text(fleet.fleet?.name ?? "").font(gm(17, .bold))
                     Spacer()
+                    Button {
+                        Task { await notifier.toggleFleet(vehicles: fleet.vehicles, fleetName: fleet.fleet?.name ?? "") }
+                    } label: {
+                        Image(systemName: notifier.fleetEnabled ? "bell.fill" : "bell.slash")
+                            .font(.system(size: 14)).foregroundStyle(notifier.fleetEnabled ? Theme.gold : Theme.muted)
+                    }
                     Text("기사").font(pd(10.5, .bold)).foregroundStyle(Theme.ink)
                         .padding(.horizontal, 8).padding(.vertical, 3).background(Theme.silver).clipShape(Capsule())
                 }.padding(.horizontal, 4)
@@ -194,6 +211,15 @@ struct FleetView: View {
                     }
                     // 정비 임박/초과 경고
                     if let w = serviceWarning(fleet.vehicles) { warnBanner(w.text, w.color) }
+                    if !notifier.fleetEnabled, NotificationService.maintenanceDueCount(fleet.vehicles) > 0 {
+                        Button {
+                            Task { await notifier.toggleFleet(vehicles: fleet.vehicles, fleetName: fleet.fleet?.name ?? "") }
+                        } label: {
+                            Label("정비 알림 받기", systemImage: "bell.badge.fill").font(pd(12, .semibold)).foregroundStyle(Theme.gold)
+                                .frame(maxWidth: .infinity).padding(.vertical, 10)
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.gold.opacity(0.5), lineWidth: 1))
+                        }
+                    }
                     // 빠른 기록 추가
                     Button {
                         if fleet.vehicles.count == 1 { quickRecordVehicle = fleet.vehicles[0] }
