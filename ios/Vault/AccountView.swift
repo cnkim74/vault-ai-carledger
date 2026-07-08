@@ -7,6 +7,7 @@ struct AccountView: View {
     @ObservedObject var profile: ProfileStore
     @ObservedObject var premium: PremiumStore
     @State private var showProfileEdit = false
+    @State private var showFleet = false
 
     // TODO: 실제 배포 시 도메인/이메일로 교체
     private let privacyURL = URL(string: "https://cnkim74.github.io/wheelet/privacy.html")!
@@ -39,6 +40,18 @@ struct AccountView: View {
                     }
                 }
 
+                // 기업용
+                Section("기업용") {
+                    Button { showFleet = true } label: {
+                        HStack {
+                            Label { Text("기업용 Fleet").foregroundStyle(Theme.text) } icon: { Image(systemName: "building.2.fill").foregroundStyle(Theme.gold) }
+                            Spacer()
+                            Text("택시·운송·렌터카").font(pd(10.5)).foregroundStyle(Theme.muted)
+                            Image(systemName: "chevron.right").font(.system(size: 11)).foregroundStyle(Theme.muted)
+                        }
+                    }
+                }
+
                 // 지원
                 Section("지원") {
                     row("앱 평가하기", "star.fill") { requestReview() }
@@ -63,6 +76,7 @@ struct AccountView: View {
         .tint(Theme.gold)
         .preferredColorScheme(.dark)
         .sheet(isPresented: $showProfileEdit) { ProfileSheet(profile: profile) }
+        .sheet(isPresented: $showFleet) { FleetView(premium: premium) }
     }
 
     private func row(_ title: String, _ icon: String, _ action: @escaping () -> Void) -> some View {
