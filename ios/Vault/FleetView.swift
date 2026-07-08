@@ -21,6 +21,7 @@ struct FleetView: View {
     @State private var quickRecordVehicle: FleetVehicle?
     @State private var showChooseVehicle = false
     @State private var vehicleFilter: DashFilter = .all
+    @State private var rankByCost = true
 
     enum DashFilter { case all, due, over }
 
@@ -251,6 +252,7 @@ struct FleetView: View {
                 } else {
                     summaryBar
                     costCard
+                    driverRankSection
                     if let w = serviceWarning(fleet.vehicles), vehicleFilter == .all { warnBanner(w.text, w.color) }
                     // 보기 전환
                     Picker("", selection: $groupByDriver) {
@@ -398,6 +400,60 @@ struct FleetView: View {
                 Text(value).font(pd(10.5, .semibold))
             }
         }
+    }
+
+    // 기사별 이번 달 순위 (비용 / 주행)
+    private var driverRankSection: some View {
+        let stats = fleet.driverStats()
+            .filter { $0.cost > 0 || $0.distanceKm > 0 }
+            .sorted { rankByCost ? ($0.cost, $0.distanceKm) > ($1.cost, $1.distanceKm)
+                                 : ($0.distanceKm, $0.cost) > ($1.distanceKm, $1.cost) }
+        let maxVal = max(1, stats.map { rankByCost ? $0.cost : $0.distanceKm }.max() ?? 1)
+        return Group {
+            if !stats.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        HStack(spacing: 6) {
+                            Image(systemName: "trophy.fill").font(.system(size: 12)).foregroundStyle(Theme.gold)
+                            Text("기사별 이번 달 순위").font(pd(12, .semibold)).foregroundStyle(Theme.silver)
+                        }
+                        Spacer()
+                        Picker("", selection: $rankByCost) {
+                            Text("비용").tag(true); Text("주행").tag(false)
+                        }.pickerStyle(.segmented).frame(width: 120)
+                    }
+                    ForEach(Array(stats.prefix(5).enumerated()), id: \.element.id) { idx, s in
+                        rankRow(idx + 1, s, maxVal)
+                    }
+                }
+                .padding(12).background(Theme.card.opacity(0.5)).clipShape(RoundedRectangle(cornerRadius: 14))
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.cardBorder, lineWidth: 1))
+            }
+        }
+    }
+    private func rankRow(_ rank: Int, _ s: FleetStore.DriverStat, _ maxVal: Int) -> some View {
+        let primary = rankByCost ? s.cost : s.distanceKm
+        let frac = min(1.0, Double(primary) / Double(maxVal))
+        let medal: Color = rank == 1 ? Theme.gold : rank == 2 ? Theme.silver : rank == 3 ? Theme.orange : Theme.muted
+        return VStack(spacing: 4) {
+            HStack(spacing: 8) {
+                Text("\(rank)").font(gm(12, .bold)).foregroundStyle(medal).frame(width: 16)
+                Text(s.name).font(pd(12.5, .semibold)).lineLimit(1)
+                Text(String(format: L("%d대"), s.vehicleCount)).font(pd(9.5)).foregroundStyle(Theme.muted2)
+                Spacer()
+                VStack(alignment: .trailing, spacing: 0) {
+                    Text(rankByCost ? won(s.cost) : "\(grouped(s.distanceKm))km").font(gm(12.5, .bold)).foregroundStyle(Theme.text)
+                    Text(rankByCost ? "\(grouped(s.distanceKm))km" : won(s.cost)).font(pd(9.5)).foregroundStyle(Theme.muted)
+                }
+            }
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Theme.cardBorder).frame(height: 4)
+                    Capsule().fill(medal.opacity(0.8)).frame(width: max(4, geo.size.width * frac), height: 4)
+                }
+            }.frame(height: 4)
+        }
+        .padding(.vertical, 4)
     }
 
     // 기사 관리 — 참여한 기사 목록 + 담당 대수

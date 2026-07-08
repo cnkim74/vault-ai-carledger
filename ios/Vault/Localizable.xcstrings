@@ -1722,7 +1722,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Drive"
+            "value": "Distance"
           }
         },
         "ja": {
@@ -4749,6 +4749,72 @@
           "stringUnit": {
             "state": "translated",
             "value": "负责%d辆"
+          }
+        }
+      }
+    },
+    "기사별 이번 달 순위": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Driver ranking this month"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今月のドライバー順位"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本月司机排名"
+          }
+        }
+      }
+    },
+    "비용": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cost"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "費用"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "费用"
+          }
+        }
+      }
+    },
+    "%d대": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d vehicles"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d台"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d辆"
           }
         }
       }

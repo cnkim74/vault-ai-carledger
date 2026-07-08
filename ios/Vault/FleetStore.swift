@@ -224,6 +224,31 @@ final class FleetStore: ObservableObject {
         return (fuel + maint + other, fuel, maint, other)
     }
 
+    /// 기사(담당자명) 단위 이번 달 집계 — 비용 + 주행거리(월내 기록 최대-최소)
+    struct DriverStat: Identifiable {
+        let id: String
+        var name: String
+        var cost: Int
+        var distanceKm: Int
+        var vehicleCount: Int
+    }
+    func driverStats() -> [DriverStat] {
+        let cal = Calendar.current
+        let month = records.filter { cal.isDate($0.date, equalTo: Date(), toGranularity: .month) }
+        let byDriver = Dictionary(grouping: vehicles) { $0.driverName?.isEmpty == false ? $0.driverName! : L("담당 없음") }
+        return byDriver.map { name, vs -> DriverStat in
+            let vids = Set(vs.map { $0.id })
+            let recs = month.filter { vids.contains($0.fleet_vehicle_id) }
+            let cost = recs.compactMap { $0.amount_won }.reduce(0, +)
+            var dist = 0
+            for v in vs {
+                let odos = recs.filter { $0.fleet_vehicle_id == v.id }.compactMap { $0.odometer_km }
+                if let mx = odos.max(), let mn = odos.min() { dist += (mx - mn) }
+            }
+            return .init(id: name, name: name, cost: cost, distanceKm: dist, vehicleCount: vs.count)
+        }
+    }
+
     // MARK: Fleet
     func createFleet(name: String) async {
         struct Ins: Encodable { let name: String; let plan: String; let owner_id: String? }
