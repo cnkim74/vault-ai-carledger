@@ -6,6 +6,8 @@ struct AccountView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var profile: ProfileStore
     @ObservedObject var premium: PremiumStore
+    @ObservedObject var fleet: FleetStore
+    @ObservedObject var auth: AuthService
     @State private var showProfileEdit = false
     @State private var showFleet = false
 
@@ -76,7 +78,7 @@ struct AccountView: View {
         .tint(Theme.gold)
         .preferredColorScheme(.dark)
         .sheet(isPresented: $showProfileEdit) { ProfileSheet(profile: profile) }
-        .sheet(isPresented: $showFleet) { FleetView(premium: premium) }
+        .sheet(isPresented: $showFleet) { FleetView(premium: premium, fleet: fleet, auth: auth) }
     }
 
     private func row(_ title: String, _ icon: String, _ action: @escaping () -> Void) -> some View {

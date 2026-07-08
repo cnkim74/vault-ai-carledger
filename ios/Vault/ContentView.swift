@@ -7,19 +7,35 @@ struct ContentView: View {
     @StateObject private var insight = InsightService()
     @StateObject private var profile = ProfileStore()
     @StateObject private var premium = PremiumStore()
+    @StateObject private var fleet = FleetStore()
+    @StateObject private var auth = AuthService()
     @State private var tab: MainTab =
         MainTab(rawValue: ProcessInfo.processInfo.environment["TAB"] ?? "") ?? .home
     @State private var showAddRecord = false
     @State private var showProfile = false
     @State private var showAccount = false
+    /// 업무(Fleet 배정) 차량이 선택되면 홈이 업무 모드로 전환. nil이면 개인 모드.
+    @State private var workVehicleID: UUID?
+    @State private var workRecordVehicle: FleetVehicle?
+
+    /// 내게 배정된 업무 차량 (기사/관리자 공통: assigned_user_id == 내 uid)
+    private var myWorkVehicles: [FleetVehicle] {
+        guard let uid = auth.userID else { return [] }
+        return fleet.vehicles.filter { $0.assignedUserId == uid }
+    }
+    private var workVehicle: FleetVehicle? {
+        workVehicleID.flatMap { id in myWorkVehicles.first { $0.id == id } }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             Group {
                 switch tab {
-                case .home: CockpitView(store: store, insight: insight, profile: profile,
-                                        onEditProfile: { showAccount = true },
-                                        onShowRecords: { tab = .records })
+                case .home:
+                    CockpitView(store: store, insight: insight, profile: profile,
+                                fleet: fleet, workVehicles: myWorkVehicles, workVehicleID: $workVehicleID,
+                                onEditProfile: { showAccount = true },
+                                onShowRecords: { tab = .records })
                 case .records: RecordsListView(store: store)
                 case .stats: BriefingView(store: store, insight: insight)
                 case .garage: GarageView(store: store)
@@ -27,22 +43,31 @@ struct ContentView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            TabBarView(tab: $tab) { showAddRecord = true }
+            TabBarView(tab: $tab) {
+                // 업무 모드에서 +는 해당 업무 차량의 Fleet 기록 추가
+                if let wv = workVehicle, tab == .home { workRecordVehicle = wv }
+                else { showAddRecord = true }
+            }
         }
         .background(Theme.bgTop.ignoresSafeArea())
         .sheet(isPresented: $showAddRecord) {
             AddRecordView(store: store)
         }
+        .sheet(item: $workRecordVehicle) { FleetRecordAddView(fleet: fleet, vehicle: $0) }
         .sheet(isPresented: $showProfile) {
             ProfileSheet(profile: profile)
         }
         .sheet(isPresented: $showAccount) {
-            AccountView(profile: profile, premium: premium)
+            AccountView(profile: profile, premium: premium, fleet: fleet, auth: auth)
         }
         .task {
             await store.load()
             await store.loadPlaces()
             await insight.generate(vehicle: store.vehicle, records: store.records)
+        }
+        .task {
+            fleet.auth = auth
+            if auth.isAuthenticated { await fleet.load(uid: auth.userID) }
         }
         .onAppear {
             if !profile.isSet { showProfile = true }   // 첫 실행 온보딩

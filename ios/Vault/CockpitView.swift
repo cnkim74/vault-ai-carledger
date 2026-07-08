@@ -6,8 +6,16 @@ struct CockpitView: View {
     @ObservedObject var store: VaultStore
     @ObservedObject var insight: InsightService
     @ObservedObject var profile: ProfileStore
+    @ObservedObject var fleet: FleetStore
+    var workVehicles: [FleetVehicle] = []
+    @Binding var workVehicleID: UUID?
     var onEditProfile: () -> Void = {}
     var onShowRecords: () -> Void = {}
+
+    /// 업무 모드 대상 차량 (선택된 배정 차량)
+    private var workVehicle: FleetVehicle? {
+        workVehicleID.flatMap { id in workVehicles.first { $0.id == id } }
+    }
     @State private var editingRecord: VaultRecord?
     @State private var carImage: UIImage?
     @State private var showPhotoDialog = false
@@ -26,17 +34,22 @@ struct CockpitView: View {
         ScrollView {
             VStack(spacing: 0) {
                 header
-                weatherCard
-                heroCard
-                insightCard
-                DestinationCard(calendar: calendar)
-                statCards
-                leaseProjectionCard
-                maintenanceCard
-                predictionCard
-                StationsCard(store: store, weather: weather)
-                    .padding(.top, 12)
-                recentRecords
+                switcherBar
+                if let wv = workVehicle {
+                    WorkVehicleHomeView(fleet: fleet, vehicle: wv)
+                } else {
+                    weatherCard
+                    heroCard
+                    insightCard
+                    DestinationCard(calendar: calendar)
+                    statCards
+                    leaseProjectionCard
+                    maintenanceCard
+                    predictionCard
+                    StationsCard(store: store, weather: weather)
+                        .padding(.top, 12)
+                    recentRecords
+                }
             }
             .padding(.bottom, 16)
         }
@@ -210,6 +223,47 @@ struct CockpitView: View {
         .padding(.bottom, 6)
     }
 
+    // 통합 차량 스위처 (개인 + 업무 배정 차량, 태그 구분)
+    @ViewBuilder
+    private var switcherBar: some View {
+        let total = store.vehicles.count + workVehicles.count
+        if total > 1 {
+            let isWork = workVehicle != nil
+            Menu {
+                Section(L("개인")) {
+                    ForEach(store.vehicles) { v in
+                        Button { workVehicleID = nil; store.select(v.id) } label: {
+                            Label(v.name, systemImage: v.vehicleCategory.icon)
+                        }
+                    }
+                }
+                if !workVehicles.isEmpty {
+                    Section(String(format: L("업무 · %@"), fleet.fleet?.name ?? L("회사"))) {
+                        ForEach(workVehicles) { v in
+                            Button { workVehicleID = v.id } label: {
+                                Label(v.plate ?? v.model ?? v.name ?? "-", systemImage: v.vehicleCategory.icon)
+                            }
+                        }
+                    }
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: isWork ? workVehicle!.vehicleCategory.icon : store.vehicle.vehicleCategory.icon)
+                        .font(.system(size: 13)).foregroundStyle(Theme.gold)
+                    Text(isWork ? (workVehicle!.plate ?? workVehicle!.model ?? "-") : store.vehicle.name)
+                        .font(gm(15, .semibold)).foregroundStyle(Theme.text).lineLimit(1)
+                    Text(isWork ? L("업무") : L("개인"))
+                        .font(pd(9.5, .bold)).foregroundStyle(isWork ? Theme.ink : Theme.silver)
+                        .padding(.horizontal, 7).padding(.vertical, 2)
+                        .background(isWork ? Theme.gold : Color.white.opacity(0.08)).clipShape(Capsule())
+                    Image(systemName: "chevron.down").font(.system(size: 10)).foregroundStyle(Theme.muted)
+                    Spacer()
+                }
+                .padding(.horizontal, 18).padding(.vertical, 9)
+            }
+        }
+    }
+
     // 시간대 인사말
     private var greeting: String {
         let h = Calendar.current.component(.hour, from: Date())
@@ -257,27 +311,10 @@ struct CockpitView: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 3) {
-                    if store.vehicles.count > 1 {
-                        // 여러 대면 원탭 전환 메뉴 (차↔바이크 즉시 전환)
-                        Menu {
-                            ForEach(store.vehicles) { v in
-                                Button {
-                                    store.select(v.id)
-                                } label: {
-                                    Label(v.name, systemImage: v.vehicleCategory.icon)
-                                }
-                            }
-                        } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: store.vehicle.vehicleCategory.icon)
-                                    .font(.system(size: 13)).foregroundStyle(Theme.gold)
-                                Text(store.vehicle.name).font(gm(17, .medium)).foregroundStyle(Theme.text)
-                                Image(systemName: "chevron.down").font(.system(size: 10)).foregroundStyle(Theme.muted)
-                            }
-                        }
-                    } else {
-                        Text(store.vehicle.name)
-                            .font(gm(17, .medium))
+                    HStack(spacing: 6) {
+                        Image(systemName: store.vehicle.vehicleCategory.icon)
+                            .font(.system(size: 13)).foregroundStyle(Theme.gold)
+                        Text(store.vehicle.name).font(gm(17, .medium)).foregroundStyle(Theme.text)
                     }
                     Text("\(store.vehicle.plate ?? "") · \(L(store.vehicle.fuelType))")
                         .font(pd(11))

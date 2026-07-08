@@ -5,8 +5,8 @@ import UniformTypeIdentifiers
 struct FleetView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var premium: PremiumStore
-    @StateObject private var fleet = FleetStore()
-    @StateObject private var auth = AuthService()
+    @ObservedObject var fleet: FleetStore
+    @ObservedObject var auth: AuthService
     @StateObject private var notifier = NotificationService()
     @State private var newFleetName = ""
     @State private var showAddVehicle = false
