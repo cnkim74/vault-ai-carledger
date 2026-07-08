@@ -117,9 +117,14 @@ struct OBDGuideView: View {
     private var dongleList: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("iOS 호환 추천 동글").font(pd(13, .semibold)).foregroundStyle(Theme.silver)
-            ForEach(dongles) { d in
-                Button { openSearch(d.name) } label: { dongleCard(d) }
-                    .buttonStyle(.plain)
+            ForEach(dongles) { d in dongleCard(d) }
+            // 공정위 대가성 고지 (파트너스 링크가 설정된 경우에만 노출)
+            if Affiliate.hasAnyPartnerLink {
+                HStack(alignment: .top, spacing: 6) {
+                    Image(systemName: "info.circle").font(.system(size: 10)).foregroundStyle(Theme.muted2)
+                    Text(Affiliate.disclosure).font(pd(9.5)).foregroundStyle(Theme.muted2)
+                }
+                .padding(.top, 2)
             }
         }
     }
@@ -140,12 +145,19 @@ struct OBDGuideView: View {
                     }
                 }
                 Text(d.tagline).font(pd(10.5)).foregroundStyle(Theme.muted).lineLimit(1)
+                Text(d.price).font(gm(10.5, .medium)).foregroundStyle(Theme.muted)
             }
             Spacer()
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(d.price).font(gm(12, .medium)).foregroundStyle(Theme.silver)
-                Image(systemName: "magnifyingglass").font(.system(size: 11)).foregroundStyle(Theme.muted)
+            Button { openBuy(d.name) } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "cart.fill").font(.system(size: 10))
+                    Text("구매").font(pd(11, .semibold))
+                }
+                .foregroundStyle(Theme.ink)
+                .padding(.horizontal, 12).padding(.vertical, 7)
+                .background(Theme.goldGradient).clipShape(Capsule())
             }
+            .buttonStyle(.plain)
         }
         .padding(12)
         .background(Theme.card)
@@ -181,10 +193,7 @@ struct OBDGuideView: View {
         .padding(.top, 4)
     }
 
-    private func openSearch(_ q: String) {
-        let enc = "\(q) OBD2 BLE".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        if let url = URL(string: "https://www.google.com/search?q=\(enc)") {
-            UIApplication.shared.open(url)
-        }
+    private func openBuy(_ name: String) {
+        if let url = Affiliate.url(for: name) { UIApplication.shared.open(url) }
     }
 }

@@ -10,11 +10,15 @@ struct AccountView: View {
     @ObservedObject var auth: AuthService
     @State private var showProfileEdit = false
     @State private var showFleet = false
+    @State private var showInquiry = false
+    @State private var legal: LegalDoc?
 
-    // TODO: 실제 배포 시 도메인/이메일로 교체
-    private let privacyURL = URL(string: "https://cnkim74.github.io/wheelet/privacy.html")!
-    private let termsURL = URL(string: "https://cnkim74.github.io/wheelet/terms.html")!
-    private let supportEmail = "cnkim74@gmail.com"
+    private enum LegalDoc: Identifiable {
+        case privacy, terms
+        var id: Int { self == .privacy ? 0 : 1 }
+        var title: String { self == .privacy ? L("개인정보처리방침") : L("이용약관") }
+        var text: String { self == .privacy ? LegalText.privacy : LegalText.terms }
+    }
 
     private var appVersion: String {
         let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
@@ -57,13 +61,13 @@ struct AccountView: View {
                 // 지원
                 Section("지원") {
                     row("앱 평가하기", "star.fill") { requestReview() }
-                    row("1:1 문의", "envelope.fill") { openMail() }
+                    row("1:1 문의", "envelope.fill") { showInquiry = true }
                 }
 
                 // 정보
                 Section("정보") {
-                    linkRow("개인정보처리방침", "hand.raised.fill", privacyURL)
-                    linkRow("이용약관", "doc.text.fill", termsURL)
+                    row("개인정보처리방침", "hand.raised.fill") { legal = .privacy }
+                    row("이용약관", "doc.text.fill") { legal = .terms }
                     HStack {
                         Label { Text("버전") } icon: { Image(systemName: "info.circle.fill").foregroundStyle(Theme.gold) }
                         Spacer()
@@ -79,6 +83,8 @@ struct AccountView: View {
         .preferredColorScheme(.dark)
         .sheet(isPresented: $showProfileEdit) { ProfileSheet(profile: profile) }
         .sheet(isPresented: $showFleet) { FleetView(premium: premium, fleet: fleet, auth: auth) }
+        .sheet(isPresented: $showInquiry) { InquiryView() }
+        .sheet(item: $legal) { doc in LegalTextView(title: doc.title, body_: doc.text) }
     }
 
     private func row(_ title: String, _ icon: String, _ action: @escaping () -> Void) -> some View {
@@ -90,17 +96,9 @@ struct AccountView: View {
             }
         }
     }
-    private func linkRow(_ title: String, _ icon: String, _ url: URL) -> some View {
-        row(title, icon) { UIApplication.shared.open(url) }
-    }
-
     private func requestReview() {
         if let scene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
             SKStoreReviewController.requestReview(in: scene)
         }
-    }
-    private func openMail() {
-        let subject = "Wheelet 문의".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        if let url = URL(string: "mailto:\(supportEmail)?subject=\(subject)") { UIApplication.shared.open(url) }
     }
 }
