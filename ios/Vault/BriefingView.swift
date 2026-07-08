@@ -4,9 +4,12 @@ import SwiftUI
 struct BriefingView: View {
     @ObservedObject var store: VaultStore
     @ObservedObject var insight: InsightService
+    @StateObject private var premium = PremiumStore()
     @State private var showChecklist = false
     @State private var showAssistant = false
     @State private var assistantPrompt: String?
+    @State private var showReport = false
+    @State private var showPaywall = false
 
     private var shortName: String {
         store.vehicle.name.split(separator: " ").prefix(2).joined(separator: " ")
@@ -28,6 +31,7 @@ struct BriefingView: View {
                 header
                 briefing
                 spendCard
+                reportEntry
                 ridingStatsCard
                 maintenanceEntry
                 leaseCard
@@ -40,6 +44,32 @@ struct BriefingView: View {
         .foregroundStyle(Theme.text)
         .sheet(isPresented: $showChecklist) { MaintenanceChecklistView(store: store) }
         .sheet(isPresented: $showAssistant) { AIAssistantView(store: store, initialPrompt: assistantPrompt) }
+        .sheet(isPresented: $showReport) { PersonalReportView(store: store) }
+        .sheet(isPresented: $showPaywall) { PaywallSheet(premium: premium) }
+    }
+
+    // 월간 리포트 진입 (프리미엄 · PDF/카톡 공유)
+    private var reportEntry: some View {
+        Button {
+            if premium.isPremium { showReport = true } else { showPaywall = true }
+        } label: {
+            HStack(spacing: 12) {
+                RoundedRectangle(cornerRadius: 10).fill(Theme.gold.opacity(0.14)).frame(width: 34, height: 34)
+                    .overlay(Image(systemName: "doc.text.fill").font(.system(size: 14)).foregroundStyle(Theme.gold))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("월간 리포트").font(pd(13.5, .semibold))
+                    Text("이번 달 지출·주행·정비 요약 · PDF 공유").font(pd(10)).foregroundStyle(Theme.muted)
+                }
+                Spacer()
+                Image(systemName: premium.isPremium ? "chevron.right" : "crown.fill")
+                    .font(.system(size: 12)).foregroundStyle(premium.isPremium ? Theme.muted : Theme.gold)
+            }
+            .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 16))
+            .background(Theme.card).clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.cardBorder, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 16).padding(.top, 12)
     }
 
     // 헤더
