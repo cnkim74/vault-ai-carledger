@@ -28,10 +28,12 @@ struct GarageView: View {
                         .kerning(1)
                     Spacer()
                     Button {
-                        showAdd = true
+                        // 무료는 1대까지. 2대째부터 프리미엄.
+                        if !premium.isPremium && store.vehicles.count >= 1 { showPaywall = true }
+                        else { showAdd = true }
                     } label: {
                         HStack(spacing: 4) {
-                            Image(systemName: "plus")
+                            Image(systemName: (!premium.isPremium && store.vehicles.count >= 1) ? "crown.fill" : "plus")
                                 .font(.system(size: 11, weight: .semibold))
                             Text("차량 추가")
                                 .font(pd(12, .semibold))
@@ -253,9 +255,10 @@ struct GarageView: View {
         .sheet(isPresented: $showOBDGuide) { OBDGuideView(premium: premium, store: store) }
     }
 
-    // 테슬라 연결/동기화 버튼
+    // 테슬라 연결/동기화 버튼 (자동 연동 = 프리미엄)
     private var teslaButton: some View {
         Button {
+            if !premium.isPremium { showPaywall = true; return }
             Task {
                 if !tesla.connected { await tesla.connect() }
                 if tesla.connected { await tesla.sync(store: store) }
@@ -265,16 +268,17 @@ struct GarageView: View {
                 if tesla.connecting || tesla.syncing {
                     ProgressView().controlSize(.small).tint(Theme.silver)
                 } else {
-                    Image(systemName: tesla.connected ? "arrow.triangle.2.circlepath" : "bolt.car.fill")
+                    Image(systemName: !premium.isPremium ? "crown.fill" : (tesla.connected ? "arrow.triangle.2.circlepath" : "bolt.car.fill"))
                         .font(.system(size: 14))
                 }
-                Text(tesla.connecting ? "테슬라 로그인 중…"
+                Text(!premium.isPremium ? "테슬라 자동 연동 (프리미엄)"
+                     : tesla.connecting ? "테슬라 로그인 중…"
                      : tesla.syncing ? "동기화 중…"
                      : tesla.connected ? "테슬라 동기화 (배터리·주행거리)"
                      : "테슬라 연결")
                     .font(pd(14, .semibold))
             }
-            .foregroundStyle(Theme.silver)
+            .foregroundStyle(!premium.isPremium ? Theme.gold : Theme.silver)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 13)
             .background(Theme.card)
@@ -292,6 +296,7 @@ struct GarageView: View {
     // 슈퍼차저 충전 이력 임포트 버튼
     private var chargingImportButton: some View {
         Button {
+            if !premium.isPremium { showPaywall = true; return }
             Task { await tesla.importCharging(store: store) }
         } label: {
             HStack(spacing: 8) {

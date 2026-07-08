@@ -8,9 +8,11 @@ struct PaywallSheet: View {
 
     private let perks: [(String, String)] = [
         ("camera.viewfinder", "영수증·충전 화면 촬영 → AI 자동 입력"),
-        ("bolt.car.fill", "테슬라 등 차량 자동 연동"),
-        ("chart.line.uptrend.xyaxis", "월간 AI 리포트 · 무제한 인사이트"),
-        ("bell.badge", "스마트 알림 · 무제한 기록 보관"),
+        ("bolt.car.fill", "테슬라·타 브랜드 자동 연동 (API·동글)"),
+        ("bolt.fill", "슈퍼차저·충전 이력 자동 가져오기"),
+        ("car.2.fill", "차량 여러 대 등록"),
+        ("wonsign.circle.fill", "중고 시세 AI 조회"),
+        ("chart.line.uptrend.xyaxis", "월간 리포트 · PDF 카톡 공유"),
     ]
 
     var body: some View {
@@ -23,7 +25,7 @@ struct PaywallSheet: View {
                     .padding(.top, 16)
 
                 Text("프리미엄").font(gm(22, .bold))
-                Text("촬영 한 번으로 기록을 자동으로 채워요.")
+                Text("수동 입력은 무료. 자동화는 프리미엄으로.")
                     .font(pd(13)).foregroundStyle(Theme.muted).multilineTextAlignment(.center)
 
                 VStack(alignment: .leading, spacing: 14) {

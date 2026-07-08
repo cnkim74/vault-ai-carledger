@@ -345,7 +345,7 @@ struct CockpitView: View {
 
             // 상세 스탯 (풀폭)
             VStack(spacing: 8) {
-                statRow(label: "주행 가능 거리", value: "\(store.vehicle.rangeKm) km")
+                statRow(label: "주행 가능 거리", value: "\(grouped(store.vehicle.rangeKm)) km")
                 // 테슬라 자동연결이면 누적 주행도 수정 불가
                 if teslaConnected {
                     HStack {

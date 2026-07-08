@@ -51,7 +51,7 @@ struct BriefingView: View {
             Spacer()
             HStack(spacing: 8) {
                 Circle().fill(Theme.green).frame(width: 6, height: 6)
-                Text("\(shortName) · \(store.vehicle.battery)% · \(store.vehicle.rangeKm)km")
+                Text("\(shortName) · \(store.vehicle.battery)% · \(grouped(store.vehicle.rangeKm))km")
                     .font(pd(11))
                     .foregroundStyle(Theme.silver)
             }
