@@ -22,6 +22,8 @@ struct FleetView: View {
     @State private var showChooseVehicle = false
     @State private var vehicleFilter: DashFilter = .all
     @State private var rankByCost = true
+    @State private var driverDetailName: NamedRef?
+    struct NamedRef: Identifiable { let id: String }
 
     enum DashFilter { case all, due, over }
 
@@ -77,6 +79,7 @@ struct FleetView: View {
         .sheet(item: $editingVehicle) { FleetVehicleEditView(fleet: fleet, editing: $0) }
         .sheet(item: $detailVehicle) { FleetVehicleDetailView(fleet: fleet, vehicle: $0) }
         .sheet(item: $quickRecordVehicle) { FleetRecordAddView(fleet: fleet, vehicle: $0) }
+        .sheet(item: $driverDetailName) { ref in FleetDriverDetailView(fleet: fleet, driverName: ref.id) }
         .sheet(isPresented: $showReport) { FleetReportView(fleet: fleet) }
         .confirmationDialog("어느 차량 기록을 추가할까요?", isPresented: $showChooseVehicle, titleVisibility: .visible) {
             ForEach(fleet.vehicles) { v in
@@ -423,7 +426,8 @@ struct FleetView: View {
                         }.pickerStyle(.segmented).frame(width: 120)
                     }
                     ForEach(Array(stats.prefix(5).enumerated()), id: \.element.id) { idx, s in
-                        rankRow(idx + 1, s, maxVal)
+                        Button { driverDetailName = NamedRef(id: s.name) } label: { rankRow(idx + 1, s, maxVal) }
+                            .buttonStyle(.plain)
                     }
                 }
                 .padding(12).background(Theme.card.opacity(0.5)).clipShape(RoundedRectangle(cornerRadius: 14))

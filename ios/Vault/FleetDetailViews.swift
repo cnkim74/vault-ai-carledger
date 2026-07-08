@@ -144,6 +144,100 @@ struct FleetRecordAddView: View {
     }
 }
 
+/// Fleet 기사 드릴다운 — 담당 차량 + 이번 달 기록
+struct FleetDriverDetailView: View {
+    @Environment(\.dismiss) private var dismiss
+    @ObservedObject var fleet: FleetStore
+    let driverName: String
+    @State private var detailVehicle: FleetVehicle?
+
+    private var monthStart: Date { Calendar.current.dateInterval(of: .month, for: Date())?.start ?? Date() }
+    private var vehicles: [FleetVehicle] {
+        fleet.vehicles.filter { v in
+            let dn = v.driverName ?? ""
+            return dn.isEmpty ? driverName == L("담당 없음") : dn == driverName
+        }
+    }
+    private var monthRecords: [FleetRecord] {
+        let vids = Set(vehicles.map { $0.id })
+        return fleet.records.filter { vids.contains($0.fleet_vehicle_id) && $0.date >= monthStart }.sorted { $0.date > $1.date }
+    }
+    private var stat: FleetStore.DriverStat? { fleet.driverStats().first { $0.name == driverName } }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(spacing: 10) {
+                        tile(L("이번 달 비용"), won(stat?.cost ?? 0), Theme.gold)
+                        tile(L("이번 달 주행"), "\(grouped(stat?.distanceKm ?? 0))km", Theme.silver)
+                    }
+                    Text("담당 차량").font(pd(13, .semibold)).foregroundStyle(Theme.silver).padding(.top, 2)
+                    ForEach(vehicles) { v in
+                        Button { detailVehicle = v } label: { vehicleRow(v) }.buttonStyle(.plain)
+                    }
+                    Text("이번 달 기록").font(pd(13, .semibold)).foregroundStyle(Theme.silver).padding(.top, 4)
+                    if monthRecords.isEmpty {
+                        Text("이번 달 기록이 없어요").font(pd(12)).foregroundStyle(Theme.muted)
+                    } else {
+                        ForEach(monthRecords) { recordRow($0) }
+                    }
+                }
+                .padding(16)
+            }
+            .background(Theme.bgTop.ignoresSafeArea())
+            .foregroundStyle(Theme.text)
+            .navigationTitle(driverName)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("닫기") { dismiss() } } }
+        }
+        .tint(Theme.gold).preferredColorScheme(.dark)
+        .sheet(item: $detailVehicle) { FleetVehicleDetailView(fleet: fleet, vehicle: $0) }
+    }
+
+    private func tile(_ label: String, _ value: String, _ color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label).font(pd(10)).foregroundStyle(Theme.muted)
+            Text(value).font(gm(16, .bold)).foregroundStyle(color)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading).padding(12)
+        .background(Theme.card).clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.cardBorder, lineWidth: 1))
+    }
+    private func vehicleRow(_ v: FleetVehicle) -> some View {
+        HStack(spacing: 12) {
+            RoundedRectangle(cornerRadius: 10).fill(Theme.gold.opacity(0.12)).frame(width: 34, height: 34)
+                .overlay(Image(systemName: v.vehicleCategory.icon).font(.system(size: 14)).foregroundStyle(Theme.gold))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(v.plate ?? v.name ?? "-").font(pd(13, .semibold))
+                Text("\(grouped(v.odometerKm))km").font(pd(10)).foregroundStyle(Theme.muted)
+            }
+            Spacer()
+            Text(won(fleet.monthlyCost(vehicleId: v.id))).font(gm(12, .medium)).foregroundStyle(Theme.silver)
+            Image(systemName: "chevron.right").font(.system(size: 11)).foregroundStyle(Theme.muted)
+        }
+        .padding(11).background(Theme.card).clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.cardBorder, lineWidth: 1))
+    }
+    private func recordRow(_ r: FleetRecord) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: rIcon(r.recordKind)).font(.system(size: 13)).foregroundStyle(Theme.gold).frame(width: 22)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(r.title ?? r.recordKind.label).font(pd(12.5, .medium))
+                Text(Self.df.string(from: r.date)).font(pd(10)).foregroundStyle(Theme.muted)
+            }
+            Spacer()
+            if let a = r.amount_won { Text(won(a)).font(gm(12.5, .medium)) }
+        }
+        .padding(11).background(Theme.card).clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.cardBorder, lineWidth: 1))
+    }
+    private func rIcon(_ k: RecordKind) -> String {
+        switch k { case .charge: return "bolt.fill"; case .fuel: return "fuelpump.fill"; case .drive: return "clock"; case .maintenance: return "wrench.and.screwdriver.fill" }
+    }
+    private static let df: DateFormatter = { let f = DateFormatter(); f.locale = Locale(identifier: "ko_KR"); f.dateFormat = "M/d HH:mm"; return f }()
+}
+
 /// Fleet 월간 리포트 + CSV(엑셀) 내보내기
 struct FleetReportView: View {
     @Environment(\.dismiss) private var dismiss

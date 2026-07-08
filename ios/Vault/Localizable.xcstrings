@@ -2426,7 +2426,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This month's drives"
+            "value": "This month distance"
           }
         },
         "ja": {
@@ -4771,6 +4771,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "本月司机排名"
+          }
+        }
+      }
+    },
+    "이번 달 기록": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This month records"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今月の記録"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本月记录"
+          }
+        }
+      }
+    },
+    "이번 달 기록이 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No records this month"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今月の記録がありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本月无记录"
           }
         }
       }
