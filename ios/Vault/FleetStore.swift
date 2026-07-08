@@ -24,6 +24,7 @@ struct FleetVehicle: Codable, Identifiable {
     let id: UUID
     var plate: String?
     var name: String?
+    var maker: String?
     var model: String?
     var year: Int?
     var category: String
@@ -41,7 +42,7 @@ struct FleetVehicle: Codable, Identifiable {
     var serviceRemaining: Int? { nextServiceKm.map { $0 - odometerKm } }
 
     enum CodingKeys: String, CodingKey {
-        case id, plate, name, model, year, category, fuel, memo, status
+        case id, plate, name, maker, model, year, category, fuel, memo, status
         case odometerKm = "odometer_km"
         case driverName = "driver_name"
         case driverPhone = "driver_phone"
@@ -91,6 +92,7 @@ final class FleetStore: ObservableObject {
         var fleet_id: String?
         var plate: String?
         var name: String?
+        var maker: String?
         var model: String?
         var year: Int?
         var category: String?
@@ -299,20 +301,21 @@ final class FleetStore: ObservableObject {
     /// 대량삽입 행 — 모든 키를 명시(nil→null)해 PostgREST 배열 삽입 요건 충족
     private struct BulkRow: Encodable {
         let fleet_id: String
-        let plate: String?, name: String?, model: String?, fuel: String?
+        let plate: String?, name: String?, maker: String?, model: String?, fuel: String?
         let driver_name: String?, driver_phone: String?, memo: String?
         let year: Int?
         let category: String, status: String
         let odometer_km: Int
         let next_service_km: Int?
         enum CodingKeys: String, CodingKey {
-            case fleet_id, plate, name, model, fuel, driver_name, driver_phone, memo, year, category, status, odometer_km, next_service_km
+            case fleet_id, plate, name, maker, model, fuel, driver_name, driver_phone, memo, year, category, status, odometer_km, next_service_km
         }
         func encode(to encoder: Encoder) throws {
             var c = encoder.container(keyedBy: CodingKeys.self)
             try c.encode(fleet_id, forKey: .fleet_id)
             try c.encode(plate, forKey: .plate)
             try c.encode(name, forKey: .name)
+            try c.encode(maker, forKey: .maker)
             try c.encode(model, forKey: .model)
             try c.encode(fuel, forKey: .fuel)
             try c.encode(driver_name, forKey: .driver_name)
@@ -332,7 +335,7 @@ final class FleetStore: ObservableObject {
         let fidStr = fid.uuidString.lowercased()
         let batch = rows.map { r in
             BulkRow(fleet_id: fidStr, plate: r.plate, name: r.name ?? r.plate ?? r.model,
-                    model: r.model, fuel: r.fuel, driver_name: r.driver_name, driver_phone: r.driver_phone,
+                    maker: r.maker, model: r.model, fuel: r.fuel, driver_name: r.driver_name, driver_phone: r.driver_phone,
                     memo: r.memo, year: r.year, category: r.category ?? "car",
                     status: r.status ?? "active", odometer_km: r.odometer_km ?? 0,
                     next_service_km: r.next_service_km)
@@ -374,7 +377,7 @@ final class FleetStore: ObservableObject {
     }
 }
 
-/// CSV 파서 — 컬럼 순서: 차량번호, 모델, 연식, 연료, 차종, 누적주행, 기사, 연락처
+/// CSV 파서 — 컬럼 순서: 차량번호, 제조사, 모델, 연식, 연료, 차종, 누적주행, 기사, 연락처
 enum FleetCSV {
     static func parse(_ text: String) -> [FleetStore.VehicleUpsert] {
         var out: [FleetStore.VehicleUpsert] = []
@@ -386,12 +389,14 @@ enum FleetCSV {
             // 헤더 행 스킵
             if i == 0, cols.first.map({ $0.contains("번호") || $0.lowercased().contains("plate") }) == true { continue }
             func at(_ n: Int) -> String? { n < cols.count && !cols[n].isEmpty ? cols[n] : nil }
-            let cat = at(4).flatMap { catCode($0) } ?? "car"
+            let cat = at(5).flatMap { catCode($0) } ?? "car"
+            let maker = at(1), model = at(2)
+            let display = [maker, model].compactMap { $0 }.joined(separator: " ")
             out.append(.init(
-                plate: at(0), name: at(1) ?? at(0), model: at(1),
-                year: at(2).flatMap { Int($0) }, category: cat, fuel: at(3),
-                odometer_km: at(5).flatMap { Int($0.filter(\.isNumber)) } ?? 0,
-                driver_name: at(6), driver_phone: at(7), status: "active"))
+                plate: at(0), name: display.isEmpty ? at(0) : display, maker: maker, model: model,
+                year: at(3).flatMap { Int($0) }, category: cat, fuel: at(4),
+                odometer_km: at(6).flatMap { Int($0.filter(\.isNumber)) } ?? 0,
+                driver_name: at(7), driver_phone: at(8), status: "active"))
         }
         return out
     }

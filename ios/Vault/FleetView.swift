@@ -529,7 +529,7 @@ struct FleetView: View {
                         .padding(.horizontal, 14).padding(.vertical, 9).overlay(Capsule().stroke(Theme.gold.opacity(0.5), lineWidth: 1))
                 }
             }
-            Text("CSV 형식: 차량번호,모델,연식,연료,차종,누적주행,기사,연락처").font(pd(9.5)).foregroundStyle(Theme.muted2).padding(.top, 4)
+            Text("CSV 형식: 차량번호,제조사,모델,연식,연료,차종,누적주행,기사,연락처").font(pd(9.5)).foregroundStyle(Theme.muted2).padding(.top, 4)
         }
         .frame(maxWidth: .infinity).padding(.top, 40)
     }
@@ -541,7 +541,8 @@ struct FleetView: View {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text(v.plate ?? v.name ?? "-").font(pd(13.5, .semibold))
-                    if let m = v.model { Text(m).font(pd(10.5)).foregroundStyle(Theme.muted).lineLimit(1) }
+                    let sub = [v.maker, v.model].compactMap { $0 }.joined(separator: " ")
+                    if !sub.isEmpty { Text(sub).font(pd(10.5)).foregroundStyle(Theme.muted).lineLimit(1) }
                 }
                 HStack(spacing: 6) {
                     if let d = v.driverName, !d.isEmpty {
@@ -588,7 +589,9 @@ struct FleetVehicleEditView: View {
     let editing: FleetVehicle?
 
     @State private var plate: String
+    @State private var maker: String
     @State private var model: String
+    @State private var useCustomName: Bool
     @State private var year: String
     @State private var category: VehicleCategory
     @State private var fuel: String
@@ -604,9 +607,18 @@ struct FleetVehicleEditView: View {
         self.fleet = fleet; self.editing = editing
         _assignedUserId = State(initialValue: editing?.assignedUserId)
         _plate = State(initialValue: editing?.plate ?? "")
-        _model = State(initialValue: editing?.model ?? "")
+        let cat = editing?.vehicleCategory ?? .car
+        let makers = cat == .car ? CarCatalog.makers : BikeCatalog.makers
+        let knownMaker = editing?.maker.flatMap { makers.contains($0) ? $0 : nil }
+        let baseMaker = knownMaker ?? makers[0]
+        _maker = State(initialValue: baseMaker)
+        let models = cat == .car ? CarCatalog.models(for: baseMaker) : BikeCatalog.models(for: baseMaker)
+        let knownModel = editing?.model.flatMap { models.contains($0) ? $0 : nil }
+        _model = State(initialValue: knownModel ?? (editing?.model ?? models.first ?? ""))
+        // 편집인데 카탈로그에 없으면 직접 입력 모드
+        _useCustomName = State(initialValue: editing != nil && (knownMaker == nil || knownModel == nil))
         _year = State(initialValue: editing?.year.map(String.init) ?? "")
-        _category = State(initialValue: editing?.vehicleCategory ?? .car)
+        _category = State(initialValue: cat)
         _fuel = State(initialValue: editing?.fuel ?? FuelType.gasoline.rawValue)
         _odometer = State(initialValue: String(editing?.odometerKm ?? 0))
         _driverName = State(initialValue: editing?.driverName ?? "")
@@ -614,6 +626,10 @@ struct FleetVehicleEditView: View {
         _memo = State(initialValue: editing?.memo ?? "")
         _nextService = State(initialValue: editing?.nextServiceKm.map(String.init) ?? "")
     }
+
+    // 현재 차종에 맞는 제조사/모델 카탈로그 (개인 차계부와 동일)
+    private var catalogMakers: [String] { category == .car ? CarCatalog.makers : BikeCatalog.makers }
+    private func catalogModels(_ m: String) -> [String] { category == .car ? CarCatalog.models(for: m) : BikeCatalog.models(for: m) }
 
     var body: some View {
         NavigationStack {
@@ -623,7 +639,24 @@ struct FleetVehicleEditView: View {
                     Picker("차종", selection: $category) {
                         ForEach(VehicleCategory.allCases, id: \.self) { Text($0.label).tag($0) }
                     }.pickerStyle(.segmented)
-                    TextField("모델", text: $model)
+                    .onChange(of: category) { _, _ in
+                        if !useCustomName {
+                            maker = catalogMakers.first ?? ""
+                            model = catalogModels(maker).first ?? ""
+                        }
+                    }
+                    Toggle("직접 입력", isOn: $useCustomName)
+                    if useCustomName {
+                        TextField("차량 이름 (예: Model Y Long Range)", text: $model)
+                    } else {
+                        Picker("제조사", selection: $maker) {
+                            ForEach(catalogMakers, id: \.self) { Text($0).tag($0) }
+                        }
+                        .onChange(of: maker) { _, newMaker in model = catalogModels(newMaker).first ?? "" }
+                        Picker("모델", selection: $model) {
+                            ForEach(catalogModels(maker), id: \.self) { Text($0).tag($0) }
+                        }
+                    }
                     TextField("연식 (예: 2024)", text: $year).keyboardType(.numberPad)
                     Picker("연료", selection: $fuel) {
                         ForEach(FuelType.allCases, id: \.rawValue) { Text($0.rawValue).tag($0.rawValue) }
@@ -663,9 +696,13 @@ struct FleetVehicleEditView: View {
     }
 
     private func save() async {
+        let savedMaker = useCustomName ? nil : (maker.isEmpty ? nil : maker)
+        let savedModel = model.isEmpty ? nil : model
+        let display = [savedMaker, savedModel].compactMap { $0 }.joined(separator: " ")
         let up = FleetStore.VehicleUpsert(
-            plate: plate.isEmpty ? nil : plate, name: plate.isEmpty ? model : plate,
-            model: model.isEmpty ? nil : model, year: Int(year), category: category.rawValue,
+            plate: plate.isEmpty ? nil : plate,
+            name: plate.isEmpty ? (display.isEmpty ? nil : display) : plate,
+            maker: savedMaker, model: savedModel, year: Int(year), category: category.rawValue,
             fuel: fuel, odometer_km: Int(odometer) ?? 0,
             driver_name: driverName.isEmpty ? nil : driverName,
             driver_phone: driverPhone.isEmpty ? nil : driverPhone,

@@ -332,9 +332,9 @@ struct FleetReportView: View {
         func esc(_ cols: [String]) -> String {
             cols.map { "\"\($0.replacingOccurrences(of: "\"", with: "\"\""))\"" }.joined(separator: ",") + "\n"
         }
-        var csv = "차량번호,모델,담당기사,연락처,누적주행(km),이번달비용(원)\n"
+        var csv = "차량번호,제조사,모델,담당기사,연락처,누적주행(km),이번달비용(원)\n"
         for v in fleet.vehicles {
-            csv += esc([v.plate ?? "", v.model ?? "", v.driverName ?? "", v.driverPhone ?? "",
+            csv += esc([v.plate ?? "", v.maker ?? "", v.model ?? "", v.driverName ?? "", v.driverPhone ?? "",
                         "\(v.odometerKm)", "\(fleet.monthlyCost(vehicleId: v.id))"])
         }
         // 기사별 순위 표 (빈 줄로 구분)
