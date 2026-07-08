@@ -110,6 +110,11 @@ struct PaywallSheet: View {
             }
             .disabled(working)
             if let restoreMsg { Text(restoreMsg).font(pd(10.5)).foregroundStyle(Theme.muted) }
+            #if DEBUG
+            Button { premium.debugToggle() } label: {
+                Text("개발용: 프리미엄 켜기").font(pd(10.5)).foregroundStyle(Theme.muted2)
+            }.padding(.top, 2)
+            #endif
         }
     }
 
