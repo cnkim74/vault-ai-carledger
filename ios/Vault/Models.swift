@@ -447,6 +447,27 @@ func grouped(_ n: Int) -> String {
     return f.string(from: NSNumber(value: n)) ?? "\(n)"
 }
 
+/// AI가 생성한 자유 텍스트의 금액·거리 숫자에 천단위 쉼표를 넣는다.
+/// ₩ 뒤, `원`/`km` 앞의 4자리 이상 숫자만 대상 → 연도(2024년)·퍼센트는 건드리지 않음.
+func groupInlineNumbers(_ text: String) -> String {
+    var out = text
+    let patterns = ["(?<=₩)(\\d{4,})", "(\\d{4,})(?=\\s?원)", "(\\d{4,})(?=\\s?km)"]
+    for p in patterns {
+        guard let re = try? NSRegularExpression(pattern: p) else { continue }
+        let ns = out as NSString
+        var result = ""; var last = 0
+        for m in re.matches(in: out, range: NSRange(location: 0, length: ns.length)) {
+            let r = m.range(at: 1)
+            result += ns.substring(with: NSRange(location: last, length: r.location - last))
+            result += grouped(Int(ns.substring(with: r)) ?? 0)
+            last = r.location + r.length
+        }
+        result += ns.substring(from: last)
+        out = result
+    }
+    return out
+}
+
 // ── 목업 (디자인 원본과 동일 · 네트워크 실패 시 폴백) ──
 
 enum MockData {

@@ -11,6 +11,7 @@ final class InsightService: ObservableObject {
     너는 차계부 앱 VAULT의 AI 비서다. 사용자의 차량 정보와 최근 기록을 보고 \
     비용 절약이나 차량 관리에 실질적으로 도움이 되는 인사이트를 정확히 한 문장의 한국어로 제안한다. \
     가능하면 구체적인 숫자(금액·거리·비율)를 포함한다. \
+    금액·거리 등 네 자리 이상 숫자는 천단위 쉼표를 넣는다 (예: 38,200원, 12,000km). 단 연도에는 넣지 않는다. \
     중요: 잔여 계약기간·잔여 거리·적정 대비·만료 예상 등의 수치는 아래 컨텍스트에 계산되어 제공되므로, \
     날짜나 기간을 스스로 계산하지 말고 제공된 값을 그대로 사용한다. 제공되지 않은 값은 지어내지 않는다. \
     인사말·설명 없이 그 한 문장만 출력한다.
@@ -24,7 +25,7 @@ final class InsightService: ObservableObject {
         let context = Self.buildContext(vehicle: vehicle, records: records)
         if let text = await AIProxy.complete(system: Self.system, user: context, maxTokens: 300),
            !text.isEmpty {
-            tip = text
+            tip = groupInlineNumbers(text)   // AI 출력 숫자에 천단위 쉼표 보정
         }
     }
 

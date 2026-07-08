@@ -20,7 +20,7 @@ final class PredictionService: ObservableObject {
         guard !drives.isEmpty else { return }
         if let (km, why) = await predictWithClaude(vehicle: vehicle, drives: drives, placeName: placeName) {
             weeklyKm = km
-            reason = why
+            reason = groupInlineNumbers(why)   // AI 문구 숫자 천단위 쉼표 보정
             isAI = true
         }
     }

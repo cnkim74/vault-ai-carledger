@@ -204,7 +204,7 @@ struct AIAssistantView: View {
         // 대화 이력을 하나의 사용자 메시지로 (다중 턴 맥락 유지)
         let convo = messages.map { ($0.role == "user" ? "Q: " : "A: ") + $0.text }.joined(separator: "\n")
         let answer = await AIProxy.complete(system: Self.systemPrompt(store: store), user: convo, maxTokens: 600)
-        let reply = answer ?? L("답변을 가져오지 못했어요. 잠시 후 다시 시도해 주세요.")
+        let reply = groupInlineNumbers(answer ?? L("답변을 가져오지 못했어요. 잠시 후 다시 시도해 주세요."))
         messages.append(Msg(role: "ai", text: reply))
         // 첫 문답이면 제목 자동 요약
         if convTitle == nil, answer != nil, messages.count == 2 {
