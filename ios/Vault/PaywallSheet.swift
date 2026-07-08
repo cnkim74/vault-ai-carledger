@@ -1,10 +1,14 @@
 import SwiftUI
+import StoreKit
 
-/// 프리미엄 안내 시트 — 스캔 자동입력 등 유료 기능 소개.
-/// 실제 결제(StoreKit) 연동 전까지는 '체험 시작'으로 기능을 열 수 있다.
+/// 프리미엄 페이월 — StoreKit2 자동 갱신 구독 구매 / 복원 / 프로모션 코드.
 struct PaywallSheet: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var premium: PremiumStore
+    @State private var working = false
+
+    private let privacyURL = URL(string: "https://cnkim74.github.io/vault-ai-carledger/privacy.html")!
+    private let termsURL   = URL(string: "https://cnkim74.github.io/vault-ai-carledger/terms.html")!
 
     private let perks: [(String, String)] = [
         ("camera.viewfinder", "영수증·충전 화면 촬영 → AI 자동 입력"),
@@ -17,56 +21,115 @@ struct PaywallSheet: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
-                Circle()
-                    .fill(Theme.goldGradient)
-                    .frame(width: 68, height: 68)
-                    .overlay(Image(systemName: "crown.fill").font(.system(size: 28)).foregroundStyle(Theme.ink))
-                    .padding(.top, 16)
+            ScrollView {
+                VStack(spacing: 18) {
+                    Circle().fill(Theme.goldGradient).frame(width: 64, height: 64)
+                        .overlay(Image(systemName: "crown.fill").font(.system(size: 26)).foregroundStyle(Theme.ink))
+                        .padding(.top, 12)
+                    Text("프리미엄").font(gm(22, .bold))
+                    Text("수동 입력은 무료. 자동화는 프리미엄으로.")
+                        .font(pd(13)).foregroundStyle(Theme.muted).multilineTextAlignment(.center)
 
-                Text("프리미엄").font(gm(22, .bold))
-                Text("수동 입력은 무료. 자동화는 프리미엄으로.")
-                    .font(pd(13)).foregroundStyle(Theme.muted).multilineTextAlignment(.center)
-
-                VStack(alignment: .leading, spacing: 14) {
-                    ForEach(perks, id: \.0) { perk in
-                        HStack(spacing: 12) {
-                            Image(systemName: perk.0).font(.system(size: 16)).foregroundStyle(Theme.gold).frame(width: 26)
-                            Text(perk.1).font(pd(13)).foregroundStyle(Theme.text)
-                            Spacer()
-                        }
-                    }
+                    perksCard
+                    plansSection
+                    footerActions
+                    legalFooter
                 }
-                .padding(16)
-                .background(Theme.card)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.cardBorder, lineWidth: 1))
-
-                Spacer()
-
-                Button {
-                    premium.activateTrial()
-                    dismiss()
-                } label: {
-                    Text("체험 시작")
-                        .font(pd(15, .semibold)).foregroundStyle(Theme.ink)
-                        .frame(maxWidth: .infinity).padding(.vertical, 15)
-                        .background(Theme.goldGradient)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                }
-                Text("결제 연동(App Store 구독)은 추후 제공됩니다.")
-                    .font(pd(10)).foregroundStyle(Theme.muted)
+                .padding(20)
             }
-            .padding(20)
             .background(Theme.bgTop.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("닫기") { dismiss() }
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("닫기") { dismiss() } } }
+            .task { if premium.products.isEmpty { await premium.loadProducts() } }
+            .onChange(of: premium.isPremium) { _, isPro in if isPro { dismiss() } }
+        }
+        .tint(Theme.gold).preferredColorScheme(.dark)
+    }
+
+    private var perksCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ForEach(perks, id: \.0) { perk in
+                HStack(spacing: 12) {
+                    Image(systemName: perk.0).font(.system(size: 15)).foregroundStyle(Theme.gold).frame(width: 24)
+                    Text(perk.1).font(pd(12.5)).foregroundStyle(Theme.text)
+                    Spacer()
                 }
             }
         }
-        .tint(Theme.gold)
-        .preferredColorScheme(.dark)
+        .padding(16).background(Theme.card).clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.cardBorder, lineWidth: 1))
+    }
+
+    @ViewBuilder
+    private var plansSection: some View {
+        if premium.products.isEmpty {
+            VStack(spacing: 8) {
+                ProgressView().tint(Theme.gold)
+                Text("구독 상품을 불러오는 중이에요.\nApp Store Connect 상품 설정 후 표시됩니다.")
+                    .font(pd(11)).foregroundStyle(Theme.muted).multilineTextAlignment(.center)
+            }.padding(.vertical, 10)
+        } else {
+            VStack(spacing: 10) {
+                ForEach(premium.products, id: \.id) { product in
+                    Button { Task { await buy(product) } } label: { planRow(product) }
+                        .buttonStyle(.plain).disabled(working)
+                }
+            }
+        }
+    }
+
+    private func planRow(_ product: Product) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(product.displayName).font(pd(14, .semibold)).foregroundStyle(Theme.ink)
+                Text(String(format: L("%@ / %@"), product.displayPrice, premium.periodLabel(product)))
+                    .font(pd(11)).foregroundStyle(Theme.ink.opacity(0.8))
+            }
+            Spacer()
+            if working { ProgressView().tint(Theme.ink) }
+            else { Image(systemName: "chevron.right").font(.system(size: 12)).foregroundStyle(Theme.ink.opacity(0.7)) }
+        }
+        .padding(.horizontal, 16).padding(.vertical, 14)
+        .background(Theme.goldGradient).clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+
+    private var footerActions: some View {
+        HStack(spacing: 16) {
+            Button { Task { working = true; await premium.restore(); working = false } } label: {
+                Text("구매 복원").font(pd(12, .semibold)).foregroundStyle(Theme.gold)
+            }
+            Text("·").foregroundStyle(Theme.muted)
+            Button { presentOfferCode() } label: {
+                Text("프로모션 코드").font(pd(12, .semibold)).foregroundStyle(Theme.gold)
+            }
+        }
+        .disabled(working)
+    }
+
+    private var legalFooter: some View {
+        VStack(spacing: 6) {
+            Text("구독은 자동 갱신되며, 현재 기간 종료 24시간 전에 취소하지 않으면 동일 금액으로 갱신됩니다. 결제는 App Store 계정으로 청구되며, 설정 > Apple 계정에서 관리·해지할 수 있어요.")
+                .font(pd(9.5)).foregroundStyle(Theme.muted2).multilineTextAlignment(.center)
+            HStack(spacing: 12) {
+                Link("이용약관", destination: termsURL).font(pd(10)).foregroundStyle(Theme.muted)
+                Link("개인정보처리방침", destination: privacyURL).font(pd(10)).foregroundStyle(Theme.muted)
+            }
+        }
+        .padding(.top, 4)
+    }
+
+    private func buy(_ product: Product) async {
+        working = true; defer { working = false }
+        _ = await premium.purchase(product)   // 성공 시 onChange(isPremium)에서 dismiss
+    }
+
+    /// 애플 오퍼 코드(프로모션) 입력 시트
+    private func presentOfferCode() {
+        guard let scene = UIApplication.shared.connectedScenes
+            .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene else { return }
+        Task {
+            try? await AppStore.presentOfferCodeRedeemSheet(in: scene)
+            await premium.refresh()
+        }
     }
 }
