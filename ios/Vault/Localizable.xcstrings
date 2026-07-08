@@ -5523,6 +5523,50 @@
         }
       }
     },
+    "추천 용품": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recommended parts"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "おすすめ用品"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "推荐用品"
+          }
+        }
+      }
+    },
+    "정비 예정에 맞춰": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Matched to upcoming service"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "整備予定に合わせて"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "根据保养计划"
+          }
+        }
+      }
+    },
     "PDF 공유 (카톡·메일)": {
       "localizations": {
         "en": {

@@ -47,6 +47,7 @@ struct CockpitView: View {
                     statCards
                     leaseProjectionCard
                     maintenanceCard
+                    partsCard
                     predictionCard
                     StationsCard(store: store, weather: weather)
                         .padding(.top, 12)
@@ -755,6 +756,48 @@ struct CockpitView: View {
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.cardBorder, lineWidth: 1))
             .padding(.horizontal, 16)
             .padding(.top, 12)
+        }
+    }
+
+    // 정비 예정 연동 추천 용품 (쿠팡 파트너스)
+    @ViewBuilder
+    private var partsCard: some View {
+        let dueItems = MaintenanceSchedule.upcoming(vehicle: store.vehicle, records: store.records)
+            .filter { $0.remainingKm <= 2000 }.map { $0.item }
+        let products = MaintenanceShop.products(for: dueItems)
+        if !products.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 6) {
+                    Image(systemName: "cart.fill").font(.system(size: 12)).foregroundStyle(Theme.gold)
+                    Text("추천 용품").font(pd(12, .semibold))
+                    Text("정비 예정에 맞춰").font(pd(10)).foregroundStyle(Theme.muted)
+                }
+                ForEach(products.prefix(4)) { p in
+                    HStack(spacing: 10) {
+                        RoundedRectangle(cornerRadius: 9).fill(Theme.gold.opacity(0.12)).frame(width: 32, height: 32)
+                            .overlay(Image(systemName: p.icon).font(.system(size: 13)).foregroundStyle(Theme.gold))
+                        Text(p.title).font(pd(12.5, .medium))
+                        Spacer()
+                        Button { if let u = Affiliate.productURL(p.keyword) { UIApplication.shared.open(u) } } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "cart.fill").font(.system(size: 9))
+                                Text("구매").font(pd(11, .semibold))
+                            }
+                            .foregroundStyle(Theme.ink).padding(.horizontal, 11).padding(.vertical, 6)
+                            .background(Theme.goldGradient).clipShape(Capsule())
+                        }.buttonStyle(.plain)
+                    }
+                }
+                HStack(alignment: .top, spacing: 5) {
+                    Image(systemName: "info.circle").font(.system(size: 9)).foregroundStyle(Theme.muted2)
+                    Text(Affiliate.disclosure).font(pd(9)).foregroundStyle(Theme.muted2)
+                }
+                .padding(.top, 2)
+            }
+            .padding(EdgeInsets(top: 14, leading: 16, bottom: 12, trailing: 16))
+            .background(Theme.card).clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.cardBorder, lineWidth: 1))
+            .padding(.horizontal, 16).padding(.top, 12)
         }
     }
 

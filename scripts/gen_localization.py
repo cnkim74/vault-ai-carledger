@@ -287,6 +287,8 @@ T = {
     "업무 · %@": ("Work · %@", "業務 · %@", "工作 · %@"),
     "업무 차량": ("Work vehicle", "業務車両", "工作车辆"),
     "지출 구성": ("Spending breakdown", "支出構成", "支出构成"),
+    "추천 용품": ("Recommended parts", "おすすめ用品", "推荐用品"),
+    "정비 예정에 맞춰": ("Matched to upcoming service", "整備予定に合わせて", "根据保养计划"),
     "PDF 공유 (카톡·메일)": ("Share PDF (KakaoTalk·Email)", "PDF共有（メール等）", "分享PDF（邮件等）"),
     "엑셀(CSV) 내보내기": ("Export Excel (CSV)", "Excel(CSV)エクスポート", "导出Excel(CSV)"),
     "%d월 · 차량 %d대": ("Month %d · %d vehicles", "%d月 · 車両%d台", "%d月 · %d辆车"),
