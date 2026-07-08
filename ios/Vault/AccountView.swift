@@ -11,6 +11,8 @@ struct AccountView: View {
     @State private var showProfileEdit = false
     @State private var showFleet = false
     @State private var showInquiry = false
+    @State private var showInbox = false
+    @State private var isAdmin = false
     @State private var legal: LegalDoc?
 
     private enum LegalDoc: Identifiable {
@@ -64,6 +66,13 @@ struct AccountView: View {
                     row("1:1 문의", "envelope.fill") { showInquiry = true }
                 }
 
+                // 관리자 (문의함) — 관리자 계정 로그인 시에만
+                if isAdmin {
+                    Section("관리자") {
+                        row("문의함", "tray.full.fill") { showInbox = true }
+                    }
+                }
+
                 // 정보
                 Section("정보") {
                     row("개인정보처리방침", "hand.raised.fill") { legal = .privacy }
@@ -84,7 +93,10 @@ struct AccountView: View {
         .sheet(isPresented: $showProfileEdit) { ProfileSheet(profile: profile) }
         .sheet(isPresented: $showFleet) { FleetView(premium: premium, fleet: fleet, auth: auth) }
         .sheet(isPresented: $showInquiry) { InquiryView() }
+        .sheet(isPresented: $showInbox) { AdminInboxView(auth: auth) }
         .sheet(item: $legal) { doc in LegalTextView(title: doc.title, body_: doc.text) }
+        .task { await checkAdmin() }
+        .onChange(of: auth.isAuthenticated) { _, _ in Task { await checkAdmin() } }
     }
 
     private func row(_ title: String, _ icon: String, _ action: @escaping () -> Void) -> some View {
@@ -96,6 +108,22 @@ struct AccountView: View {
             }
         }
     }
+    /// 로그인 계정이 관리자(app_admins)인지 확인 → 문의함 노출 여부
+    private func checkAdmin() async {
+        guard auth.isAuthenticated, let uid = auth.userID,
+              let base = Secrets.supabaseURL, let key = Secrets.supabaseKey, let token = await auth.validToken() else {
+            isAdmin = false; return
+        }
+        var comps = URLComponents(url: base.appendingPathComponent("rest/v1/app_admins"), resolvingAgainstBaseURL: false)!
+        comps.queryItems = [.init(name: "select", value: "user_id"), .init(name: "user_id", value: "eq.\(uid)")]
+        var req = URLRequest(url: comps.url!)
+        req.setValue(key, forHTTPHeaderField: "apikey"); req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        if let (data, _) = try? await URLSession.shared.data(for: req),
+           let rows = try? JSONDecoder().decode([[String: String]].self, from: data) {
+            isAdmin = !rows.isEmpty
+        } else { isAdmin = false }
+    }
+
     private func requestReview() {
         if let scene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
             SKStoreReviewController.requestReview(in: scene)
