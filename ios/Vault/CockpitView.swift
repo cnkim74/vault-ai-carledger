@@ -9,6 +9,7 @@ struct CockpitView: View {
     @ObservedObject var fleet: FleetStore
     var workVehicles: [FleetVehicle] = []
     @Binding var workVehicleID: UUID?
+    var adminPending: Int = 0
     var onEditProfile: () -> Void = {}
     var onShowRecords: () -> Void = {}
 
@@ -217,6 +218,16 @@ struct CockpitView: View {
                         Text(profile.initials)
                             .font(pd(12, .semibold))
                             .foregroundStyle(Theme.gold)
+                    }
+                    .overlay(alignment: .topTrailing) {
+                        if adminPending > 0 {
+                            Text("\(adminPending)")
+                                .font(pd(9, .bold)).foregroundStyle(.white)
+                                .frame(minWidth: 15).padding(.horizontal, 3).padding(.vertical, 1)
+                                .background(Theme.red).clipShape(Capsule())
+                                .overlay(Capsule().stroke(Theme.bgTop, lineWidth: 1.5))
+                                .offset(x: 5, y: -4)
+                        }
                     }
                 }
             }

@@ -9,6 +9,8 @@ struct ContentView: View {
     @StateObject private var premium = PremiumStore()
     @StateObject private var fleet = FleetStore()
     @StateObject private var auth = AuthService()
+    @StateObject private var adminStore = AdminStore()
+    @Environment(\.scenePhase) private var scenePhase
     @State private var tab: MainTab =
         MainTab(rawValue: ProcessInfo.processInfo.environment["TAB"] ?? "") ?? .home
     @State private var showAddRecord = false
@@ -35,6 +37,7 @@ struct ContentView: View {
                 case .home:
                     CockpitView(store: store, insight: insight, profile: profile,
                                 fleet: fleet, workVehicles: myWorkVehicles, workVehicleID: $workVehicleID,
+                                adminPending: adminStore.isAdmin ? adminStore.pendingCount : 0,
                                 onEditProfile: { showAccount = true },
                                 onShowRecords: { tab = .records })
                 case .records: RecordsListView(store: store)
@@ -59,7 +62,7 @@ struct ContentView: View {
             ProfileSheet(profile: profile)
         }
         .sheet(isPresented: $showAccount) {
-            AccountView(profile: profile, premium: premium, fleet: fleet, auth: auth)
+            AccountView(profile: profile, premium: premium, fleet: fleet, auth: auth, adminStore: adminStore)
         }
         .task {
             await store.load()
@@ -70,6 +73,11 @@ struct ContentView: View {
             fleet.auth = auth
             if auth.isAuthenticated { await fleet.load(uid: auth.userID) }
         }
+        .task { await adminStore.refresh(auth: auth) }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { Task { await adminStore.refresh(auth: auth) } }
+        }
+        .onChange(of: auth.isAuthenticated) { _, _ in Task { await adminStore.refresh(auth: auth) } }
         .onAppear {
             if !profile.isSet { showProfile = true }   // 첫 실행 온보딩
         }

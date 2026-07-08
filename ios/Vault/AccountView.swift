@@ -8,11 +8,11 @@ struct AccountView: View {
     @ObservedObject var premium: PremiumStore
     @ObservedObject var fleet: FleetStore
     @ObservedObject var auth: AuthService
+    @ObservedObject var adminStore: AdminStore
     @State private var showProfileEdit = false
     @State private var showFleet = false
     @State private var showInquiry = false
     @State private var showInbox = false
-    @State private var isAdmin = false
     @State private var legal: LegalDoc?
 
     private enum LegalDoc: Identifiable {
@@ -67,9 +67,20 @@ struct AccountView: View {
                 }
 
                 // 관리자 (문의함) — 관리자 계정 로그인 시에만
-                if isAdmin {
+                if adminStore.isAdmin {
                     Section("관리자") {
-                        row("문의함", "tray.full.fill") { showInbox = true }
+                        Button { showInbox = true } label: {
+                            HStack {
+                                Label { Text("문의함").foregroundStyle(Theme.text) } icon: { Image(systemName: "tray.full.fill").foregroundStyle(Theme.gold) }
+                                Spacer()
+                                if adminStore.pendingCount > 0 {
+                                    Text("\(adminStore.pendingCount)").font(pd(11, .bold)).foregroundStyle(.white)
+                                        .frame(minWidth: 18).padding(.horizontal, 5).padding(.vertical, 2)
+                                        .background(Theme.red).clipShape(Capsule())
+                                }
+                                Image(systemName: "chevron.right").font(.system(size: 11)).foregroundStyle(Theme.muted)
+                            }
+                        }
                     }
                 }
 
@@ -93,10 +104,10 @@ struct AccountView: View {
         .sheet(isPresented: $showProfileEdit) { ProfileSheet(profile: profile) }
         .sheet(isPresented: $showFleet) { FleetView(premium: premium, fleet: fleet, auth: auth) }
         .sheet(isPresented: $showInquiry) { InquiryView() }
-        .sheet(isPresented: $showInbox) { AdminInboxView(auth: auth) }
+        .sheet(isPresented: $showInbox, onDismiss: { Task { await adminStore.refresh(auth: auth) } }) { AdminInboxView(auth: auth) }
         .sheet(item: $legal) { doc in LegalTextView(title: doc.title, body_: doc.text) }
-        .task { await checkAdmin() }
-        .onChange(of: auth.isAuthenticated) { _, _ in Task { await checkAdmin() } }
+        .task { await adminStore.refresh(auth: auth) }
+        .onChange(of: auth.isAuthenticated) { _, _ in Task { await adminStore.refresh(auth: auth) } }
     }
 
     private func row(_ title: String, _ icon: String, _ action: @escaping () -> Void) -> some View {
@@ -108,23 +119,6 @@ struct AccountView: View {
             }
         }
     }
-    /// 로그인 이메일이 관리자(admin_emails)인지 확인 → 문의함 노출 여부.
-    /// RLS 자기행 조회라, 관리자면 본인 행이 돌아오고 아니면 빈 배열.
-    private func checkAdmin() async {
-        guard auth.isAuthenticated,
-              let base = Secrets.supabaseURL, let key = Secrets.supabaseKey, let token = await auth.validToken() else {
-            isAdmin = false; return
-        }
-        var comps = URLComponents(url: base.appendingPathComponent("rest/v1/admin_emails"), resolvingAgainstBaseURL: false)!
-        comps.queryItems = [.init(name: "select", value: "email"), .init(name: "limit", value: "1")]
-        var req = URLRequest(url: comps.url!)
-        req.setValue(key, forHTTPHeaderField: "apikey"); req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        if let (data, _) = try? await URLSession.shared.data(for: req),
-           let rows = try? JSONDecoder().decode([[String: String]].self, from: data) {
-            isAdmin = !rows.isEmpty
-        } else { isAdmin = false }
-    }
-
     private func requestReview() {
         if let scene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
             SKStoreReviewController.requestReview(in: scene)

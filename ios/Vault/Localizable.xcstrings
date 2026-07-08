@@ -5611,6 +5611,28 @@
         }
       }
     },
+    "새 문의 %d건이 있어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You have %d new inquiries."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しいお問い合わせが%d件あります。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有%d条新咨询。"
+          }
+        }
+      }
+    },
     "개인": {
       "localizations": {
         "en": {
