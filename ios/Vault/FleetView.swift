@@ -16,6 +16,8 @@ struct FleetView: View {
     @State private var importMsg: String?
     @State private var showPaywall = false
     @State private var groupByDriver = false
+    @State private var joinCode = ""
+    @State private var joinError: String?
 
     var body: some View {
         NavigationStack {
@@ -24,10 +26,12 @@ struct FleetView: View {
                     lockedState
                 } else if !auth.isAuthenticated {
                     AuthView(auth: auth)
-                } else if fleet.fleets.isEmpty {
-                    createFleetState
                 } else {
-                    dashboard
+                    switch fleet.role {
+                    case .manager: dashboard
+                    case .driver: driverDashboard
+                    case .none: createOrJoinState
+                    }
                 }
             }
             .background(Theme.bgTop.ignoresSafeArea())
@@ -36,15 +40,19 @@ struct FleetView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("닫기") { dismiss() } }
-                if premium.isPremium && auth.isAuthenticated && !fleet.fleets.isEmpty {
+                if premium.isPremium && auth.isAuthenticated {
                     ToolbarItemGroup(placement: .primaryAction) {
-                        Button { showReport = true } label: { Image(systemName: "chart.bar.doc.horizontal") }
+                        if fleet.role == .manager {
+                            Button { showReport = true } label: { Image(systemName: "chart.bar.doc.horizontal") }
+                        }
                         Menu {
-                            Button { showAddVehicle = true } label: { Label("차량 추가", systemImage: "plus") }
-                            Button { showImporter = true } label: { Label("CSV 대량등록", systemImage: "square.and.arrow.down") }
-                            Divider()
-                            Button(role: .destructive) { auth.signOut(); fleet.fleets = []; fleet.vehicles = [] } label: { Label("로그아웃", systemImage: "arrow.right.square") }
-                        } label: { Image(systemName: "plus.circle") }
+                            if fleet.role == .manager {
+                                Button { showAddVehicle = true } label: { Label("차량 추가", systemImage: "plus") }
+                                Button { showImporter = true } label: { Label("CSV 대량등록", systemImage: "square.and.arrow.down") }
+                                Divider()
+                            }
+                            Button(role: .destructive) { auth.signOut(); fleet.role = .none; fleet.fleets = []; fleet.vehicles = [] } label: { Label("로그아웃", systemImage: "arrow.right.square") }
+                        } label: { Image(systemName: "ellipsis.circle") }
                     }
                 }
             }
@@ -53,11 +61,11 @@ struct FleetView: View {
         .preferredColorScheme(.dark)
         .task {
             fleet.auth = auth
-            if premium.isPremium && auth.isAuthenticated { await fleet.loadFleets() }
+            if premium.isPremium && auth.isAuthenticated { await fleet.load(uid: auth.userID) }
         }
         .onChange(of: auth.isAuthenticated) { _, signedIn in
             fleet.auth = auth
-            if signedIn { Task { await fleet.loadFleets() } }
+            if signedIn { Task { await fleet.load(uid: auth.userID) } }
         }
         .sheet(isPresented: $showAddVehicle) { FleetVehicleEditView(fleet: fleet, editing: nil) }
         .sheet(item: $editingVehicle) { FleetVehicleEditView(fleet: fleet, editing: $0) }
@@ -96,25 +104,79 @@ struct FleetView: View {
         HStack(spacing: 12) { Image(systemName: icon).foregroundStyle(Theme.gold).frame(width: 24); Text(t).font(pd(13)); Spacer() }
     }
 
-    // Fleet 생성
-    private var createFleetState: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "building.2.fill").font(.system(size: 40)).foregroundStyle(Theme.gold).padding(.top, 40)
-            Text("조직을 만들어 시작하세요").font(pd(15, .semibold))
-            TextField("회사/조직 이름 (예: OO운수)", text: $newFleetName)
-                .font(pd(15)).multilineTextAlignment(.center).padding(14)
-                .background(Theme.card).clipShape(RoundedRectangle(cornerRadius: 12))
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.cardBorder, lineWidth: 1))
-                .padding(.horizontal, 24)
-            Button {
-                let n = newFleetName.trimmingCharacters(in: .whitespaces)
-                if !n.isEmpty { Task { await fleet.createFleet(name: n); newFleetName = "" } }
-            } label: {
-                Text("조직 만들기").font(pd(14, .semibold)).foregroundStyle(Theme.ink)
-                    .frame(maxWidth: .infinity).padding(.vertical, 14).background(Theme.goldGradient)
-                    .clipShape(RoundedRectangle(cornerRadius: 12)).padding(.horizontal, 24)
-            }.disabled(newFleetName.trimmingCharacters(in: .whitespaces).isEmpty)
-            Spacer()
+    // 신규 사용자: 관리자로 조직 생성 OR 기사로 코드 참여
+    private var createOrJoinState: some View {
+        ScrollView {
+            VStack(spacing: 18) {
+                Image(systemName: "building.2.fill").font(.system(size: 38)).foregroundStyle(Theme.gold).padding(.top, 30)
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Label("관리자로 시작", systemImage: "person.badge.key.fill").font(pd(13, .semibold)).foregroundStyle(Theme.silver)
+                    TextField("회사/조직 이름 (예: OO운수)", text: $newFleetName)
+                        .font(pd(14)).padding(13).background(Theme.card).clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.cardBorder, lineWidth: 1))
+                    Button {
+                        let n = newFleetName.trimmingCharacters(in: .whitespaces)
+                        if !n.isEmpty { Task { await fleet.createFleet(name: n); newFleetName = ""; await fleet.load(uid: auth.userID) } }
+                    } label: {
+                        Text("조직 만들기").font(pd(14, .semibold)).foregroundStyle(Theme.ink)
+                            .frame(maxWidth: .infinity).padding(.vertical, 13).background(Theme.goldGradient)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }.disabled(newFleetName.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+                .padding(16).background(Theme.card.opacity(0.5)).clipShape(RoundedRectangle(cornerRadius: 16))
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.cardBorder, lineWidth: 1)).padding(.horizontal, 20)
+
+                Text("또는").font(pd(11)).foregroundStyle(Theme.muted)
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Label("기사로 참여", systemImage: "person.fill").font(pd(13, .semibold)).foregroundStyle(Theme.silver)
+                    TextField("참여 코드 (관리자에게 받으세요)", text: $joinCode)
+                        .font(pd(14)).textInputAutocapitalization(.characters).autocorrectionDisabled()
+                        .padding(13).background(Theme.card).clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.cardBorder, lineWidth: 1))
+                    if let e = joinError { Text(e).font(pd(11)).foregroundStyle(.red) }
+                    Button {
+                        let c = joinCode.trimmingCharacters(in: .whitespaces)
+                        if !c.isEmpty { Task {
+                            let r = await fleet.joinByCode(c)
+                            if r.ok { joinCode = ""; joinError = nil; await fleet.load(uid: auth.userID) }
+                            else { joinError = r.error }
+                        } }
+                    } label: {
+                        Text("참여하기").font(pd(14, .semibold)).foregroundStyle(Theme.gold)
+                            .frame(maxWidth: .infinity).padding(.vertical, 13)
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.gold.opacity(0.5), lineWidth: 1))
+                    }.disabled(joinCode.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+                .padding(16).background(Theme.card.opacity(0.5)).clipShape(RoundedRectangle(cornerRadius: 16))
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.cardBorder, lineWidth: 1)).padding(.horizontal, 20)
+            }
+        }
+    }
+
+    // 기사 대시보드: 배정된 차량만
+    private var driverDashboard: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text(fleet.fleet?.name ?? "").font(gm(17, .bold))
+                    Spacer()
+                    Text("기사").font(pd(10.5, .bold)).foregroundStyle(Theme.ink)
+                        .padding(.horizontal, 8).padding(.vertical, 3).background(Theme.silver).clipShape(Capsule())
+                }.padding(.horizontal, 4)
+                if fleet.vehicles.isEmpty {
+                    VStack(spacing: 8) {
+                        Image(systemName: "car.fill").font(.system(size: 28)).foregroundStyle(Theme.muted)
+                        Text("배정된 차량이 없어요").font(pd(13)).foregroundStyle(Theme.muted)
+                        Text("관리자가 차량을 배정하면 여기에 표시돼요").font(pd(10.5)).foregroundStyle(Theme.muted2)
+                    }.frame(maxWidth: .infinity).padding(.top, 40)
+                } else {
+                    ForEach(fleet.vehicles) { v in
+                        Button { detailVehicle = v } label: { vehicleRow(v) }.buttonStyle(.plain)
+                    }
+                }
+            }.padding(16)
         }
     }
 
@@ -138,6 +200,20 @@ struct FleetView: View {
                     Text(String(format: L("총 %d대"), fleet.vehicles.count)).font(pd(12, .semibold)).foregroundStyle(Theme.gold)
                 }
                 .padding(.horizontal, 4)
+
+                // 참여 코드 (기사에게 공유) + 기사 수
+                if let code = fleet.fleet?.join_code {
+                    HStack(spacing: 8) {
+                        Image(systemName: "person.badge.plus").font(.system(size: 12)).foregroundStyle(Theme.gold)
+                        Text("참여 코드").font(pd(11)).foregroundStyle(Theme.muted)
+                        Text(code).font(gm(13, .bold)).foregroundStyle(Theme.gold).textSelection(.enabled)
+                        Spacer()
+                        Text(String(format: L("기사 %d명"), fleet.members.count)).font(pd(11)).foregroundStyle(Theme.silver)
+                    }
+                    .padding(.horizontal, 12).padding(.vertical, 10)
+                    .background(Theme.card).clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.gold.opacity(0.25), lineWidth: 1))
+                }
 
                 if fleet.vehicles.isEmpty {
                     emptyVehicles
@@ -287,10 +363,12 @@ struct FleetVehicleEditView: View {
     @State private var driverPhone: String
     @State private var memo: String
     @State private var nextService: String
+    @State private var assignedUserId: String?
     @State private var showDelete = false
 
     init(fleet: FleetStore, editing: FleetVehicle?) {
         self.fleet = fleet; self.editing = editing
+        _assignedUserId = State(initialValue: editing?.assignedUserId)
         _plate = State(initialValue: editing?.plate ?? "")
         _model = State(initialValue: editing?.model ?? "")
         _year = State(initialValue: editing?.year.map(String.init) ?? "")
@@ -323,6 +401,14 @@ struct FleetVehicleEditView: View {
                     TextField("기사 이름", text: $driverName)
                     TextField("연락처", text: $driverPhone).keyboardType(.phonePad)
                     TextField("메모 (선택)", text: $memo)
+                    if !fleet.members.isEmpty {
+                        Picker("기사 계정 배정", selection: $assignedUserId) {
+                            Text("미배정").tag(String?.none)
+                            ForEach(fleet.members) { m in
+                                Text(m.email ?? m.user_id.prefix(8).description).tag(String?.some(m.user_id))
+                            }
+                        }
+                    }
                 }
                 if editing != nil {
                     Section { Button(role: .destructive) { showDelete = true } label: { HStack { Spacer(); Text("차량 삭제"); Spacer() } } }
@@ -350,7 +436,7 @@ struct FleetVehicleEditView: View {
             driver_name: driverName.isEmpty ? nil : driverName,
             driver_phone: driverPhone.isEmpty ? nil : driverPhone,
             memo: memo.isEmpty ? nil : memo, status: "active",
-            next_service_km: Int(nextService))
+            next_service_km: Int(nextService), assigned_user_id: assignedUserId)
         if let e = editing { await fleet.updateVehicle(id: e.id, up) } else { await fleet.addVehicle(up) }
         dismiss()
     }

@@ -5,7 +5,19 @@ struct Fleet: Codable, Identifiable {
     let id: UUID
     var name: String
     var plan: String
+    var join_code: String?
+    var owner_id: String?
 }
+
+/// 조직 멤버(기사)
+struct FleetMember: Codable, Identifiable {
+    let id: UUID
+    let user_id: String
+    let email: String?
+    let role: String
+}
+
+enum FleetRole { case none, manager, driver }
 
 /// Fleet 소속 차량 (기사 정보 포함)
 struct FleetVehicle: Codable, Identifiable {
@@ -22,6 +34,7 @@ struct FleetVehicle: Codable, Identifiable {
     var memo: String?
     var status: String
     var nextServiceKm: Int?
+    var assignedUserId: String?
 
     var vehicleCategory: VehicleCategory { VehicleCategory(rawValue: category) ?? .car }
     /// 다음 정비까지 남은 거리 (설정된 경우). 음수=초과.
@@ -33,6 +46,7 @@ struct FleetVehicle: Codable, Identifiable {
         case driverName = "driver_name"
         case driverPhone = "driver_phone"
         case nextServiceKm = "next_service_km"
+        case assignedUserId = "assigned_user_id"
     }
 }
 
@@ -62,6 +76,8 @@ final class FleetStore: ObservableObject {
     @Published var selectedFleetID: UUID?
     @Published var vehicles: [FleetVehicle] = []
     @Published var records: [FleetRecord] = []
+    @Published var members: [FleetMember] = []
+    @Published var role: FleetRole = .none
     @Published var loading = false
 
     /// 인증 세션 (Fleet은 로그인 사용자 토큰으로 접근)
@@ -85,15 +101,59 @@ final class FleetStore: ObservableObject {
         var memo: String?
         var status: String?
         var next_service_km: Int?
+        var assigned_user_id: String?
     }
 
-    // MARK: 로드
-    func loadFleets() async {
-        guard let rows: [Fleet] = try? await fetch(path: "rest/v1/fleets",
-            query: [.init(name: "select", value: "*"), .init(name: "order", value: "created_at.desc")]) else { return }
-        fleets = rows
-        if selectedFleetID == nil { selectedFleetID = rows.first?.id }
-        if selectedFleetID != nil { await loadVehicles() }
+    // MARK: 로드 (역할 판별)
+    func load(uid: String?) async {
+        guard let uid else { return }
+        // 소유(관리자) 조직 먼저
+        let owned: [Fleet]? = try? await fetch(path: "rest/v1/fleets",
+            query: [.init(name: "select", value: "*"),
+                    .init(name: "owner_id", value: "eq.\(uid)"),
+                    .init(name: "order", value: "created_at.desc")])
+        if let owned, !owned.isEmpty {
+            role = .manager; fleets = owned; selectedFleetID = owned.first?.id
+            await loadVehicles(); await loadMembers()
+            return
+        }
+        // 멤버(기사) 조직
+        let member: [Fleet]? = try? await fetch(path: "rest/v1/fleets",
+            query: [.init(name: "select", value: "*"), .init(name: "order", value: "created_at.desc")])
+        if let member, !member.isEmpty {
+            role = .driver; fleets = member; selectedFleetID = member.first?.id
+            await loadVehicles()
+            return
+        }
+        role = .none; fleets = []; vehicles = []; records = []
+    }
+
+    func loadMembers() async {
+        guard let fid = selectedFleetID else { members = []; return }
+        let rows: [FleetMember]? = try? await fetch(path: "rest/v1/fleet_members",
+            query: [.init(name: "select", value: "*"),
+                    .init(name: "fleet_id", value: "eq.\(fid.uuidString.lowercased())")])
+        members = (rows ?? []).filter { $0.role == "driver" }
+    }
+
+    /// 기사: 참여 코드로 조직 참여 (Edge Function)
+    func joinByCode(_ code: String) async -> (ok: Bool, error: String?) {
+        guard let base = Secrets.supabaseURL, !apikey.isEmpty else { return (false, L("설정 오류")) }
+        let b = await bearer()
+        var req = URLRequest(url: base.appendingPathComponent("functions/v1/fleet-join"))
+        req.httpMethod = "POST"; req.setValue(apikey, forHTTPHeaderField: "apikey")
+        req.setValue("Bearer \(b)", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try? JSONSerialization.data(withJSONObject: ["code": code])
+        guard let (data, _) = try? await URLSession.shared.data(for: req),
+              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return (false, L("네트워크 오류")) }
+        if obj["ok"] as? Bool == true { return (true, nil) }
+        return (false, (obj["message"] as? String) ?? L("코드를 찾을 수 없어요"))
+    }
+
+    /// 관리자: 차량에 기사 배정
+    func assignDriver(vehicleId: UUID, userId: String?) async {
+        await updateVehicle(id: vehicleId, .init(assigned_user_id: userId))
     }
 
     func loadVehicles() async {
