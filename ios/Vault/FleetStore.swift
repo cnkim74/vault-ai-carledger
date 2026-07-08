@@ -199,9 +199,8 @@ final class FleetStore: ObservableObject {
                        kind: kind.rawValue, title: title, amount_won: amountWon, odometer_km: odometerKm,
                        occurred_at: ISO8601DateFormatter().string(from: Date()), memo: memo)
         try? await send(method: "POST", path: "rest/v1/fleet_records", query: [], body: body)
-        // 주행거리 갱신
-        if let odo = odometerKm { await updateVehicle(id: vehicleId, .init(odometer_km: odo)) }
-        await loadRecords()
+        // 차량 누적주행은 DB 트리거(sync_vehicle_odometer)가 역할 무관 자동 갱신
+        await loadVehicles() // 갱신된 odometer 반영 (loadRecords 포함)
     }
 
     // MARK: 비용 집계 (이번 달)
