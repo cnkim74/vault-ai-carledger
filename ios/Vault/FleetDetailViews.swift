@@ -302,7 +302,10 @@ struct FleetReportView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("닫기") { dismiss() } }
                 ToolbarItem(placement: .primaryAction) {
-                    Button { shareURL = makeCSV() } label: { Label("엑셀 내보내기", systemImage: "square.and.arrow.up") }
+                    Menu {
+                        Button { shareURL = makePDF() } label: { Label("PDF 공유 (카톡·메일)", systemImage: "doc.richtext") }
+                        Button { shareURL = makeCSV() } label: { Label("엑셀(CSV) 내보내기", systemImage: "tablecells") }
+                    } label: { Image(systemName: "square.and.arrow.up") }
                 }
             }
         }
@@ -347,6 +350,61 @@ struct FleetReportView: View {
         guard let data = ("\u{FEFF}" + csv).data(using: .utf8) else { return nil }  // BOM: 엑셀 한글
         try? data.write(to: url)
         return url
+    }
+
+    /// 월간 리포트 PDF 생성 → 임시 파일 URL (카톡·메일 공유용)
+    private func makePDF() -> URL? {
+        let pageW: CGFloat = 595, pageH: CGFloat = 842, margin: CGFloat = 44
+        let gold = UIColor(red: 0.83, green: 0.68, blue: 0.32, alpha: 1)
+        let t = fleet.monthlyTotals()
+        let month = Calendar.current.component(.month, from: Date())
+        let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: pageW, height: pageH))
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent((fleet.fleet?.name ?? "fleet") + "_리포트.pdf")
+        do {
+            try renderer.writePDF(to: url) { ctx in
+                ctx.beginPage()
+                var y: CGFloat = 52
+                func draw(_ s: String, _ f: UIFont, _ c: UIColor = .black, _ dy: CGFloat = 24) {
+                    (s as NSString).draw(at: CGPoint(x: margin, y: y), withAttributes: [.font: f, .foregroundColor: c]); y += dy
+                }
+                func rowLR(_ l: String, _ r: String, _ f: UIFont, _ c: UIColor = .black, _ dy: CGFloat = 20) {
+                    (l as NSString).draw(at: CGPoint(x: margin, y: y), withAttributes: [.font: f, .foregroundColor: c])
+                    let rw = (r as NSString).size(withAttributes: [.font: f]).width
+                    (r as NSString).draw(at: CGPoint(x: pageW - margin - rw, y: y), withAttributes: [.font: f, .foregroundColor: c]); y += dy
+                }
+                func line() { let p = UIBezierPath(); p.move(to: CGPoint(x: margin, y: y)); p.addLine(to: CGPoint(x: pageW - margin, y: y)); UIColor(white: 0.85, alpha: 1).setStroke(); p.lineWidth = 0.5; p.stroke(); y += 14 }
+
+                draw("\(fleet.fleet?.name ?? "Fleet") 월간 리포트", .boldSystemFont(ofSize: 22), gold, 28)
+                draw(String(format: L("%d월 · 차량 %d대"), month, fleet.vehicles.count), .systemFont(ofSize: 13), .darkGray, 26)
+                line()
+
+                draw("이번 달 비용", .boldSystemFont(ofSize: 16), .black, 26)
+                rowLR("총 비용", won(t.total), .boldSystemFont(ofSize: 15))
+                rowLR("  · 주유·충전", won(t.fuel), .systemFont(ofSize: 12.5), .darkGray)
+                rowLR("  · 정비", won(t.maintenance), .systemFont(ofSize: 12.5), .darkGray)
+                rowLR("  · 기타", won(t.other), .systemFont(ofSize: 12.5), .darkGray)
+                y += 10; line()
+
+                if !driverRanks.isEmpty {
+                    draw("기사별 순위 (비용)", .boldSystemFont(ofSize: 16), .black, 26)
+                    for (i, s) in driverRanks.prefix(10).enumerated() where y < pageH - 120 {
+                        rowLR("  \(i + 1). \(s.name) (\(s.vehicleCount)대)", "\(won(s.cost)) · \(grouped(s.distanceKm))km",
+                              .systemFont(ofSize: 12), .darkGray)
+                    }
+                    y += 10; line()
+                }
+
+                draw("차량별 비용", .boldSystemFont(ofSize: 16), .black, 26)
+                for v in fleet.vehicles where y < pageH - 70 {
+                    rowLR("  " + (v.plate ?? v.name ?? "-"), won(fleet.monthlyCost(vehicleId: v.id)), .systemFont(ofSize: 12), .darkGray)
+                }
+
+                let df = DateFormatter(); df.locale = Locale(identifier: "ko_KR"); df.dateFormat = "yyyy.MM.dd HH:mm"
+                ("생성: \(df.string(from: Date())) · Wheelet Fleet" as NSString).draw(at: CGPoint(x: margin, y: pageH - 44),
+                    withAttributes: [.font: UIFont.systemFont(ofSize: 10), .foregroundColor: UIColor.lightGray])
+            }
+            return url
+        } catch { return nil }
     }
 }
 

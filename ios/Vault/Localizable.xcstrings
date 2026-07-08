@@ -5523,6 +5523,72 @@
         }
       }
     },
+    "PDF 공유 (카톡·메일)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share PDF (KakaoTalk·Email)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PDF共有（メール等）"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分享PDF（邮件等）"
+          }
+        }
+      }
+    },
+    "엑셀(CSV) 내보내기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export Excel (CSV)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Excel(CSV)エクスポート"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导出Excel(CSV)"
+          }
+        }
+      }
+    },
+    "%d월 · 차량 %d대": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Month %d · %d vehicles"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d月 · 車両%d台"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d月 · %d辆车"
+          }
+        }
+      }
+    },
     "회사": {
       "localizations": {
         "en": {
