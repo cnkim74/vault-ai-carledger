@@ -9,6 +9,8 @@ struct FleetView: View {
     @State private var newFleetName = ""
     @State private var showAddVehicle = false
     @State private var editingVehicle: FleetVehicle?
+    @State private var detailVehicle: FleetVehicle?
+    @State private var showReport = false
     @State private var showImporter = false
     @State private var importMsg: String?
     @State private var showPaywall = false
@@ -32,7 +34,8 @@ struct FleetView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("닫기") { dismiss() } }
                 if premium.isPremium && !fleet.fleets.isEmpty {
-                    ToolbarItem(placement: .primaryAction) {
+                    ToolbarItemGroup(placement: .primaryAction) {
+                        Button { showReport = true } label: { Image(systemName: "chart.bar.doc.horizontal") }
                         Menu {
                             Button { showAddVehicle = true } label: { Label("차량 추가", systemImage: "plus") }
                             Button { showImporter = true } label: { Label("CSV 대량등록", systemImage: "square.and.arrow.down") }
@@ -46,6 +49,8 @@ struct FleetView: View {
         .task { if premium.isPremium { await fleet.loadFleets() } }
         .sheet(isPresented: $showAddVehicle) { FleetVehicleEditView(fleet: fleet, editing: nil) }
         .sheet(item: $editingVehicle) { FleetVehicleEditView(fleet: fleet, editing: $0) }
+        .sheet(item: $detailVehicle) { FleetVehicleDetailView(fleet: fleet, vehicle: $0) }
+        .sheet(isPresented: $showReport) { FleetReportView(fleet: fleet) }
         .sheet(isPresented: $showPaywall) { PaywallSheet(premium: premium) }
         .fileImporter(isPresented: $showImporter, allowedContentTypes: [.commaSeparatedText, .plainText, .text], allowsMultipleSelection: false) { result in
             handleImport(result)
@@ -143,12 +148,12 @@ struct FleetView: View {
                             }
                             .padding(.top, 6)
                             ForEach(vs) { v in
-                                Button { editingVehicle = v } label: { vehicleRow(v) }.buttonStyle(.plain)
+                                Button { detailVehicle = v } label: { vehicleRow(v) }.buttonStyle(.plain)
                             }
                         }
                     } else {
                         ForEach(fleet.vehicles) { v in
-                            Button { editingVehicle = v } label: { vehicleRow(v) }.buttonStyle(.plain)
+                            Button { detailVehicle = v } label: { vehicleRow(v) }.buttonStyle(.plain)
                         }
                     }
                 }

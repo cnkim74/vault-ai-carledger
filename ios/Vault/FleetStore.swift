@@ -36,12 +36,32 @@ struct FleetVehicle: Codable, Identifiable {
     }
 }
 
+/// Fleet 차량 기록 (주유·정비 등)
+struct FleetRecord: Codable, Identifiable {
+    let id: UUID
+    let fleet_vehicle_id: UUID
+    let kind: String
+    let title: String?
+    let amount_won: Int?
+    let odometer_km: Int?
+    let occurred_at: String
+    let memo: String?
+
+    var date: Date {
+        ISO8601DateFormatter().date(from: occurred_at)
+            ?? { let f = ISO8601DateFormatter(); f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]; return f.date(from: occurred_at) }()
+            ?? Date()
+    }
+    var recordKind: RecordKind { RecordKind(rawValue: kind) ?? .fuel }
+}
+
 /// Fleet 관리 데이터 계층 (기존 소비자 VaultStore와 독립).
 @MainActor
 final class FleetStore: ObservableObject {
     @Published var fleets: [Fleet] = []
     @Published var selectedFleetID: UUID?
     @Published var vehicles: [FleetVehicle] = []
+    @Published var records: [FleetRecord] = []
     @Published var loading = false
 
     var fleet: Fleet? { fleets.first { $0.id == selectedFleetID } ?? fleets.first }
@@ -79,6 +99,53 @@ final class FleetStore: ObservableObject {
                     .init(name: "fleet_id", value: "eq.\(fid.uuidString.lowercased())"),
                     .init(name: "order", value: "created_at.desc")])
         vehicles = rows ?? []
+        await loadRecords()
+    }
+
+    func loadRecords() async {
+        guard let fid = selectedFleetID else { records = []; return }
+        let rows: [FleetRecord]? = try? await fetch(path: "rest/v1/fleet_records",
+            query: [.init(name: "select", value: "*"),
+                    .init(name: "fleet_id", value: "eq.\(fid.uuidString.lowercased())"),
+                    .init(name: "order", value: "occurred_at.desc")])
+        records = rows ?? []
+    }
+
+    /// Fleet 차량에 기록 추가 (주유·정비 등)
+    func addRecord(vehicleId: UUID, kind: RecordKind, title: String, amountWon: Int?, odometerKm: Int?, memo: String?) async {
+        struct Ins: Encodable {
+            let fleet_id: String; let fleet_vehicle_id: String; let kind: String
+            let title: String; let amount_won: Int?; let odometer_km: Int?; let occurred_at: String; let memo: String?
+        }
+        guard let fid = selectedFleetID else { return }
+        let body = Ins(fleet_id: fid.uuidString.lowercased(), fleet_vehicle_id: vehicleId.uuidString.lowercased(),
+                       kind: kind.rawValue, title: title, amount_won: amountWon, odometer_km: odometerKm,
+                       occurred_at: ISO8601DateFormatter().string(from: Date()), memo: memo)
+        try? await send(method: "POST", path: "rest/v1/fleet_records", query: [], body: body)
+        // 주행거리 갱신
+        if let odo = odometerKm { await updateVehicle(id: vehicleId, .init(odometer_km: odo)) }
+        await loadRecords()
+    }
+
+    // MARK: 비용 집계 (이번 달)
+    func monthlyCost(vehicleId: UUID) -> Int {
+        let cal = Calendar.current
+        return records.filter { $0.fleet_vehicle_id == vehicleId && cal.isDate($0.date, equalTo: Date(), toGranularity: .month) }
+            .compactMap { $0.amount_won }.reduce(0, +)
+    }
+    func monthlyTotals() -> (total: Int, fuel: Int, maintenance: Int, other: Int) {
+        let cal = Calendar.current
+        let month = records.filter { cal.isDate($0.date, equalTo: Date(), toGranularity: .month) }
+        var fuel = 0, maint = 0, other = 0
+        for r in month {
+            let a = r.amount_won ?? 0
+            switch r.recordKind {
+            case .fuel, .charge: fuel += a
+            case .maintenance: maint += a
+            default: other += a
+            }
+        }
+        return (fuel + maint + other, fuel, maint, other)
     }
 
     // MARK: Fleet
