@@ -108,14 +108,15 @@ struct AccountView: View {
             }
         }
     }
-    /// 로그인 계정이 관리자(app_admins)인지 확인 → 문의함 노출 여부
+    /// 로그인 이메일이 관리자(admin_emails)인지 확인 → 문의함 노출 여부.
+    /// RLS 자기행 조회라, 관리자면 본인 행이 돌아오고 아니면 빈 배열.
     private func checkAdmin() async {
-        guard auth.isAuthenticated, let uid = auth.userID,
+        guard auth.isAuthenticated,
               let base = Secrets.supabaseURL, let key = Secrets.supabaseKey, let token = await auth.validToken() else {
             isAdmin = false; return
         }
-        var comps = URLComponents(url: base.appendingPathComponent("rest/v1/app_admins"), resolvingAgainstBaseURL: false)!
-        comps.queryItems = [.init(name: "select", value: "user_id"), .init(name: "user_id", value: "eq.\(uid)")]
+        var comps = URLComponents(url: base.appendingPathComponent("rest/v1/admin_emails"), resolvingAgainstBaseURL: false)!
+        comps.queryItems = [.init(name: "select", value: "email"), .init(name: "limit", value: "1")]
         var req = URLRequest(url: comps.url!)
         req.setValue(key, forHTTPHeaderField: "apikey"); req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         if let (data, _) = try? await URLSession.shared.data(for: req),
