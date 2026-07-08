@@ -20,8 +20,10 @@ struct PersonalReportView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     headerCard
                     spendSection
+                    spendChartSection
                     vehicleSection
                     maintenanceSection
+                    recordsSection
                     Button { shareURL = makePDF() } label: {
                         Label("PDF로 공유 (카톡·메일)", systemImage: "square.and.arrow.up")
                             .font(pd(14, .semibold)).foregroundStyle(Theme.ink)
@@ -74,6 +76,70 @@ struct PersonalReportView: View {
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.cardBorder, lineWidth: 1))
     }
 
+    // 지출 구성 막대 차트
+    private var recentRecords: [VaultRecord] {
+        store.records.sorted { $0.occurredAt > $1.occurredAt }
+    }
+    private func spendColor(_ key: String) -> Color {
+        switch key { case "charge": return Theme.orange; case "fuel": return Theme.gold
+        case "maintenance": return Theme.green; default: return Theme.silver }
+    }
+    @ViewBuilder
+    private var spendChartSection: some View {
+        if let s = spend, !s.breakdown.isEmpty {
+            let maxAmt = max(1, s.breakdown.map { $0.amount }.max() ?? 1)
+            VStack(alignment: .leading, spacing: 10) {
+                Text("지출 구성").font(pd(13, .semibold)).foregroundStyle(Theme.silver)
+                ForEach(s.breakdown, id: \.key) { b in
+                    VStack(spacing: 4) {
+                        HStack {
+                            Text(L(b.label)).font(pd(11)).foregroundStyle(Theme.muted)
+                            Spacer()
+                            Text(won(b.amount)).font(gm(11.5, .medium)).foregroundStyle(Theme.text)
+                        }
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                Capsule().fill(Theme.cardBorder).frame(height: 6)
+                                Capsule().fill(spendColor(b.key))
+                                    .frame(width: max(6, geo.size.width * CGFloat(b.amount) / CGFloat(maxAmt)), height: 6)
+                            }
+                        }.frame(height: 6)
+                    }
+                }
+            }
+            .padding(14).background(Theme.card).clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.cardBorder, lineWidth: 1))
+        }
+    }
+
+    // 최근 기록 목록
+    @ViewBuilder
+    private var recordsSection: some View {
+        if !recentRecords.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("최근 기록").font(pd(13, .semibold)).foregroundStyle(Theme.silver)
+                ForEach(recentRecords.prefix(8)) { r in
+                    HStack(spacing: 10) {
+                        Image(systemName: recIcon(r.kind)).font(.system(size: 12)).foregroundStyle(Theme.gold).frame(width: 20)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(r.title).font(pd(12, .medium)).lineLimit(1)
+                            Text(Self.df.string(from: r.occurredAt)).font(pd(9.5)).foregroundStyle(Theme.muted)
+                        }
+                        Spacer()
+                        if let a = r.amountWon { Text(won(a)).font(gm(12, .medium)) }
+                    }
+                    .padding(.vertical, 3)
+                }
+            }
+            .padding(14).background(Theme.card).clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.cardBorder, lineWidth: 1))
+        }
+    }
+    private func recIcon(_ k: RecordKind) -> String {
+        switch k { case .charge: return "bolt.fill"; case .fuel: return "fuelpump.fill"; case .drive: return "clock"; case .maintenance: return "wrench.and.screwdriver.fill" }
+    }
+    private static let df: DateFormatter = { let f = DateFormatter(); f.locale = Locale(identifier: "ko_KR"); f.dateFormat = "M/d HH:mm"; return f }()
+
     private var vehicleSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("차량").font(pd(13, .semibold)).foregroundStyle(Theme.silver)
@@ -111,6 +177,15 @@ struct PersonalReportView: View {
         }
     }
 
+    private func pdfColor(_ key: String) -> UIColor {
+        switch key {
+        case "charge": return .systemOrange
+        case "fuel": return UIColor(red: 0.83, green: 0.68, blue: 0.32, alpha: 1)
+        case "maintenance": return .systemGreen
+        default: return .systemGray
+        }
+    }
+
     // MARK: PDF 생성
     private func makePDF() -> URL? {
         let pageW: CGFloat = 595, pageH: CGFloat = 842, margin: CGFloat = 44
@@ -140,10 +215,26 @@ struct PersonalReportView: View {
                 draw("이번 달 지출", .boldSystemFont(ofSize: 16), .black, 26)
                 rowLR("총 지출", won(spend?.total ?? 0), .boldSystemFont(ofSize: 15))
                 if let s = spend {
-                    for b in s.breakdown { rowLR("  · " + L(b.label), won(b.amount), .systemFont(ofSize: 12.5), .darkGray) }
                     if let pct = s.deltaPct {
                         rowLR("지난달 대비", (pct <= 0 ? "−" : "+") + "\(abs(pct))%", .systemFont(ofSize: 12.5),
                               pct <= 0 ? UIColor.systemGreen : UIColor.systemOrange)
+                    }
+                    // 지출 구성 막대
+                    let maxAmt = max(1, s.breakdown.map { $0.amount }.max() ?? 1)
+                    let barMaxW = pageW - margin * 2 - 150
+                    for b in s.breakdown {
+                        let rowY = y
+                        (("  " + L(b.label)) as NSString).draw(at: CGPoint(x: margin, y: rowY),
+                            withAttributes: [.font: UIFont.systemFont(ofSize: 12), .foregroundColor: UIColor.darkGray])
+                        let bw = barMaxW * CGFloat(b.amount) / CGFloat(maxAmt)
+                        let barColor = pdfColor(b.key)
+                        let bar = UIBezierPath(roundedRect: CGRect(x: margin + 90, y: rowY + 2, width: max(3, bw), height: 8), cornerRadius: 4)
+                        barColor.setFill(); bar.fill()
+                        let amt = won(b.amount) as NSString
+                        let aw = amt.size(withAttributes: [.font: UIFont.systemFont(ofSize: 11)]).width
+                        amt.draw(at: CGPoint(x: pageW - margin - aw, y: rowY),
+                                 withAttributes: [.font: UIFont.systemFont(ofSize: 11), .foregroundColor: UIColor.gray])
+                        y += 18
                     }
                 }
                 y += 10; line()
@@ -163,6 +254,17 @@ struct PersonalReportView: View {
                         rowLR("  · " + L(d.item),
                               d.isOverdue ? "\(-d.remainingKm)km 초과" : "\(d.remainingKm)km 남음",
                               .systemFont(ofSize: 12.5), d.isOverdue ? UIColor.systemRed : UIColor.systemOrange)
+                    }
+                }
+
+                // 최근 기록 (지면 남는 만큼)
+                if !recentRecords.isEmpty {
+                    y += 10; line()
+                    draw("최근 기록", .boldSystemFont(ofSize: 16), .black, 26)
+                    let rdf = DateFormatter(); rdf.locale = Locale(identifier: "ko_KR"); rdf.dateFormat = "M/d"
+                    for r in recentRecords.prefix(12) where y < pageH - 80 {
+                        let left = "  \(rdf.string(from: r.occurredAt))  \(r.title)"
+                        rowLR(left, r.amountWon.map { won($0) } ?? "-", .systemFont(ofSize: 12), .darkGray)
                     }
                 }
 

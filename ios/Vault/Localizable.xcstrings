@@ -5501,6 +5501,28 @@
         }
       }
     },
+    "지출 구성": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spending breakdown"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支出構成"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支出构成"
+          }
+        }
+      }
+    },
     "회사": {
       "localizations": {
         "en": {
