@@ -64,6 +64,11 @@ final class FleetStore: ObservableObject {
     @Published var records: [FleetRecord] = []
     @Published var loading = false
 
+    /// 인증 세션 (Fleet은 로그인 사용자 토큰으로 접근)
+    weak var auth: AuthService?
+    private var apikey: String { Secrets.supabaseKey ?? "" }
+    private func bearer() async -> String { await auth?.validToken() ?? apikey }
+
     var fleet: Fleet? { fleets.first { $0.id == selectedFleetID } ?? fleets.first }
 
     struct VehicleUpsert: Encodable {
@@ -150,12 +155,13 @@ final class FleetStore: ObservableObject {
 
     // MARK: Fleet
     func createFleet(name: String) async {
-        struct Ins: Encodable { let name: String; let plan: String }
-        guard let base = Secrets.supabaseURL, let key = Secrets.supabaseKey, !key.isEmpty else { return }
+        struct Ins: Encodable { let name: String; let plan: String; let owner_id: String? }
+        guard let base = Secrets.supabaseURL, !apikey.isEmpty else { return }
+        let b = await bearer()
         var req = URLRequest(url: base.appendingPathComponent("rest/v1/fleets"))
-        req.httpMethod = "POST"; headers(&req, key)
+        req.httpMethod = "POST"; headers(&req, bearer: b)
         req.setValue("return=representation", forHTTPHeaderField: "Prefer")
-        req.httpBody = try? JSONEncoder().encode(Ins(name: name, plan: "trial"))
+        req.httpBody = try? JSONEncoder().encode(Ins(name: name, plan: "trial", owner_id: auth?.userID))
         if let (data, _) = try? await URLSession.shared.data(for: req),
            let rows = try? JSONDecoder().decode([Fleet].self, from: data), let f = rows.first {
             fleets.insert(f, at: 0); selectedFleetID = f.id; vehicles = []
@@ -180,10 +186,11 @@ final class FleetStore: ObservableObject {
         await loadVehicles()
     }
     func deleteVehicle(id: UUID) async {
-        guard let base = Secrets.supabaseURL, let key = Secrets.supabaseKey, !key.isEmpty else { return }
+        guard let base = Secrets.supabaseURL, !apikey.isEmpty else { return }
+        let b = await bearer()
         var comps = URLComponents(url: base.appendingPathComponent("rest/v1/fleet_vehicles"), resolvingAgainstBaseURL: false)!
         comps.queryItems = [.init(name: "id", value: "eq.\(id.uuidString.lowercased())")]
-        var req = URLRequest(url: comps.url!); req.httpMethod = "DELETE"; headers(&req, key)
+        var req = URLRequest(url: comps.url!); req.httpMethod = "DELETE"; headers(&req, bearer: b)
         req.setValue("return=minimal", forHTTPHeaderField: "Prefer")
         _ = try? await URLSession.shared.data(for: req)
         await loadVehicles()
@@ -237,27 +244,29 @@ final class FleetStore: ObservableObject {
         } catch { return 0 }
     }
 
-    // MARK: 네트워킹
-    private func headers(_ req: inout URLRequest, _ key: String) {
-        req.setValue(key, forHTTPHeaderField: "apikey")
-        req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+    // MARK: 네트워킹 (사용자 토큰 Bearer)
+    private func headers(_ req: inout URLRequest, bearer: String) {
+        req.setValue(apikey, forHTTPHeaderField: "apikey")
+        req.setValue("Bearer \(bearer)", forHTTPHeaderField: "Authorization")
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
     }
     private func fetch<T: Decodable>(path: String, query: [URLQueryItem]) async throws -> T {
-        guard let base = Secrets.supabaseURL, let key = Secrets.supabaseKey, !key.isEmpty else { throw URLError(.userAuthenticationRequired) }
+        guard let base = Secrets.supabaseURL, !apikey.isEmpty else { throw URLError(.userAuthenticationRequired) }
+        let b = await bearer()
         var comps = URLComponents(url: base.appendingPathComponent(path), resolvingAgainstBaseURL: false)!
         comps.queryItems = query
         var req = URLRequest(url: comps.url!)
-        req.setValue(key, forHTTPHeaderField: "apikey"); req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+        req.setValue(apikey, forHTTPHeaderField: "apikey"); req.setValue("Bearer \(b)", forHTTPHeaderField: "Authorization")
         let (data, resp) = try await URLSession.shared.data(for: req)
         guard let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode) else { throw URLError(.badServerResponse) }
         return try JSONDecoder().decode(T.self, from: data)
     }
     private func send<B: Encodable>(method: String, path: String, query: [URLQueryItem], body: B) async throws {
-        guard let base = Secrets.supabaseURL, let key = Secrets.supabaseKey, !key.isEmpty else { throw URLError(.userAuthenticationRequired) }
+        guard let base = Secrets.supabaseURL, !apikey.isEmpty else { throw URLError(.userAuthenticationRequired) }
+        let b = await bearer()
         var comps = URLComponents(url: base.appendingPathComponent(path), resolvingAgainstBaseURL: false)!
         if !query.isEmpty { comps.queryItems = query }
-        var req = URLRequest(url: comps.url!); req.httpMethod = method; headers(&req, key)
+        var req = URLRequest(url: comps.url!); req.httpMethod = method; headers(&req, bearer: b)
         req.setValue("return=minimal", forHTTPHeaderField: "Prefer")
         req.httpBody = try JSONEncoder().encode(body)
         let (_, resp) = try await URLSession.shared.data(for: req)

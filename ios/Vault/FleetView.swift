@@ -6,6 +6,7 @@ struct FleetView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var premium: PremiumStore
     @StateObject private var fleet = FleetStore()
+    @StateObject private var auth = AuthService()
     @State private var newFleetName = ""
     @State private var showAddVehicle = false
     @State private var editingVehicle: FleetVehicle?
@@ -21,6 +22,8 @@ struct FleetView: View {
             Group {
                 if !premium.isPremium {
                     lockedState
+                } else if !auth.isAuthenticated {
+                    AuthView(auth: auth)
                 } else if fleet.fleets.isEmpty {
                     createFleetState
                 } else {
@@ -33,12 +36,14 @@ struct FleetView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("닫기") { dismiss() } }
-                if premium.isPremium && !fleet.fleets.isEmpty {
+                if premium.isPremium && auth.isAuthenticated && !fleet.fleets.isEmpty {
                     ToolbarItemGroup(placement: .primaryAction) {
                         Button { showReport = true } label: { Image(systemName: "chart.bar.doc.horizontal") }
                         Menu {
                             Button { showAddVehicle = true } label: { Label("차량 추가", systemImage: "plus") }
                             Button { showImporter = true } label: { Label("CSV 대량등록", systemImage: "square.and.arrow.down") }
+                            Divider()
+                            Button(role: .destructive) { auth.signOut(); fleet.fleets = []; fleet.vehicles = [] } label: { Label("로그아웃", systemImage: "arrow.right.square") }
                         } label: { Image(systemName: "plus.circle") }
                     }
                 }
@@ -46,7 +51,14 @@ struct FleetView: View {
         }
         .tint(Theme.gold)
         .preferredColorScheme(.dark)
-        .task { if premium.isPremium { await fleet.loadFleets() } }
+        .task {
+            fleet.auth = auth
+            if premium.isPremium && auth.isAuthenticated { await fleet.loadFleets() }
+        }
+        .onChange(of: auth.isAuthenticated) { _, signedIn in
+            fleet.auth = auth
+            if signedIn { Task { await fleet.loadFleets() } }
+        }
         .sheet(isPresented: $showAddVehicle) { FleetVehicleEditView(fleet: fleet, editing: nil) }
         .sheet(item: $editingVehicle) { FleetVehicleEditView(fleet: fleet, editing: $0) }
         .sheet(item: $detailVehicle) { FleetVehicleDetailView(fleet: fleet, vehicle: $0) }
