@@ -19,6 +19,9 @@ final class PremiumStore: ObservableObject {
     private var updatesTask: Task<Void, Never>?
 
     init() {
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["PREMIUM"] == "1" { isPremium = true; return }  // 스크린샷 캡처용(조회 생략)
+        #endif
         // 결제/갱신/환불 실시간 반영
         updatesTask = Task { [weak self] in
             for await result in Transaction.updates {

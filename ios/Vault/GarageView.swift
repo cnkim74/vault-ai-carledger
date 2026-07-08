@@ -127,7 +127,7 @@ struct GarageView: View {
             }
         }
         .onChange(of: store.vehicle.id) { _, newID in
-            carImage = CarImageStore.load(for: newID)
+            carImage = CarImageStore.load(for: newID) ?? envSampleImage()
             resale.reset()   // 차량 바뀌면 시세 초기화 → 새 차량으로 재조회
         }
         .sheet(isPresented: $showEdit) {
@@ -136,7 +136,13 @@ struct GarageView: View {
         .sheet(isPresented: $showAdd) {
             VehicleEditView(store: store, mode: .create)
         }
-        .onAppear { carImage = CarImageStore.load(for: v.id) }
+        .onAppear { carImage = CarImageStore.load(for: v.id) ?? envSampleImage() }
+    }
+
+    /// 스크린샷/테스트용: SAMPLE_CAR=red|blue|sky 일 때 샘플 이미지
+    private func envSampleImage() -> UIImage? {
+        guard let sample = ProcessInfo.processInfo.environment["SAMPLE_CAR"] else { return nil }
+        return CarImageStore.sample("car-\(sample)")
     }
 
     // 중고 시세 (프리미엄 · AI 추정)
