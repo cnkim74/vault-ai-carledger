@@ -12,6 +12,7 @@ struct FleetView: View {
     @State private var showImporter = false
     @State private var importMsg: String?
     @State private var showPaywall = false
+    @State private var groupByDriver = false
 
     var body: some View {
         NavigationStack {
@@ -124,8 +125,31 @@ struct FleetView: View {
                 if fleet.vehicles.isEmpty {
                     emptyVehicles
                 } else {
-                    ForEach(fleet.vehicles) { v in
-                        Button { editingVehicle = v } label: { vehicleRow(v) }.buttonStyle(.plain)
+                    summaryBar
+                    // 보기 전환
+                    Picker("", selection: $groupByDriver) {
+                        Text("전체").tag(false)
+                        Text("기사별").tag(true)
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.vertical, 2)
+
+                    if groupByDriver {
+                        ForEach(driverGroups, id: \.0) { name, vs in
+                            HStack(spacing: 6) {
+                                Image(systemName: "person.fill").font(.system(size: 11)).foregroundStyle(Theme.silver)
+                                Text(name).font(pd(12, .semibold)).foregroundStyle(Theme.silver)
+                                Text("\(vs.count)").font(pd(11)).foregroundStyle(Theme.muted)
+                            }
+                            .padding(.top, 6)
+                            ForEach(vs) { v in
+                                Button { editingVehicle = v } label: { vehicleRow(v) }.buttonStyle(.plain)
+                            }
+                        }
+                    } else {
+                        ForEach(fleet.vehicles) { v in
+                            Button { editingVehicle = v } label: { vehicleRow(v) }.buttonStyle(.plain)
+                        }
                     }
                 }
                 if let msg = importMsg {
@@ -133,6 +157,34 @@ struct FleetView: View {
                 }
             }
             .padding(16)
+        }
+    }
+
+    // 요약: 전체 · 정비 임박 · 초과
+    private var summaryBar: some View {
+        let due = fleet.vehicles.filter { if let r = $0.serviceRemaining { return r >= 0 && r <= 2000 }; return false }.count
+        let over = fleet.vehicles.filter { ($0.serviceRemaining ?? 1) < 0 }.count
+        return HStack(spacing: 10) {
+            summaryCell(L("전체"), fleet.vehicles.count, Theme.silver)
+            summaryCell(L("정비 임박"), due, Theme.orange)
+            summaryCell(L("정비 초과"), over, Theme.red)
+        }
+    }
+    private func summaryCell(_ label: String, _ n: Int, _ color: Color) -> some View {
+        VStack(spacing: 3) {
+            Text("\(n)").font(gm(19, .bold)).foregroundStyle(n > 0 ? color : Theme.text)
+            Text(label).font(pd(10)).foregroundStyle(Theme.muted)
+        }
+        .frame(maxWidth: .infinity).padding(.vertical, 12)
+        .background(Theme.card).clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.cardBorder, lineWidth: 1))
+    }
+    // 기사별 그룹 (담당 없음은 마지막)
+    private var driverGroups: [(String, [FleetVehicle])] {
+        let grouped = Dictionary(grouping: fleet.vehicles) { $0.driverName?.isEmpty == false ? $0.driverName! : L("담당 없음") }
+        return grouped.sorted { a, b in
+            if a.key == L("담당 없음") { return false }; if b.key == L("담당 없음") { return true }
+            return a.key < b.key
         }
     }
 
@@ -172,6 +224,11 @@ struct FleetView: View {
                 }
             }
             Spacer()
+            if let r = v.serviceRemaining {
+                Text(r < 0 ? String(format: L("%dkm 초과"), -r) : String(format: L("%dkm 남음"), r))
+                    .font(pd(10, .semibold))
+                    .foregroundStyle(r < 0 ? Theme.red : (r <= 2000 ? Theme.orange : Theme.green))
+            }
             Image(systemName: "chevron.right").font(.system(size: 11)).foregroundStyle(Theme.muted)
         }
         .padding(12).background(Theme.card).clipShape(RoundedRectangle(cornerRadius: 14))
@@ -212,6 +269,7 @@ struct FleetVehicleEditView: View {
     @State private var driverName: String
     @State private var driverPhone: String
     @State private var memo: String
+    @State private var nextService: String
     @State private var showDelete = false
 
     init(fleet: FleetStore, editing: FleetVehicle?) {
@@ -225,6 +283,7 @@ struct FleetVehicleEditView: View {
         _driverName = State(initialValue: editing?.driverName ?? "")
         _driverPhone = State(initialValue: editing?.driverPhone ?? "")
         _memo = State(initialValue: editing?.memo ?? "")
+        _nextService = State(initialValue: editing?.nextServiceKm.map(String.init) ?? "")
     }
 
     var body: some View {
@@ -241,6 +300,7 @@ struct FleetVehicleEditView: View {
                         ForEach(FuelType.allCases, id: \.rawValue) { Text($0.rawValue).tag($0.rawValue) }
                     }
                     TextField("누적 주행 (km)", text: $odometer).keyboardType(.numberPad)
+                    TextField("다음 정비 (km, 선택)", text: $nextService).keyboardType(.numberPad)
                 }
                 Section("담당 기사") {
                     TextField("기사 이름", text: $driverName)
@@ -272,7 +332,8 @@ struct FleetVehicleEditView: View {
             fuel: fuel, odometer_km: Int(odometer) ?? 0,
             driver_name: driverName.isEmpty ? nil : driverName,
             driver_phone: driverPhone.isEmpty ? nil : driverPhone,
-            memo: memo.isEmpty ? nil : memo, status: "active")
+            memo: memo.isEmpty ? nil : memo, status: "active",
+            next_service_km: Int(nextService))
         if let e = editing { await fleet.updateVehicle(id: e.id, up) } else { await fleet.addVehicle(up) }
         dismiss()
     }

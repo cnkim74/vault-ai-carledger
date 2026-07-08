@@ -21,14 +21,18 @@ struct FleetVehicle: Codable, Identifiable {
     var driverPhone: String?
     var memo: String?
     var status: String
+    var nextServiceKm: Int?
 
     var vehicleCategory: VehicleCategory { VehicleCategory(rawValue: category) ?? .car }
+    /// 다음 정비까지 남은 거리 (설정된 경우). 음수=초과.
+    var serviceRemaining: Int? { nextServiceKm.map { $0 - odometerKm } }
 
     enum CodingKeys: String, CodingKey {
         case id, plate, name, model, year, category, fuel, memo, status
         case odometerKm = "odometer_km"
         case driverName = "driver_name"
         case driverPhone = "driver_phone"
+        case nextServiceKm = "next_service_km"
     }
 }
 
@@ -55,6 +59,7 @@ final class FleetStore: ObservableObject {
         var driver_phone: String?
         var memo: String?
         var status: String?
+        var next_service_km: Int?
     }
 
     // MARK: 로드
@@ -125,8 +130,9 @@ final class FleetStore: ObservableObject {
         let year: Int?
         let category: String, status: String
         let odometer_km: Int
+        let next_service_km: Int?
         enum CodingKeys: String, CodingKey {
-            case fleet_id, plate, name, model, fuel, driver_name, driver_phone, memo, year, category, status, odometer_km
+            case fleet_id, plate, name, model, fuel, driver_name, driver_phone, memo, year, category, status, odometer_km, next_service_km
         }
         func encode(to encoder: Encoder) throws {
             var c = encoder.container(keyedBy: CodingKeys.self)
@@ -142,6 +148,7 @@ final class FleetStore: ObservableObject {
             try c.encode(category, forKey: .category)
             try c.encode(status, forKey: .status)
             try c.encode(odometer_km, forKey: .odometer_km)
+            try c.encode(next_service_km, forKey: .next_service_km)
         }
     }
 
@@ -153,7 +160,8 @@ final class FleetStore: ObservableObject {
             BulkRow(fleet_id: fidStr, plate: r.plate, name: r.name ?? r.plate ?? r.model,
                     model: r.model, fuel: r.fuel, driver_name: r.driver_name, driver_phone: r.driver_phone,
                     memo: r.memo, year: r.year, category: r.category ?? "car",
-                    status: r.status ?? "active", odometer_km: r.odometer_km ?? 0)
+                    status: r.status ?? "active", odometer_km: r.odometer_km ?? 0,
+                    next_service_km: r.next_service_km)
         }
         do {
             try await send(method: "POST", path: "rest/v1/fleet_vehicles", query: [], body: batch)
