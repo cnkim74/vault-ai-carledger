@@ -273,6 +273,7 @@ T = {
     "연": ("year", "年", "年"),
     "구독 상품을 불러오는 중이에요.\nApp Store Connect 상품 설정 후 표시됩니다.": ("Loading subscriptions.\nShown after products are set in App Store Connect.", "サブスクを読み込み中です。\nApp Store Connectで商品設定後に表示されます。", "正在加载订阅。\n在App Store Connect设置商品后显示。"),
     "구매 복원": ("Restore", "購入を復元", "恢复购买"),
+    "복원할 구매 내역이 없어요.": ("No purchases to restore.", "復元できる購入がありません。", "没有可恢复的购买。"),
     "프로모션 코드": ("Promo code", "プロモコード", "促销码"),
     "구독은 자동 갱신되며, 현재 기간 종료 24시간 전에 취소하지 않으면 동일 금액으로 갱신됩니다. 결제는 App Store 계정으로 청구되며, 설정 > Apple 계정에서 관리·해지할 수 있어요.": ("Subscriptions auto-renew unless canceled at least 24 hours before the current period ends, at the same price. Payment is charged to your App Store account and can be managed or canceled in Settings > Apple Account.", "サブスクは現在の期間終了の24時間前までに解約しない限り同額で自動更新されます。お支払いはApp Storeアカウントに請求され、設定 > Apple アカウントで管理・解約できます。", "订阅将自动续订，除非在当前周期结束前至少24小时取消，续订价格相同。费用将从您的App Store账户扣除，可在设置 > Apple账户中管理或取消。"),
     "영수증·충전 화면 촬영 → AI 자동 입력": ("Snap receipts/charging → AI auto-fill", "レシート・充電画面を撮影 → AI自動入力", "拍摄小票/充电画面 → AI自动录入"),

@@ -6,6 +6,7 @@ struct PaywallSheet: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var premium: PremiumStore
     @State private var working = false
+    @State private var restoreMsg: String?
 
     private let privacyURL = URL(string: "https://cnkim74.github.io/vault-ai-carledger/privacy.html")!
     private let termsURL   = URL(string: "https://cnkim74.github.io/vault-ai-carledger/terms.html")!
@@ -94,16 +95,28 @@ struct PaywallSheet: View {
     }
 
     private var footerActions: some View {
-        HStack(spacing: 16) {
-            Button { Task { working = true; await premium.restore(); working = false } } label: {
-                Text("구매 복원").font(pd(12, .semibold)).foregroundStyle(Theme.gold)
+        VStack(spacing: 6) {
+            HStack(spacing: 16) {
+                Button { Task { await restore() } } label: {
+                    HStack(spacing: 5) {
+                        if working { ProgressView().controlSize(.mini).tint(Theme.gold) }
+                        Text("구매 복원").font(pd(12, .semibold)).foregroundStyle(Theme.gold)
+                    }
+                }
+                Text("·").foregroundStyle(Theme.muted)
+                Button { presentOfferCode() } label: {
+                    Text("프로모션 코드").font(pd(12, .semibold)).foregroundStyle(Theme.gold)
+                }
             }
-            Text("·").foregroundStyle(Theme.muted)
-            Button { presentOfferCode() } label: {
-                Text("프로모션 코드").font(pd(12, .semibold)).foregroundStyle(Theme.gold)
-            }
+            .disabled(working)
+            if let restoreMsg { Text(restoreMsg).font(pd(10.5)).foregroundStyle(Theme.muted) }
         }
-        .disabled(working)
+    }
+
+    private func restore() async {
+        working = true; restoreMsg = nil; defer { working = false }
+        let ok = await premium.restore()
+        if ok { dismiss() } else { restoreMsg = L("복원할 구매 내역이 없어요.") }
     }
 
     private var legalFooter: some View {

@@ -5237,6 +5237,28 @@
         }
       }
     },
+    "복원할 구매 내역이 없어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No purchases to restore."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "復元できる購入がありません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有可恢复的购买。"
+          }
+        }
+      }
+    },
     "프로모션 코드": {
       "localizations": {
         "en": {

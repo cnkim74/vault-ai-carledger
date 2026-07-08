@@ -66,10 +66,18 @@ final class PremiumStore: ObservableObject {
         }
     }
 
-    /// 구매 복원 (기기 변경·재설치 시)
-    func restore() async {
-        try? await AppStore.sync()
+    /// 구매 복원 (기기 변경·재설치 시). 반환값 = 복원 후 프리미엄 여부.
+    /// AppStore.sync()가 응답 없이 멈추는 경우를 대비해 타임아웃으로 무한 대기를 막는다.
+    @discardableResult
+    func restore() async -> Bool {
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask { try? await AppStore.sync() }
+            group.addTask { try? await Task.sleep(nanoseconds: 15_000_000_000) } // 15초 타임아웃
+            _ = await group.next()   // 둘 중 먼저 끝나는 것까지만 대기
+            group.cancelAll()
+        }
         await refresh()
+        return isPremium
     }
 
     /// 월/연 등 갱신 주기 라벨
