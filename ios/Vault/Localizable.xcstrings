@@ -5479,6 +5479,28 @@
         }
       }
     },
+    "업무 차량": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Work vehicle"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "業務車両"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "工作车辆"
+          }
+        }
+      }
+    },
     "회사": {
       "localizations": {
         "en": {

@@ -16,6 +16,8 @@ struct CockpitView: View {
     private var workVehicle: FleetVehicle? {
         workVehicleID.flatMap { id in workVehicles.first { $0.id == id } }
     }
+    /// 통합 스위처 노출 여부 (개인+업무 합쳐 2대 이상). 스위처가 이름을 보여주므로 히어로에선 생략.
+    private var showsSwitcher: Bool { store.vehicles.count + workVehicles.count > 1 }
     @State private var editingRecord: VaultRecord?
     @State private var carImage: UIImage?
     @State private var showPhotoDialog = false
@@ -36,7 +38,7 @@ struct CockpitView: View {
                 header
                 switcherBar
                 if let wv = workVehicle {
-                    WorkVehicleHomeView(fleet: fleet, vehicle: wv)
+                    WorkVehicleHomeView(fleet: fleet, vehicle: wv, showsSwitcher: showsSwitcher)
                 } else {
                     weatherCard
                     heroCard
@@ -311,10 +313,13 @@ struct CockpitView: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 6) {
-                        Image(systemName: store.vehicle.vehicleCategory.icon)
-                            .font(.system(size: 13)).foregroundStyle(Theme.gold)
-                        Text(store.vehicle.name).font(gm(17, .medium)).foregroundStyle(Theme.text)
+                    // 스위처 바가 이름+배지를 이미 보여줄 땐 카드에서 이름 생략(중복 방지)
+                    if !showsSwitcher {
+                        HStack(spacing: 6) {
+                            Image(systemName: store.vehicle.vehicleCategory.icon)
+                                .font(.system(size: 13)).foregroundStyle(Theme.gold)
+                            Text(store.vehicle.name).font(gm(17, .medium)).foregroundStyle(Theme.text)
+                        }
                     }
                     Text("\(store.vehicle.plate ?? "") · \(L(store.vehicle.fuelType))")
                         .font(pd(11))

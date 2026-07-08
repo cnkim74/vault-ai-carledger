@@ -5,6 +5,7 @@ import SwiftUI
 struct WorkVehicleHomeView: View {
     @ObservedObject var fleet: FleetStore
     let vehicle: FleetVehicle
+    var showsSwitcher: Bool = false   // 상단 스위처가 이름/배지를 보여줄 땐 히어로에서 생략
     @State private var showAddRecord = false
 
     private var records: [FleetRecord] {
@@ -27,15 +28,25 @@ struct WorkVehicleHomeView: View {
             HStack(spacing: 12) {
                 RoundedRectangle(cornerRadius: 12).fill(Theme.gold.opacity(0.14)).frame(width: 46, height: 46)
                     .overlay(Image(systemName: vehicle.vehicleCategory.icon).font(.system(size: 19)).foregroundStyle(Theme.gold))
+                let modelStr = [vehicle.maker, vehicle.model].compactMap { $0 }.joined(separator: " ")
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(vehicle.plate ?? vehicle.name ?? "-").font(gm(17, .bold))
-                    let sub = [vehicle.maker, vehicle.model].compactMap { $0 }.joined(separator: " ")
-                    Text(sub.isEmpty ? (fleet.fleet?.name ?? "") : "\(sub) · \(L(vehicle.fuel ?? ""))")
-                        .font(pd(11)).foregroundStyle(Theme.muted).lineLimit(1)
+                    if showsSwitcher {
+                        // 스위처가 번호판+배지를 보여주므로 여기선 모델/소속만
+                        Text(modelStr.isEmpty ? (fleet.fleet?.name ?? L("업무 차량")) : modelStr).font(gm(16, .bold))
+                        if !modelStr.isEmpty, let org = fleet.fleet?.name {
+                            Text(org).font(pd(11)).foregroundStyle(Theme.muted).lineLimit(1)
+                        }
+                    } else {
+                        Text(vehicle.plate ?? vehicle.name ?? "-").font(gm(17, .bold))
+                        Text(modelStr.isEmpty ? (fleet.fleet?.name ?? "") : "\(modelStr) · \(L(vehicle.fuel ?? ""))")
+                            .font(pd(11)).foregroundStyle(Theme.muted).lineLimit(1)
+                    }
                 }
                 Spacer()
-                Text("업무").font(pd(9.5, .bold)).foregroundStyle(Theme.ink)
-                    .padding(.horizontal, 8).padding(.vertical, 3).background(Theme.gold).clipShape(Capsule())
+                if !showsSwitcher {
+                    Text("업무").font(pd(9.5, .bold)).foregroundStyle(Theme.ink)
+                        .padding(.horizontal, 8).padding(.vertical, 3).background(Theme.gold).clipShape(Capsule())
+                }
             }
             HStack(spacing: 10) {
                 stat(L("누적 주행"), "\(grouped(vehicle.odometerKm))km", Theme.text)
