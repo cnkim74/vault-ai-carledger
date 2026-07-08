@@ -13,6 +13,9 @@ struct AccountView: View {
     @State private var showFleet = false
     @State private var showInquiry = false
     @State private var showInbox = false
+    @State private var showDeleteConfirm = false
+    @State private var deleting = false
+    @State private var deleteError: String?
     @State private var legal: LegalDoc?
 
     private enum LegalDoc: Identifiable {
@@ -84,6 +87,25 @@ struct AccountView: View {
                     }
                 }
 
+                // 로그인 계정 (Supabase Auth) — 로그아웃 / 계정 삭제
+                if auth.isAuthenticated {
+                    Section("로그인 계정") {
+                        HStack {
+                            Label { Text("이메일").foregroundStyle(Theme.text) } icon: { Image(systemName: "person.crop.circle.fill").foregroundStyle(Theme.gold) }
+                            Spacer()
+                            Text(auth.email ?? "-").font(pd(12)).foregroundStyle(Theme.muted)
+                        }
+                        Button { auth.signOut(); fleet.role = .none; fleet.fleets = []; fleet.vehicles = []; Task { await adminStore.refresh(auth: auth) } } label: {
+                            Label { Text("로그아웃").foregroundStyle(Theme.text) } icon: { Image(systemName: "arrow.right.square").foregroundStyle(Theme.silver) }
+                        }
+                        Button(role: .destructive) { showDeleteConfirm = true } label: {
+                            HStack { if deleting { ProgressView().controlSize(.small) }
+                                Label("계정 삭제", systemImage: "trash.fill").foregroundStyle(.red) }
+                        }.disabled(deleting)
+                        if let e = deleteError { Text(e).font(pd(11)).foregroundStyle(.red) }
+                    }
+                }
+
                 // 정보
                 Section("정보") {
                     row("개인정보처리방침", "hand.raised.fill") { legal = .privacy }
@@ -106,6 +128,12 @@ struct AccountView: View {
         .sheet(isPresented: $showInquiry) { InquiryView() }
         .sheet(isPresented: $showInbox, onDismiss: { Task { await adminStore.refresh(auth: auth) } }) { AdminInboxView(auth: auth) }
         .sheet(item: $legal) { doc in LegalTextView(title: doc.title, body_: doc.text) }
+        .confirmationDialog("계정을 삭제할까요?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+            Button("계정 삭제", role: .destructive) { Task { await deleteAccount() } }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("계정과 관련 데이터(조직·차량·기록·배정)가 영구 삭제되며 되돌릴 수 없어요.")
+        }
         .task { await adminStore.refresh(auth: auth) }
         .onChange(of: auth.isAuthenticated) { _, _ in Task { await adminStore.refresh(auth: auth) } }
     }
@@ -119,6 +147,15 @@ struct AccountView: View {
             }
         }
     }
+    private func deleteAccount() async {
+        deleting = true; deleteError = nil; defer { deleting = false }
+        let r = await auth.deleteAccount()
+        if r.ok {
+            fleet.role = .none; fleet.fleets = []; fleet.vehicles = []; fleet.assignments = []; fleet.members = []
+            await adminStore.refresh(auth: auth)
+        } else { deleteError = r.error }
+    }
+
     private func requestReview() {
         if let scene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
             SKStoreReviewController.requestReview(in: scene)

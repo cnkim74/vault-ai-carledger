@@ -51,6 +51,25 @@ final class AuthService: ObservableObject {
         ["auth.access", "auth.refresh", "auth.expires", "auth.uid", "auth.email"].forEach { d.removeObject(forKey: $0) }
     }
 
+    /// 계정 삭제 — Edge Function이 본인 데이터+인증 계정을 삭제, 성공 시 로컬 세션 정리
+    func deleteAccount() async -> (ok: Bool, error: String?) {
+        guard let base = Secrets.supabaseURL, let key = Secrets.supabaseKey, let token = await validToken() else {
+            return (false, L("설정 오류"))
+        }
+        var req = URLRequest(url: base.appendingPathComponent("functions/v1/delete-account"))
+        req.httpMethod = "POST"
+        req.setValue(key, forHTTPHeaderField: "apikey")
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        guard let (data, resp) = try? await URLSession.shared.data(for: req),
+              let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode),
+              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any], obj["ok"] as? Bool == true else {
+            return (false, L("계정 삭제에 실패했어요. 잠시 후 다시 시도해 주세요."))
+        }
+        signOut()
+        return (true, nil)
+    }
+
     /// 유효한 액세스 토큰 (만료 임박이면 갱신)
     func validToken() async -> String? {
         if let exp = expiresAt, exp.timeIntervalSinceNow < 60, let rt = refreshToken {
