@@ -249,6 +249,7 @@ T = {
     "어느 차량 기록을 추가할까요?": ("Which vehicle to add a record for?", "どの車両の記録を追加しますか？", "为哪辆车添加记录？"),
     "해당하는 차량이 없어요": ("No matching vehicles", "該当する車両がありません", "无匹配车辆"),
     "기사 관리": ("Manage drivers", "ドライバー管理", "司机管理"),
+    "기사 계정 배정 (교대 시 여러 명 선택)": ("Assign driver accounts (select multiple for shifts)", "ドライバー割当（交代制は複数選択）", "分配司机账户（换班可多选）"),
     "담당 %d대": ("%d assigned", "担当%d台", "负责%d辆"),
     "기사별 이번 달 순위": ("Driver ranking this month", "今月のドライバー順位", "本月司机排名"),
     "이번 달 주행": ("This month distance", "今月の走行", "本月行驶"),

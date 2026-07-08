@@ -17,6 +17,13 @@ struct FleetMember: Codable, Identifiable {
     let role: String
 }
 
+/// 차량 × 기사 배정 (다대다 · 교대 근무 지원)
+struct FleetAssignment: Codable, Identifiable {
+    let id: UUID
+    let fleet_vehicle_id: UUID
+    let user_id: String
+}
+
 enum FleetRole { case none, manager, driver }
 
 /// Fleet 소속 차량 (기사 정보 포함)
@@ -78,6 +85,7 @@ final class FleetStore: ObservableObject {
     @Published var vehicles: [FleetVehicle] = []
     @Published var records: [FleetRecord] = []
     @Published var members: [FleetMember] = []
+    @Published var assignments: [FleetAssignment] = []
     @Published var role: FleetRole = .none
     @Published var loading = false
 
@@ -116,7 +124,7 @@ final class FleetStore: ObservableObject {
                     .init(name: "order", value: "created_at.desc")])
         if let owned, !owned.isEmpty {
             role = .manager; fleets = owned; selectedFleetID = owned.first?.id
-            await loadVehicles(); await loadMembers()
+            await loadVehicles(); await loadMembers(); await loadAssignments()
             return
         }
         // 멤버(기사) 조직
@@ -124,11 +132,24 @@ final class FleetStore: ObservableObject {
             query: [.init(name: "select", value: "*"), .init(name: "order", value: "created_at.desc")])
         if let member, !member.isEmpty {
             role = .driver; fleets = member; selectedFleetID = member.first?.id
-            await loadVehicles()
+            await loadVehicles(); await loadAssignments()
             return
         }
-        role = .none; fleets = []; vehicles = []; records = []
+        role = .none; fleets = []; vehicles = []; records = []; assignments = []
     }
+
+    /// 배정 로드 (RLS: 관리자=소유 조직 전체, 기사=본인 배정만)
+    func loadAssignments() async {
+        let rows: [FleetAssignment]? = try? await fetch(path: "rest/v1/fleet_assignments",
+            query: [.init(name: "select", value: "*")])
+        assignments = rows ?? []
+    }
+
+    // 배정 조회 헬퍼
+    func driverIds(vehicleId: UUID) -> [String] { assignments.filter { $0.fleet_vehicle_id == vehicleId }.map { $0.user_id } }
+    func isAssigned(vehicleId: UUID, userId: String) -> Bool { assignments.contains { $0.fleet_vehicle_id == vehicleId && $0.user_id == userId } }
+    func assignedVehicleIds(userId: String) -> Set<UUID> { Set(assignments.filter { $0.user_id == userId }.map { $0.fleet_vehicle_id }) }
+    func assignedCount(userId: String) -> Int { assignments.filter { $0.user_id == userId }.count }
 
     func loadMembers() async {
         guard let fid = selectedFleetID else { members = []; return }
@@ -153,21 +174,22 @@ final class FleetStore: ObservableObject {
         return (false, (obj["message"] as? String) ?? L("코드를 찾을 수 없어요"))
     }
 
-    /// 관리자: 차량에 기사 배정 (해제 시 명시적 null 전송)
-    private struct AssignBody: Encodable {
-        let assigned_user_id: String?
-        enum CodingKeys: String, CodingKey { case assigned_user_id }
-        func encode(to encoder: Encoder) throws {
-            var c = encoder.container(keyedBy: CodingKeys.self)
-            if let uid = assigned_user_id { try c.encode(uid, forKey: .assigned_user_id) }
-            else { try c.encodeNil(forKey: .assigned_user_id) }
+    /// 관리자: 차량의 기사 배정 집합을 설정 (다대다 · 교대 근무)
+    func setAssignments(vehicleId: UUID, userIds: Set<String>) async {
+        let current = Set(driverIds(vehicleId: vehicleId))
+        let toAdd = userIds.subtracting(current)
+        let toRemove = current.subtracting(userIds)
+        struct Ins: Encodable { let fleet_vehicle_id: String; let user_id: String }
+        for uid in toAdd {
+            try? await send(method: "POST", path: "rest/v1/fleet_assignments", query: [],
+                            body: Ins(fleet_vehicle_id: vehicleId.uuidString.lowercased(), user_id: uid))
         }
-    }
-    func assignDriver(vehicleId: UUID, userId: String?) async {
-        try? await send(method: "PATCH", path: "rest/v1/fleet_vehicles",
-                        query: [.init(name: "id", value: "eq.\(vehicleId.uuidString.lowercased())")],
-                        body: AssignBody(assigned_user_id: userId))
-        await loadVehicles()
+        for uid in toRemove {
+            await deleteRows(path: "rest/v1/fleet_assignments",
+                query: [.init(name: "fleet_vehicle_id", value: "eq.\(vehicleId.uuidString.lowercased())"),
+                        .init(name: "user_id", value: "eq.\(uid)")])
+        }
+        await loadAssignments()
     }
 
     func loadVehicles() async {
@@ -277,10 +299,23 @@ final class FleetStore: ObservableObject {
     }
 
     // MARK: 차량 CRUD
-    func addVehicle(_ up: VehicleUpsert) async {
+    /// 차량 추가 후 생성된 id 반환 (배정 설정에 사용)
+    @discardableResult
+    func addVehicle(_ up: VehicleUpsert) async -> UUID? {
+        guard let base = Secrets.supabaseURL, !apikey.isEmpty else { return nil }
         var up = up; up.fleet_id = selectedFleetID?.uuidString.lowercased()
-        try? await send(method: "POST", path: "rest/v1/fleet_vehicles", query: [], body: up)
+        let b = await bearer()
+        var req = URLRequest(url: base.appendingPathComponent("rest/v1/fleet_vehicles"))
+        req.httpMethod = "POST"; headers(&req, bearer: b)
+        req.setValue("return=representation", forHTTPHeaderField: "Prefer")
+        req.httpBody = try? JSONEncoder().encode(up)
+        var newID: UUID?
+        if let (data, _) = try? await URLSession.shared.data(for: req),
+           let rows = try? JSONDecoder().decode([FleetVehicle].self, from: data) {
+            newID = rows.first?.id
+        }
         await loadVehicles()
+        return newID
     }
     func updateVehicle(id: UUID, _ up: VehicleUpsert) async {
         try? await send(method: "PATCH", path: "rest/v1/fleet_vehicles",
@@ -288,14 +323,18 @@ final class FleetStore: ObservableObject {
         await loadVehicles()
     }
     func deleteVehicle(id: UUID) async {
+        await deleteRows(path: "rest/v1/fleet_vehicles", query: [.init(name: "id", value: "eq.\(id.uuidString.lowercased())")])
+        await loadVehicles()
+    }
+    /// 공용 DELETE (조건부 행 삭제)
+    private func deleteRows(path: String, query: [URLQueryItem]) async {
         guard let base = Secrets.supabaseURL, !apikey.isEmpty else { return }
         let b = await bearer()
-        var comps = URLComponents(url: base.appendingPathComponent("rest/v1/fleet_vehicles"), resolvingAgainstBaseURL: false)!
-        comps.queryItems = [.init(name: "id", value: "eq.\(id.uuidString.lowercased())")]
+        var comps = URLComponents(url: base.appendingPathComponent(path), resolvingAgainstBaseURL: false)!
+        comps.queryItems = query
         var req = URLRequest(url: comps.url!); req.httpMethod = "DELETE"; headers(&req, bearer: b)
         req.setValue("return=minimal", forHTTPHeaderField: "Prefer")
         _ = try? await URLSession.shared.data(for: req)
-        await loadVehicles()
     }
 
     /// 대량삽입 행 — 모든 키를 명시(nil→null)해 PostgREST 배열 삽입 요건 충족

@@ -18,10 +18,11 @@ struct ContentView: View {
     @State private var workVehicleID: UUID?
     @State private var workRecordVehicle: FleetVehicle?
 
-    /// 내게 배정된 업무 차량 (기사/관리자 공통: assigned_user_id == 내 uid)
+    /// 내게 배정된 업무 차량 (다대다 배정 기준)
     private var myWorkVehicles: [FleetVehicle] {
         guard let uid = auth.userID else { return [] }
-        return fleet.vehicles.filter { $0.assignedUserId == uid }
+        let ids = fleet.assignedVehicleIds(userId: uid)
+        return fleet.vehicles.filter { ids.contains($0.id) }
     }
     private var workVehicle: FleetVehicle? {
         workVehicleID.flatMap { id in myWorkVehicles.first { $0.id == id } }

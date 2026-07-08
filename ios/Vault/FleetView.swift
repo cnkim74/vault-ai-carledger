@@ -502,7 +502,7 @@ struct FleetView: View {
                                 .overlay(Image(systemName: "person.fill").font(.system(size: 13)).foregroundStyle(Theme.silver))
                             Text(m.email ?? m.user_id.prefix(8).description).font(pd(12.5)).lineLimit(1)
                             Spacer()
-                            let n = fleet.vehicles.filter { $0.assignedUserId == m.user_id }.count
+                            let n = fleet.assignedCount(userId: m.user_id)
                             Text(n > 0 ? String(format: L("담당 %d대"), n) : L("미배정"))
                                 .font(pd(10.5, .semibold)).foregroundStyle(n > 0 ? Theme.gold : Theme.muted)
                         }
@@ -600,12 +600,12 @@ struct FleetVehicleEditView: View {
     @State private var driverPhone: String
     @State private var memo: String
     @State private var nextService: String
-    @State private var assignedUserId: String?
+    @State private var selectedDrivers: Set<String>
     @State private var showDelete = false
 
     init(fleet: FleetStore, editing: FleetVehicle?) {
         self.fleet = fleet; self.editing = editing
-        _assignedUserId = State(initialValue: editing?.assignedUserId)
+        _selectedDrivers = State(initialValue: Set(editing.map { fleet.driverIds(vehicleId: $0.id) } ?? []))
         _plate = State(initialValue: editing?.plate ?? "")
         let cat = editing?.vehicleCategory ?? .car
         let makers = cat == .car ? CarCatalog.makers : BikeCatalog.makers
@@ -668,14 +668,24 @@ struct FleetVehicleEditView: View {
                     TextField("기사 이름", text: $driverName)
                     TextField("연락처", text: $driverPhone).keyboardType(.phonePad)
                     TextField("메모 (선택)", text: $memo)
-                    if !fleet.members.isEmpty {
-                        Picker("기사 계정 배정", selection: $assignedUserId) {
-                            Text("미배정").tag(String?.none)
-                            ForEach(fleet.members) { m in
-                                Text(m.email ?? m.user_id.prefix(8).description).tag(String?.some(m.user_id))
+                }
+                if !fleet.members.isEmpty {
+                    Section {
+                        ForEach(fleet.members) { m in
+                            Button {
+                                if selectedDrivers.contains(m.user_id) { selectedDrivers.remove(m.user_id) }
+                                else { selectedDrivers.insert(m.user_id) }
+                            } label: {
+                                HStack {
+                                    Text(m.email ?? m.user_id.prefix(8).description).foregroundStyle(Theme.text)
+                                    Spacer()
+                                    if selectedDrivers.contains(m.user_id) {
+                                        Image(systemName: "checkmark").foregroundStyle(Theme.gold)
+                                    }
+                                }
                             }
                         }
-                    }
+                    } header: { Text("기사 계정 배정 (교대 시 여러 명 선택)") }
                 }
                 if editing != nil {
                     Section { Button(role: .destructive) { showDelete = true } label: { HStack { Spacer(); Text("차량 삭제"); Spacer() } } }
@@ -707,11 +717,13 @@ struct FleetVehicleEditView: View {
             driver_name: driverName.isEmpty ? nil : driverName,
             driver_phone: driverPhone.isEmpty ? nil : driverPhone,
             memo: memo.isEmpty ? nil : memo, status: "active",
-            next_service_km: Int(nextService), assigned_user_id: assignedUserId)
+            next_service_km: Int(nextService))
         if let e = editing {
             await fleet.updateVehicle(id: e.id, up)
-            await fleet.assignDriver(vehicleId: e.id, userId: assignedUserId) // 배정/해제(null) 명시 반영
-        } else { await fleet.addVehicle(up) }
+            await fleet.setAssignments(vehicleId: e.id, userIds: selectedDrivers)
+        } else if let newID = await fleet.addVehicle(up) {
+            await fleet.setAssignments(vehicleId: newID, userIds: selectedDrivers)
+        }
         dismiss()
     }
 }

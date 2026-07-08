@@ -4731,6 +4731,28 @@
         }
       }
     },
+    "기사 계정 배정 (교대 시 여러 명 선택)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Assign driver accounts (select multiple for shifts)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ドライバー割当（交代制は複数選択）"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分配司机账户（换班可多选）"
+          }
+        }
+      }
+    },
     "담당 %d대": {
       "localizations": {
         "en": {
