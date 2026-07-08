@@ -234,16 +234,20 @@ final class FleetStore: ObservableObject {
     }
     func driverStats() -> [DriverStat] {
         let cal = Calendar.current
-        let month = records.filter { cal.isDate($0.date, equalTo: Date(), toGranularity: .month) }
+        let monthStart = cal.dateInterval(of: .month, for: Date())?.start ?? Date()
         let byDriver = Dictionary(grouping: vehicles) { $0.driverName?.isEmpty == false ? $0.driverName! : L("담당 없음") }
         return byDriver.map { name, vs -> DriverStat in
             let vids = Set(vs.map { $0.id })
-            let recs = month.filter { vids.contains($0.fleet_vehicle_id) }
-            let cost = recs.compactMap { $0.amount_won }.reduce(0, +)
+            let cost = records.filter { vids.contains($0.fleet_vehicle_id) && $0.date >= monthStart }
+                .compactMap { $0.amount_won }.reduce(0, +)
             var dist = 0
             for v in vs {
-                let odos = recs.filter { $0.fleet_vehicle_id == v.id }.compactMap { $0.odometer_km }
-                if let mx = odos.max(), let mn = odos.min() { dist += (mx - mn) }
+                let thisMonth = records.filter { $0.fleet_vehicle_id == v.id && $0.date >= monthStart }.compactMap { $0.odometer_km }
+                guard let latest = thisMonth.max() else { continue }
+                // 기준선 = 전월 이전 마지막 주행계(주행계는 단조 증가 → 최댓값), 없으면 이번 달 최소값
+                let prior = records.filter { $0.fleet_vehicle_id == v.id && $0.date < monthStart }.compactMap { $0.odometer_km }
+                let start = prior.max() ?? thisMonth.min() ?? latest
+                dist += max(0, latest - start)
             }
             return .init(id: name, name: name, cost: cost, distanceKm: dist, vehicleCount: vs.count)
         }
