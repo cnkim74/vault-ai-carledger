@@ -437,7 +437,10 @@ struct FleetVehicleEditView: View {
             driver_phone: driverPhone.isEmpty ? nil : driverPhone,
             memo: memo.isEmpty ? nil : memo, status: "active",
             next_service_km: Int(nextService), assigned_user_id: assignedUserId)
-        if let e = editing { await fleet.updateVehicle(id: e.id, up) } else { await fleet.addVehicle(up) }
+        if let e = editing {
+            await fleet.updateVehicle(id: e.id, up)
+            await fleet.assignDriver(vehicleId: e.id, userId: assignedUserId) // 배정/해제(null) 명시 반영
+        } else { await fleet.addVehicle(up) }
         dismiss()
     }
 }

@@ -151,9 +151,21 @@ final class FleetStore: ObservableObject {
         return (false, (obj["message"] as? String) ?? L("코드를 찾을 수 없어요"))
     }
 
-    /// 관리자: 차량에 기사 배정
+    /// 관리자: 차량에 기사 배정 (해제 시 명시적 null 전송)
+    private struct AssignBody: Encodable {
+        let assigned_user_id: String?
+        enum CodingKeys: String, CodingKey { case assigned_user_id }
+        func encode(to encoder: Encoder) throws {
+            var c = encoder.container(keyedBy: CodingKeys.self)
+            if let uid = assigned_user_id { try c.encode(uid, forKey: .assigned_user_id) }
+            else { try c.encodeNil(forKey: .assigned_user_id) }
+        }
+    }
     func assignDriver(vehicleId: UUID, userId: String?) async {
-        await updateVehicle(id: vehicleId, .init(assigned_user_id: userId))
+        try? await send(method: "PATCH", path: "rest/v1/fleet_vehicles",
+                        query: [.init(name: "id", value: "eq.\(vehicleId.uuidString.lowercased())")],
+                        body: AssignBody(assigned_user_id: userId))
+        await loadVehicles()
     }
 
     func loadVehicles() async {
