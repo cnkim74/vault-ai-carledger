@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compose가 실제 테마를 담당. 여기선 창 배경/상태바만 다크로. -->
+    <style name="Theme.Wheelet" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#0D0D0F</item>
+        <item name="android:statusBarColor">#0D0D0F</item>
+        <item name="android:navigationBarColor">#0D0D0F</item>
+    </style>
+</resources>
