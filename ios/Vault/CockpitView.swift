@@ -10,6 +10,7 @@ struct CockpitView: View {
     var workVehicles: [FleetVehicle] = []
     @Binding var workVehicleID: UUID?
     var adminPending: Int = 0
+    var consumer: ConsumerSession? = nil
     var onEditProfile: () -> Void = {}
     var onShowRecords: () -> Void = {}
 
@@ -44,7 +45,7 @@ struct CockpitView: View {
                     weatherCard
                     heroCard
                     insightCard
-                    DestinationCard(calendar: calendar)
+                    DestinationCard(calendar: calendar, consumer: consumer)
                     statCards
                     leaseProjectionCard
                     maintenanceCard

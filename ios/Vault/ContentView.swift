@@ -44,6 +44,7 @@ struct ContentView: View {
                     CockpitView(store: store, insight: insight, profile: profile,
                                 fleet: fleet, workVehicles: myWorkVehicles, workVehicleID: $workVehicleID,
                                 adminPending: adminStore.isAdmin ? adminStore.pendingCount : 0,
+                                consumer: consumer,
                                 onEditProfile: { showAccount = true },
                                 onShowRecords: { tab = .records })
                 case .records: RecordsListView(store: store)

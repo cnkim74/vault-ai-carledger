@@ -15,6 +15,15 @@ function json(b: unknown, s = 200) {
 }
 const SBH = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` };
 
+async function dbg(note: string) {
+  try {
+    await fetch(`${SB_URL}/rest/v1/tesla_debug`, {
+      method: "POST", headers: { ...SBH, "Content-Type": "application/json", Prefer: "return=minimal" },
+      body: JSON.stringify({ note: note.slice(0, 900) }),
+    });
+  } catch (_) { /* ignore */ }
+}
+
 async function uidFrom(req: Request): Promise<string | null> {
   const auth = req.headers.get("Authorization");
   if (!auth) return null;
@@ -69,7 +78,7 @@ Deno.serve(async (req: Request) => {
   if (!vid) return json({ error: "no_vehicle", message: "차량 없음" });
 
   const H = { Authorization: `Bearer ${access}` };
-  const dataURL = `${fleet}/api/1/vehicles/${vid}/vehicle_data?endpoints=${encodeURIComponent("charge_state;vehicle_state;drive_state")}`;
+  const dataURL = `${fleet}/api/1/vehicles/${vid}/vehicle_data?endpoints=${encodeURIComponent("charge_state;vehicle_state;drive_state;location_data")}`;
 
   let r = await fetch(dataURL, { headers: H });
   if (r.status === 408) {
@@ -103,6 +112,7 @@ Deno.serve(async (req: Request) => {
   // 차량 위치 (vehicle_location 권한이 있어야 채워짐)
   const lat = typeof ds.latitude === "number" ? ds.latitude : null;
   const long = typeof ds.longitude === "number" ? ds.longitude : null;
+  await dbg(`loc drive_keys=[${Object.keys(ds).join(",")}] lat=${lat} long=${long}`);
 
   return json({
     connected: true,

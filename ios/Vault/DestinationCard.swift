@@ -5,6 +5,9 @@ import CoreLocation
 /// 하단에 티맵 / 카카오맵 선택 버튼을 배치.
 struct DestinationCard: View {
     @ObservedObject var calendar: CalendarService
+    var consumer: ConsumerSession? = nil
+    @StateObject private var tesla = TeslaService()
+    @State private var showNearby = false
     @State private var pending: Destination?
     @State private var query: String = ""
     @FocusState private var searchFocused: Bool
@@ -22,6 +25,27 @@ struct DestinationCard: View {
                 Image(systemName: "location.north.circle.fill")
                     .font(.system(size: 13)).foregroundStyle(Theme.gold)
                 Text("길찾기").font(pd(13, .semibold))
+            }
+
+            // 가까운 슈퍼차저 (테슬라 연결 시)
+            if tesla.connected {
+                Button { showNearby = true } label: {
+                    HStack(spacing: 12) {
+                        RoundedRectangle(cornerRadius: 10).fill(Theme.red.opacity(0.14))
+                            .frame(width: 34, height: 34)
+                            .overlay(Image(systemName: "bolt.fill").font(.system(size: 14)).foregroundStyle(Theme.red))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("가까운 슈퍼차저").font(pd(12.5, .medium))
+                            Text("차량 위치 기준 주변 충전소").font(pd(10.5)).foregroundStyle(Theme.muted).lineLimit(1)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right").font(.system(size: 11)).foregroundStyle(Theme.muted)
+                    }
+                    .padding(EdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 12))
+                    .background(Theme.card).clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.cardBorder, lineWidth: 1))
+                }
+                .buttonStyle(.plain)
             }
 
             // 다가오는 캘린더 일정 (있을 때만)
@@ -123,5 +147,6 @@ struct DestinationCard: View {
             }
             Button("취소", role: .cancel) { pending = nil }
         }
+        .sheet(isPresented: $showNearby) { NearbySuperchargersView(tesla: tesla, consumer: consumer) }
     }
 }

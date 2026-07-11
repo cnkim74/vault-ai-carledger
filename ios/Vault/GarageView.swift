@@ -17,7 +17,6 @@ struct GarageView: View {
     @State private var photoItem: PhotosPickerItem?
     @State private var showEdit = false
     @State private var showAdd = false
-    @State private var showNearby = false
     @State private var showLocation = false
 
     private var v: Vehicle { store.vehicle }
@@ -93,7 +92,6 @@ struct GarageView: View {
                         .padding(.top, 10)
 
                     if tesla.connected {
-                        teslaExtraButton("가까운 슈퍼차저", icon: "bolt.badge.a.fill") { showNearby = true }
                         teslaExtraButton("차량 위치 보기", icon: "location.fill") { showLocation = true }
                     }
                 }
@@ -264,7 +262,6 @@ struct GarageView: View {
         }
         .buttonStyle(.plain)
         .sheet(isPresented: $showOBDGuide) { OBDGuideView(premium: premium, store: store) }
-        .sheet(isPresented: $showNearby) { NearbySuperchargersView(tesla: tesla, consumer: consumer) }
         .sheet(isPresented: $showLocation) { VehicleLocationView(tesla: tesla, consumer: consumer) }
     }
 

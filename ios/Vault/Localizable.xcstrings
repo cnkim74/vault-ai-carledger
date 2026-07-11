@@ -10495,6 +10495,50 @@
         }
       }
     },
+    "애플 지도": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Maps"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appleマップ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "苹果地图"
+          }
+        }
+      }
+    },
+    "차량 위치 기준 주변 충전소": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chargers near your car"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "車の位置周辺の充電所"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "车辆附近充电站"
+          }
+        }
+      }
+    },
     "충전 리포트": {
       "localizations": {
         "en": {
