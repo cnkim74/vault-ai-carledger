@@ -147,6 +147,7 @@ final class TeslaService: NSObject, ObservableObject, ASWebAuthenticationPresent
     /// 슈퍼차저 충전 이력 → 기록 자동 임포트 (신규 세션만)
     @discardableResult
     func importCharging(store: VaultStore) async -> Bool {
+        if !connected { await connect() }
         guard connected, let base = Secrets.supabaseURL, let key = Secrets.supabaseKey, !key.isEmpty else { return false }
         importing = true; defer { importing = false }
 
@@ -173,7 +174,11 @@ final class TeslaService: NSObject, ObservableObject, ASWebAuthenticationPresent
             case "no_vin":
                 message = L("VIN 확인 실패")
             default:
-                message = L("충전 이력 조회 실패")
+                if let st = obj["status"] as? Int {
+                    message = String(format: L("충전 이력 조회 실패 (%d)"), st)
+                } else {
+                    message = L("충전 이력 조회 실패")
+                }
             }
             return false
         }

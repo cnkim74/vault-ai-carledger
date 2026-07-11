@@ -70,7 +70,7 @@ struct ContentView: View {
         }
         .background(Theme.bgTop.ignoresSafeArea())
         .sheet(isPresented: $showAddRecord) {
-            AddRecordView(store: store)
+            AddRecordView(store: store, consumer: consumer)
         }
         .sheet(item: $workRecordVehicle) { FleetRecordAddView(fleet: fleet, vehicle: $0) }
         .sheet(isPresented: $showProfile) {

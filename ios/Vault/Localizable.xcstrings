@@ -9549,6 +9549,94 @@
         }
       }
     },
+    "충전 이력 조회 실패 (%d)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Failed to load charging history (%d)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "充電履歴の取得に失敗 (%d)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "获取充电记录失败 (%d)"
+          }
+        }
+      }
+    },
+    "테슬라 충전 이력 가져오기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import Tesla charging history"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "テスラ充電履歴を取り込む"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导入特斯拉充电记录"
+          }
+        }
+      }
+    },
+    "슈퍼차저 충전 내역을 자동 기입": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto-fill Supercharger sessions"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スーパーチャージャー履歴を自動入力"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动填入超充记录"
+          }
+        }
+      }
+    },
+    "테슬라 계정 연결 후 자동 기입": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect Tesla, then auto-fill"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "テスラ連携後に自動入力"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连接特斯拉后自动填入"
+          }
+        }
+      }
+    },
     "새 충전 내역 없음": {
       "localizations": {
         "en": {

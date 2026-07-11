@@ -5,8 +5,10 @@ import PhotosUI
 struct AddRecordView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var store: VaultStore
+    var consumer: ConsumerSession? = nil
     @StateObject private var premium = PremiumStore()
     @StateObject private var scanner = ReceiptScanner()
+    @StateObject private var tesla = TeslaService()
 
     let editing: VaultRecord?
 
@@ -34,8 +36,9 @@ struct AddRecordView: View {
     private var energyKind: RecordKind { isEV ? .charge : .fuel }
     private var isEditing: Bool { editing != nil }
 
-    init(store: VaultStore, editing: VaultRecord? = nil) {
+    init(store: VaultStore, consumer: ConsumerSession? = nil, editing: VaultRecord? = nil) {
         self.store = store
+        self.consumer = consumer
         self.editing = editing
         _kind = State(initialValue: editing?.kind ?? (!store.vehicle.usesFuel ? .charge : .fuel))
         _title = State(initialValue: editing?.title ?? "")
@@ -96,6 +99,38 @@ struct AddRecordView: View {
                         Text("정비").tag(RecordKind.maintenance)
                     }
                     .pickerStyle(.segmented)
+                }
+
+                // 전기차·충전 선택 시 테슬라 슈퍼차저 충전 이력 자동 가져오기
+                if !isEditing && kind == .charge && isEV {
+                    Section {
+                        Button {
+                            Task {
+                                tesla.consumer = consumer
+                                let ok = await tesla.importCharging(store: store)
+                                if ok { dismiss() }
+                            }
+                        } label: {
+                            HStack(spacing: 10) {
+                                if tesla.importing || tesla.connecting {
+                                    ProgressView().controlSize(.small).tint(Theme.gold)
+                                } else {
+                                    Image(systemName: "bolt.car.fill").font(.system(size: 16)).foregroundStyle(Theme.gold)
+                                }
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text("테슬라 충전 이력 가져오기")
+                                        .font(pd(14, .semibold)).foregroundStyle(Theme.text)
+                                    Text(tesla.connected ? "슈퍼차저 충전 내역을 자동 기입" : "테슬라 계정 연결 후 자동 기입")
+                                        .font(pd(10.5)).foregroundStyle(Theme.muted)
+                                }
+                                Spacer()
+                            }
+                        }
+                        .disabled(tesla.importing || tesla.connecting)
+                        if let msg = tesla.message {
+                            Text(msg).font(pd(11)).foregroundStyle(Theme.muted)
+                        }
+                    }
                 }
 
                 Section("내용") {
