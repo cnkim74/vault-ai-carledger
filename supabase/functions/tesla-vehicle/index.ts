@@ -55,6 +55,9 @@ Deno.serve(async (req: Request) => {
   const uid = await uidFrom(req);
   if (!uid) return json({ error: "no_session", message: "로그인 세션이 필요해요" }, 401);
 
+  const reqBody = await req.json().catch(() => ({}));
+  const noWake = reqBody?.noWake === true;   // true면 잠자는 차를 깨우지 않음(자동 갱신용)
+
   const row = await loadToken(uid);
   if (!row || !row.access_token) return json({ error: "not_connected", message: "테슬라 미연결" });
 
@@ -75,6 +78,7 @@ Deno.serve(async (req: Request) => {
 
   let r = await fetch(ep(true), { headers: H });
   if (r.status === 408) {
+    if (noWake) return json({ error: "asleep", message: "차량이 잠자는 중" }, 200);
     await fetch(`${fleet}/api/1/vehicles/${vid}/wake_up`, { method: "POST", headers: H });
     for (let i = 0; i < 8; i++) {
       await new Promise((res) => setTimeout(res, 3000));

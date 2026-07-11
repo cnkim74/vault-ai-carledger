@@ -162,6 +162,7 @@ final class TeslaService: NSObject, ObservableObject, ASWebAuthenticationPresent
            let addr = await Self.reverseGeocode(lat: lat, long: long) {
             store.liveLocationAddress = addr
         }
+        store.liveFetchedAt = Date()
 
         var upsert = VaultStore.VehicleUpsert()
         if let b = obj["battery"] as? Int { upsert.battery = b }
@@ -207,6 +208,33 @@ final class TeslaService: NSObject, ObservableObject, ASWebAuthenticationPresent
                 long: (s["long"] as? NSNumber)?.doubleValue
             )
         }
+    }
+
+    /// 차를 깨우지 않는 가벼운 실시간 갱신 — 차량이 온라인(운행 등)일 때만 상태·위치 반영.
+    /// 주차(잠자는 중)면 아무것도 안 바꿔 마지막 값 유지.
+    func refreshLive(store: VaultStore) async {
+        guard connected, let base = Secrets.supabaseURL, let key = Secrets.supabaseKey, !key.isEmpty else { return }
+        var req = URLRequest(url: base.appendingPathComponent("functions/v1/tesla-vehicle"))
+        req.httpMethod = "POST"
+        req.setValue("Bearer \(await bearer(fallback: key))", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try? JSONSerialization.data(withJSONObject: ["noWake": true])
+        req.timeoutInterval = 20
+
+        guard let (data, _) = try? await URLSession.shared.data(for: req),
+              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              obj["error"] == nil else { return }   // asleep/unavailable → 마지막 값 유지
+
+        if let s = obj["status"] as? String { store.liveStatus = VehicleLiveStatus(rawValue: s) }
+        var upsert = VaultStore.VehicleUpsert()
+        if let b = obj["battery"] as? Int { upsert.battery = b }
+        if let o = obj["odometerKm"] as? Int { upsert.odometer_km = o }
+        if upsert.battery != nil || upsert.odometer_km != nil { try? await store.updateVehicle(upsert) }
+        if let lat = (obj["lat"] as? NSNumber)?.doubleValue, let long = (obj["long"] as? NSNumber)?.doubleValue,
+           let addr = await Self.reverseGeocode(lat: lat, long: long) {
+            store.liveLocationAddress = addr
+        }
+        store.liveFetchedAt = Date()
     }
 
     /// 차량 현재 위치 조회 (vehicle_location 권한 필요). 좌표 없으면 재연결 안내.

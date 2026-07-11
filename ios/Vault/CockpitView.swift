@@ -29,6 +29,7 @@ struct CockpitView: View {
     @StateObject private var prediction = PredictionService()
     @StateObject private var calendar = CalendarService()
     @StateObject private var notif = NotificationService()
+    @StateObject private var tesla = TeslaService()
     @State private var showBatteryEdit = false
     @State private var showOdometerEdit = false
     @State private var batteryInput = ""
@@ -90,6 +91,13 @@ struct CockpitView: View {
         .task { await calendar.load() }
         .task(id: store.vehicle.id) {
             await notif.refreshIfEnabled(store: store, weather: weather)
+        }
+        .task(id: store.vehicle.id) {
+            // 홈 진입 시 가벼운 실시간 갱신(차를 깨우지 않음). 90초 이내면 생략.
+            guard teslaConnected else { return }
+            tesla.consumer = consumer
+            if let t = store.liveFetchedAt, Date().timeIntervalSince(t) < 90 { return }
+            await tesla.refreshLive(store: store)
         }
         .sheet(item: $editingRecord) { rec in
             AddRecordView(store: store, editing: rec)
@@ -301,6 +309,15 @@ struct CockpitView: View {
             .clipShape(Circle())
     }
 
+    // 갱신 시각 상대 표기
+    private func relativeAgo(_ d: Date) -> String {
+        let s = Int(Date().timeIntervalSince(d))
+        if s < 60 { return L("방금") }
+        if s < 3600 { return String(format: L("%d분 전"), s / 60) }
+        if s < 86400 { return String(format: L("%d시간 전"), s / 3600) }
+        return String(format: L("%d일 전"), s / 86400)
+    }
+
     // 상태 배지: 실시간 데이터(테슬라 연결+동기화)가 있을 때만 표시.
     // 데이터 소스가 없으면(미연결) 오해를 주지 않도록 숨긴다.
     @ViewBuilder
@@ -408,6 +425,14 @@ struct CockpitView: View {
                         Text(addr).font(pd(12.5)).foregroundStyle(Theme.silver)
                             .lineLimit(1).minimumScaleFactor(0.55)
                             .multilineTextAlignment(.trailing)
+                    }
+                }
+                // 갱신 시각 (실시간이 아닌 마지막 동기화 기준임을 명확히)
+                if teslaConnected, let t = store.liveFetchedAt {
+                    HStack {
+                        Spacer()
+                        Text(verbatim: String(format: L("%@ 기준"), relativeAgo(t)))
+                            .font(pd(9.5)).foregroundStyle(Theme.muted)
                     }
                 }
             }
