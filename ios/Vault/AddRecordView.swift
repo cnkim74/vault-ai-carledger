@@ -20,7 +20,24 @@ struct AddRecordView: View {
     @State private var showPaywall = false
 
     @State private var kind: RecordKind
+    @State private var chargeSpeed: ChargeSpeed
     @State private var title: String
+
+    // 충전 속도 (수동 입력 시 선택 → 제목 기본값)
+    enum ChargeSpeed: String, CaseIterable {
+        case ultra, fast, slow
+        var title: String {
+            switch self { case .ultra: return "초고속충전"; case .fast: return "고속충전"; case .slow: return "완속충전" }
+        }
+        var short: String {
+            switch self { case .ultra: return "초고속"; case .fast: return "고속"; case .slow: return "완속" }
+        }
+        static func from(title: String) -> ChargeSpeed {
+            if title.contains("초고속") { return .ultra }
+            if title.contains("완속") { return .slow }
+            return .fast
+        }
+    }
     @State private var amount: String
     @State private var volume = ""
     @State private var distance: String
@@ -41,6 +58,7 @@ struct AddRecordView: View {
         self.consumer = consumer
         self.editing = editing
         _kind = State(initialValue: editing?.kind ?? (!store.vehicle.usesFuel ? .charge : .fuel))
+        _chargeSpeed = State(initialValue: ChargeSpeed.from(title: editing?.title ?? ""))
         _title = State(initialValue: editing?.title ?? "")
         _amount = State(initialValue: editing?.amountWon.map(String.init) ?? "")
         _distance = State(initialValue: editing?.distanceKm.map { String($0) } ?? "")
@@ -51,7 +69,7 @@ struct AddRecordView: View {
 
     private var defaultTitle: String {
         switch kind {
-        case .charge: return "충전"
+        case .charge: return chargeSpeed.title
         case .fuel: return "주유"
         case .drive: return "주행 일지"
         case .maintenance: return "정비"
@@ -138,6 +156,10 @@ struct AddRecordView: View {
 
                     switch kind {
                     case .charge:
+                        Picker("충전 속도", selection: $chargeSpeed) {
+                            ForEach(ChargeSpeed.allCases, id: \.self) { Text(L($0.short)).tag($0) }
+                        }
+                        .pickerStyle(.segmented)
                         TextField("충전량 (kWh)", text: $volume).keyboardType(.decimalPad)
                         TextField("금액 (원)", text: $amount).keyboardType(.numberPad)
                         TextField("장소 (예: 이마트 성수)", text: $location)
