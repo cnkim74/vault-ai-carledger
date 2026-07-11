@@ -5,7 +5,12 @@ struct MaintenanceChecklistView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var store: VaultStore
     @State private var showSchedule = false
-    @State private var apptDate = Calendar.current.date(byAdding: .day, value: 3, to: Date()) ?? Date()
+    @State private var apptDate: Date = {
+        let base = Calendar.current.date(byAdding: .day, value: 3, to: Date()) ?? Date()
+        var c = Calendar.current.dateComponents([.year, .month, .day], from: base)
+        c.hour = 9; c.minute = 0
+        return Calendar.current.date(from: c) ?? base
+    }()
     @State private var apptPlace = ""
     @State private var apptDetail = ""
     @State private var scheduling = false
@@ -20,12 +25,6 @@ struct MaintenanceChecklistView: View {
         items.filter { $0.isOverdue || $0.isSoon }
     }
 
-    /// 선택 날짜의 오전 9:00
-    private var apptDateAt9: Date {
-        var c = Calendar.current.dateComponents([.year, .month, .day], from: apptDate)
-        c.hour = 9; c.minute = 0
-        return Calendar.current.date(from: c) ?? apptDate
-    }
 
     var body: some View {
         NavigationStack {
@@ -70,9 +69,8 @@ struct MaintenanceChecklistView: View {
         NavigationStack {
             Form {
                 Section("예약 날짜") {
-                    DatePicker("예약 날짜", selection: $apptDate, displayedComponents: [.date])
+                    DatePicker("예약 날짜", selection: $apptDate, displayedComponents: [.date, .hourAndMinute])
                         .labelsHidden()
-                    Text("시간은 오전 9:00로 등록돼요.").font(pd(10.5)).foregroundStyle(Theme.muted)
                 }
                 Section("장소 (주소)") {
                     TextField("예: 테슬라 서비스센터 성수 / 서울 성동구 …", text: $apptPlace)
@@ -105,7 +103,7 @@ struct MaintenanceChecklistView: View {
                             let notes = lines.isEmpty ? nil : lines.joined(separator: "\n\n")
                             let ok = await CalendarService().addEvent(
                                 title: String(format: L("%@ 정비 예약"), store.vehicle.name),
-                                date: apptDateAt9, notes: notes,
+                                date: apptDate, notes: notes,
                                 location: apptPlace.isEmpty ? nil : apptPlace, alarmDaysBefore: 1)
                             scheduling = false
                             scheduleResult = ok ? L("캘린더에 등록됐어요 (하루 전 알림)") : L("캘린더 접근이 필요해요")
