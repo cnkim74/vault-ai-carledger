@@ -109,25 +109,33 @@ Deno.serve(async (req: Request) => {
   // 모든 페이지 순회 → 연결 이전 과거 이력까지 전부 (안전 상한 2000건)
   const PAGE = 50, MAX_PAGES = 40;
   const sessions: Record<string, any>[] = [];
+  let firstBodySample = "";
   for (let page = 1; page <= MAX_PAGES; page++) {
     const histURL =
       `${fleet}/api/1/dx/charging/history?vin=${encodeURIComponent(vin)}` +
       `&pageNo=${page}&pageSize=${PAGE}&sortBy=start_datetime&sortOrder=DESC`;
     const cr = await fetch(histURL, { headers: H });
+    const raw = await cr.text();
+    if (page === 1) {
+      firstBodySample = raw.slice(0, 300);
+      console.log(`[charging] page1 status=${cr.status} len=${raw.length} vin=${vin} body=${firstBodySample}`);
+    }
     if (!cr.ok) {
       if (page === 1) {
-        const t = await cr.text();
-        return json({ error: cr.status === 403 ? "scope" : "history_failed", status: cr.status, message: t.slice(0, 240) });
+        return json({ error: cr.status === 403 ? "scope" : "history_failed", status: cr.status, message: raw.slice(0, 240) });
       }
       break; // 이후 페이지 실패 → 여기까지 수집분만 사용
     }
-    const cd = await cr.json();
-    const batch: Record<string, any>[] = cd?.response?.data ?? cd?.response?.results ?? cd?.response ?? [];
+    let cd: any = {};
+    try { cd = JSON.parse(raw); } catch (_) { /* ignore */ }
+    const batch: Record<string, any>[] = cd?.response?.data ?? cd?.response?.results ??
+      (Array.isArray(cd?.response) ? cd.response : []) ?? [];
+    if (page === 1) console.log(`[charging] page1 parsed count=${Array.isArray(batch) ? batch.length : "n/a"} keys=${Object.keys(cd?.response ?? {}).join(",")}`);
     if (!Array.isArray(batch) || batch.length === 0) break;
     sessions.push(...batch);
     if (batch.length < PAGE) break; // 마지막 페이지
   }
-  if (sessions.length === 0) return json({ imported: 0, total: 0 });
+  if (sessions.length === 0) return json({ imported: 0, total: 0, debug: firstBodySample });
 
   const er = await fetch(
     `${SB_URL}/rest/v1/records?vehicle_id=eq.${vehicleId}&ext_id=like.tesla-charge-*&select=ext_id`,
