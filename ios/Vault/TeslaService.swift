@@ -14,6 +14,10 @@ final class TeslaService: NSObject, ObservableObject, ASWebAuthenticationPresent
     @Published var connected = UserDefaults.standard.bool(forKey: "tesla.connected")
     @Published var message: String?
 
+    /// 개인 데이터 격리 세션 — 함수 호출 시 이 토큰으로 사용자(uid) 식별
+    weak var consumer: ConsumerSession?
+    private func bearer(fallback key: String) async -> String { (await consumer?.validToken()) ?? key }
+
     private var session: ASWebAuthenticationSession?
 
     func connect() async {
@@ -51,7 +55,7 @@ final class TeslaService: NSObject, ObservableObject, ASWebAuthenticationPresent
                                   resolvingAgainstBaseURL: false)!
         comps.queryItems = [URLQueryItem(name: "action", value: "authurl")]
         var req = URLRequest(url: comps.url!)
-        req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+        req.setValue("Bearer \(await bearer(fallback: key))", forHTTPHeaderField: "Authorization")
         req.timeoutInterval = 20
         guard let (data, _) = try? await URLSession.shared.data(for: req),
               let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -67,7 +71,7 @@ final class TeslaService: NSObject, ObservableObject, ASWebAuthenticationPresent
 
         var req = URLRequest(url: base.appendingPathComponent("functions/v1/tesla-vehicle"))
         req.httpMethod = "POST"
-        req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+        req.setValue("Bearer \(await bearer(fallback: key))", forHTTPHeaderField: "Authorization")
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = Data("{}".utf8)
         req.timeoutInterval = 40
@@ -112,7 +116,7 @@ final class TeslaService: NSObject, ObservableObject, ASWebAuthenticationPresent
 
         var req = URLRequest(url: base.appendingPathComponent("functions/v1/tesla-charging"))
         req.httpMethod = "POST"
-        req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+        req.setValue("Bearer \(await bearer(fallback: key))", forHTTPHeaderField: "Authorization")
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try? JSONSerialization.data(withJSONObject: ["vehicleId": store.vehicle.id.uuidString])
         req.timeoutInterval = 40

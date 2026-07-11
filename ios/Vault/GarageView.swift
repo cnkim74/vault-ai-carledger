@@ -4,6 +4,7 @@ import PhotosUI
 /// 차고 탭 — 차량 목록(전환) + 대표 차량 카드 + 정보 수정/추가
 struct GarageView: View {
     @ObservedObject var store: VaultStore
+    var consumer: ConsumerSession? = nil
     @StateObject private var tesla = TeslaService()
     @StateObject private var premium = PremiumStore()
     @StateObject private var resale = ResaleService()
@@ -136,7 +137,10 @@ struct GarageView: View {
         .sheet(isPresented: $showAdd) {
             VehicleEditView(store: store, mode: .create)
         }
-        .onAppear { carImage = CarImageStore.load(for: v.id) ?? envSampleImage() }
+        .onAppear {
+            carImage = CarImageStore.load(for: v.id) ?? envSampleImage()
+            tesla.consumer = consumer   // 테슬라 함수 호출 시 사용자(uid) 식별용
+        }
     }
 
     /// 스크린샷/테스트용: SAMPLE_CAR=red|blue|sky 일 때 샘플 이미지

@@ -43,7 +43,7 @@ struct ContentView: View {
                                 onShowRecords: { tab = .records })
                 case .records: RecordsListView(store: store)
                 case .stats: BriefingView(store: store, insight: insight)
-                case .garage: GarageView(store: store)
+                case .garage: GarageView(store: store, consumer: consumer)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
