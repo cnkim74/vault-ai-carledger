@@ -63,6 +63,42 @@ final class TeslaService: NSObject, ObservableObject, ASWebAuthenticationPresent
         return URL(string: s)
     }
 
+    /// 테슬라 계정에서 차량을 가져와 새로 등록 (전기차·모델·주행거리·배터리 자동 채움).
+    @discardableResult
+    func importVehicle(store: VaultStore) async -> Bool {
+        if !connected { await connect() }
+        guard connected, let base = Secrets.supabaseURL, let key = Secrets.supabaseKey, !key.isEmpty else { return false }
+        importing = true; defer { importing = false }
+
+        var req = URLRequest(url: base.appendingPathComponent("functions/v1/tesla-vehicle"))
+        req.httpMethod = "POST"
+        req.setValue("Bearer \(await bearer(fallback: key))", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = Data("{}".utf8)
+        req.timeoutInterval = 40
+
+        guard let (data, _) = try? await URLSession.shared.data(for: req),
+              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            message = L("테슬라 차량을 가져오지 못했어요"); return false
+        }
+        if obj["error"] != nil { message = L("테슬라 차량을 가져오지 못했어요"); return false }
+
+        let name = (obj["name"] as? String) ?? "Tesla"
+        var up = VaultStore.VehicleUpsert()
+        up.name = name
+        up.maker = "테슬라"
+        up.model = name
+        up.fuel_type = FuelType.ev.rawValue
+        up.category = VehicleCategory.car.rawValue
+        up.ownership = Ownership.purchase.rawValue
+        if let b = obj["battery"] as? Int { up.battery = b }
+        if let o = obj["odometerKm"] as? Int { up.odometer_km = o }
+        do { try await store.addVehicle(up) } catch { message = L("차량 저장 실패"); return false }
+        if let s = obj["status"] as? String { store.liveStatus = VehicleLiveStatus(rawValue: s) }
+        message = L("테슬라 차량을 가져왔어요")
+        return true
+    }
+
     /// 배터리·주행거리 동기화 → 성공 시 차량 업데이트
     @discardableResult
     func sync(store: VaultStore) async -> Bool {

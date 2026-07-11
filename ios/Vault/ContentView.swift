@@ -63,7 +63,7 @@ struct ContentView: View {
     var body: some View {
         Group {
             if needsFirstVehicle {
-                FirstVehicleView(store: store)
+                FirstVehicleView(store: store, consumer: consumer)
             } else {
                 mainShell
             }
