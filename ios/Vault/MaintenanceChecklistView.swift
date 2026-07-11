@@ -6,6 +6,8 @@ struct MaintenanceChecklistView: View {
     @ObservedObject var store: VaultStore
     @State private var showSchedule = false
     @State private var apptDate = Calendar.current.date(byAdding: .day, value: 3, to: Date()) ?? Date()
+    @State private var apptPlace = ""
+    @State private var apptDetail = ""
     @State private var scheduling = false
     @State private var scheduleResult: String?
 
@@ -16,6 +18,13 @@ struct MaintenanceChecklistView: View {
     /// 임박·초과 항목 (예약 메모용)
     private var dueItems: [MaintenanceCheck] {
         items.filter { $0.isOverdue || $0.isSoon }
+    }
+
+    /// 선택 날짜의 오전 9:00
+    private var apptDateAt9: Date {
+        var c = Calendar.current.dateComponents([.year, .month, .day], from: apptDate)
+        c.hour = 9; c.minute = 0
+        return Calendar.current.date(from: c) ?? apptDate
     }
 
     var body: some View {
@@ -60,8 +69,17 @@ struct MaintenanceChecklistView: View {
     private var scheduleSheet: some View {
         NavigationStack {
             Form {
-                Section {
-                    DatePicker("예약 날짜", selection: $apptDate, displayedComponents: [.date, .hourAndMinute])
+                Section("예약 날짜") {
+                    DatePicker("예약 날짜", selection: $apptDate, displayedComponents: [.date])
+                        .labelsHidden()
+                    Text("시간은 오전 9:00로 등록돼요.").font(pd(10.5)).foregroundStyle(Theme.muted)
+                }
+                Section("장소 (주소)") {
+                    TextField("예: 테슬라 서비스센터 성수 / 서울 성동구 …", text: $apptPlace)
+                }
+                Section("정비 내역") {
+                    TextField("예: 타이어 교체, 12개월 점검", text: $apptDetail, axis: .vertical)
+                        .lineLimit(1...4)
                 }
                 if !dueItems.isEmpty {
                     Section("함께 메모될 정비 항목") {
@@ -78,11 +96,17 @@ struct MaintenanceChecklistView: View {
                     Button {
                         Task {
                             scheduling = true
-                            let notes = dueItems.isEmpty ? nil
-                                : L("점검 항목:\n") + dueItems.map { "• \(L($0.item)) (\(statusText($0)))" }.joined(separator: "\n")
+                            var lines: [String] = []
+                            if !apptDetail.trimmingCharacters(in: .whitespaces).isEmpty { lines.append(apptDetail) }
+                            if !apptPlace.trimmingCharacters(in: .whitespaces).isEmpty { lines.append(L("장소: ") + apptPlace) }
+                            if !dueItems.isEmpty {
+                                lines.append(L("점검 항목:") + "\n" + dueItems.map { "• \(L($0.item)) (\(statusText($0)))" }.joined(separator: "\n"))
+                            }
+                            let notes = lines.isEmpty ? nil : lines.joined(separator: "\n\n")
                             let ok = await CalendarService().addEvent(
                                 title: String(format: L("%@ 정비 예약"), store.vehicle.name),
-                                date: apptDate, notes: notes, alarmDaysBefore: 1)
+                                date: apptDateAt9, notes: notes,
+                                location: apptPlace.isEmpty ? nil : apptPlace, alarmDaysBefore: 1)
                             scheduling = false
                             scheduleResult = ok ? L("캘린더에 등록됐어요 (하루 전 알림)") : L("캘린더 접근이 필요해요")
                             if ok { showSchedule = false }

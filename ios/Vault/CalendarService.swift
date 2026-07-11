@@ -64,7 +64,7 @@ final class CalendarService: ObservableObject {
     /// iOS 캘린더에 일정 추가 (정비 예약·약정 만료 등). alarmDaysBefore 지정 시 그날 전 알림.
     @discardableResult
     func addEvent(title: String, date: Date, allDay: Bool = false,
-                  notes: String? = nil, alarmDaysBefore: Int? = 1) async -> Bool {
+                  notes: String? = nil, location: String? = nil, alarmDaysBefore: Int? = 1) async -> Bool {
         let granted: Bool
         if #available(iOS 17.0, *) {
             granted = (try? await store.requestWriteOnlyAccessToEvents()) ?? false
@@ -79,6 +79,7 @@ final class CalendarService: ObservableObject {
         ev.startDate = date
         ev.endDate = allDay ? date : date.addingTimeInterval(3600)
         ev.notes = notes
+        if let location, !location.isEmpty { ev.location = location }
         ev.calendar = store.defaultCalendarForNewEvents
         if let d = alarmDaysBefore {
             ev.addAlarm(EKAlarm(relativeOffset: TimeInterval(-d * 86400)))
