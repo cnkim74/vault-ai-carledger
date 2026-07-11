@@ -9,6 +9,7 @@ struct BriefingView: View {
     @State private var showAssistant = false
     @State private var assistantPrompt: String?
     @State private var showReport = false
+    @State private var showChargingReport = false
     @State private var showPaywall = false
 
     private var shortName: String {
@@ -32,6 +33,7 @@ struct BriefingView: View {
                 briefing
                 spendCard
                 reportEntry
+                if !store.vehicle.usesFuel { chargingReportEntry }
                 ridingStatsCard
                 maintenanceEntry
                 leaseCard
@@ -45,6 +47,7 @@ struct BriefingView: View {
         .sheet(isPresented: $showChecklist) { MaintenanceChecklistView(store: store) }
         .sheet(isPresented: $showAssistant) { AIAssistantView(store: store, initialPrompt: assistantPrompt) }
         .sheet(isPresented: $showReport) { PersonalReportView(store: store) }
+        .sheet(isPresented: $showChargingReport) { ChargingReportView(store: store) }
         .sheet(isPresented: $showPaywall) { PaywallSheet(premium: premium) }
     }
 
@@ -63,6 +66,27 @@ struct BriefingView: View {
                 Spacer()
                 Image(systemName: premium.isPremium ? "chevron.right" : "crown.fill")
                     .font(.system(size: 12)).foregroundStyle(premium.isPremium ? Theme.muted : Theme.gold)
+            }
+            .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 16))
+            .background(Theme.card).clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.cardBorder, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 16).padding(.top, 12)
+    }
+
+    // 충전 리포트 진입 (전기차 전용)
+    private var chargingReportEntry: some View {
+        Button { showChargingReport = true } label: {
+            HStack(spacing: 12) {
+                RoundedRectangle(cornerRadius: 10).fill(Theme.green.opacity(0.16)).frame(width: 34, height: 34)
+                    .overlay(Image(systemName: "bolt.fill").font(.system(size: 14)).foregroundStyle(Theme.green))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("충전 리포트").font(pd(13.5, .semibold))
+                    Text("충전량·지출·장소별 · 휘발유 대비 절약").font(pd(10)).foregroundStyle(Theme.muted)
+                }
+                Spacer()
+                Image(systemName: "chevron.right").font(.system(size: 12)).foregroundStyle(Theme.muted)
             }
             .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 16))
             .background(Theme.card).clipShape(RoundedRectangle(cornerRadius: 14))
