@@ -214,6 +214,13 @@ struct AddRecordView: View {
                     if saving { ProgressView() }
                     else { Button("저장") { Task { await save() } }.disabled(!store.live) }
                 }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("완료") {
+                        UIApplication.shared.sendAction(
+                            #selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                    }
+                }
             }
         }
         .tint(Theme.gold)
@@ -267,6 +274,13 @@ struct AddRecordView: View {
     private func save() async {
         saving = true
         errorMessage = nil
+
+        // 빈 입력 방지 — 금액·수량·거리·제목이 모두 비면 저장하지 않음
+        if editing == nil && title.isEmpty && amount.isEmpty && volume.isEmpty && distance.isEmpty {
+            errorMessage = L("금액이나 내용을 입력해 주세요.")
+            saving = false
+            return
+        }
 
         // 충전량/주유량은 제목 뒤에 덧붙여 저장
         var finalTitle = title.isEmpty ? defaultTitle : title

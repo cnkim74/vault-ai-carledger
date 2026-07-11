@@ -9637,6 +9637,28 @@
         }
       }
     },
+    "금액이나 내용을 입력해 주세요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Please enter an amount or details."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "金額または内容を入力してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请输入金额或内容。"
+          }
+        }
+      }
+    },
     "새 충전 내역 없음": {
       "localizations": {
         "en": {

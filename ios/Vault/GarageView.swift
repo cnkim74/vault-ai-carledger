@@ -83,18 +83,12 @@ struct GarageView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
 
-                // 테슬라 연결 (전기차)
+                // 테슬라 연결 (전기차) — 배터리·주행거리 동기화
+                // (충전 이력 가져오기는 '기록 추가' 화면에서만 노출)
                 if v.fuelType == FuelType.ev.rawValue {
                     teslaButton
                         .padding(.horizontal, 16)
                         .padding(.top, 10)
-
-                    // 연결됐으면 슈퍼차저 충전 이력 가져오기
-                    if tesla.connected {
-                        chargingImportButton
-                            .padding(.horizontal, 16)
-                            .padding(.top, 8)
-                    }
                 }
 
                 // OBD 동글 자동 연동 (브랜드 무관)
@@ -301,29 +295,6 @@ struct GarageView: View {
                 Text(msg).font(pd(10)).foregroundStyle(Theme.muted).offset(y: 16)
             }
         }
-    }
-
-    // 슈퍼차저 충전 이력 임포트 버튼
-    private var chargingImportButton: some View {
-        Button {
-            if !premium.isPremium { showPaywall = true; return }
-            Task { await tesla.importCharging(store: store) }
-        } label: {
-            HStack(spacing: 8) {
-                if tesla.importing {
-                    ProgressView().controlSize(.small).tint(Theme.gold)
-                } else {
-                    Image(systemName: "bolt.fill").font(.system(size: 13))
-                }
-                Text(tesla.importing ? "충전 이력 가져오는 중…" : "슈퍼차저 충전 이력 가져오기")
-                    .font(pd(13, .semibold))
-            }
-            .foregroundStyle(Theme.gold)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.gold.opacity(0.4), lineWidth: 1))
-        }
-        .disabled(tesla.importing)
     }
 
     // 차량 전환 칩

@@ -501,6 +501,7 @@ T = {
     "테슬라 충전 이력 가져오기": ("Import Tesla charging history", "テスラ充電履歴を取り込む", "导入特斯拉充电记录"),
     "슈퍼차저 충전 내역을 자동 기입": ("Auto-fill Supercharger sessions", "スーパーチャージャー履歴を自動入力", "自动填入超充记录"),
     "테슬라 계정 연결 후 자동 기입": ("Connect Tesla, then auto-fill", "テスラ連携後に自動入力", "连接特斯拉后自动填入"),
+    "금액이나 내용을 입력해 주세요.": ("Please enter an amount or details.", "金額または内容を入力してください。", "请输入金额或内容。"),
     "새 충전 내역 없음": ("No new charging sessions", "新しい充電履歴なし", "没有新的充电记录"),
     "동기화 중…": ("Syncing…", "同期中…", "同步中…"),
     "동기화 완료": ("Synced", "同期完了", "同步完成"),
