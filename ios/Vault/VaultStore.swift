@@ -74,7 +74,7 @@ final class VaultStore: ObservableObject {
                 URLQueryItem(name: "select", value: "*"),
                 URLQueryItem(name: "vehicle_id", value: "eq.\(vehicle.id.uuidString.lowercased())"),
                 URLQueryItem(name: "order", value: "occurred_at.desc"),
-                URLQueryItem(name: "limit", value: "10"),
+                URLQueryItem(name: "limit", value: "2000"),
             ]
         )
         records = recs

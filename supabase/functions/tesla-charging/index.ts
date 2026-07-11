@@ -137,6 +137,7 @@ Deno.serve(async (req: Request) => {
     let cd: any = {};
     try { cd = JSON.parse(raw); } catch (_) { /* ignore */ }
     // 테슬라 charging/history 응답은 최상위 { data: [...] } 구조 (response 래퍼 없음)
+    // 테슬라 charging/history 응답은 최상위 { data: [...] } 구조 (response 래퍼 없음)
     const batch: Record<string, any>[] = cd?.data ?? cd?.response?.data ?? cd?.response?.results ??
       (Array.isArray(cd?.response) ? cd.response : []) ?? [];
     if (!Array.isArray(batch) || batch.length === 0) break;
