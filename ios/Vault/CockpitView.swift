@@ -46,13 +46,13 @@ struct CockpitView: View {
                     heroCard
                     insightCard
                     DestinationCard(calendar: calendar, consumer: consumer)
+                    StationsCard(store: store, weather: weather)
+                        .padding(.top, 12)
                     statCards
                     leaseProjectionCard
                     maintenanceCard
                     partsCard
                     predictionCard
-                    StationsCard(store: store, weather: weather)
-                        .padding(.top, 12)
                     recentRecords
                 }
             }
