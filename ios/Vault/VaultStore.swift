@@ -40,14 +40,14 @@ final class VaultStore: ObservableObject {
                     URLQueryItem(name: "order", value: "created_at"),
                 ]
             )
-            guard !fetched.isEmpty else { return }
+            live = true   // 연결 성공 (신규 사용자라 빈 결과여도 연결됨)
+            guard !fetched.isEmpty else { return }   // 빈 결과 → 온보딩(목업) 유지, 첫 차량 등록 대기
 
             vehicles = fetched
             if selectedVehicleID == nil || !fetched.contains(where: { $0.id == selectedVehicleID }) {
                 selectedVehicleID = fetched.first?.id
             }
             try await loadRecords()
-            live = true
         } catch {
             print("[VaultStore] Supabase load failed: \(error)")
         }
