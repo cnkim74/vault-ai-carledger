@@ -156,6 +156,15 @@ T = {
     "정지": ("Stop", "停止", "停止"),
 
     # 정비 체크리스트
+    "정비 예약 캘린더에 등록": ("Add service appointment to Calendar", "整備予約をカレンダーに登録", "将保养预约添加到日历"),
+    "정비 예약": ("Service appointment", "整備予約", "保养预约"),
+    "예약 날짜": ("Appointment date", "予約日", "预约日期"),
+    "함께 메모될 정비 항목": ("Items noted with it", "メモされる整備項目", "一并备注的项目"),
+    "캘린더에 등록": ("Add to Calendar", "カレンダーに登録", "添加到日历"),
+    "%@ 정비 예약": ("%@ service appointment", "%@ 整備予約", "%@ 保养预约"),
+    "점검 항목:\n": ("Check items:\n", "点検項目:\n", "检查项目:\n"),
+    "캘린더에 등록됐어요 (하루 전 알림)": ("Added to Calendar (alert 1 day before)", "カレンダーに登録しました(前日通知)", "已添加到日历(提前一天提醒)"),
+    "캘린더 접근이 필요해요": ("Calendar access needed", "カレンダーへのアクセスが必要です", "需要日历访问权限"),
     "정비 체크리스트": ("Service checklist", "整備チェックリスト", "保养清单"),
     "주기 %@km": ("Every %@km", "%@kmごと", "每 %@km"),
     "기록 없음": ("No record", "記録なし", "无记录"),

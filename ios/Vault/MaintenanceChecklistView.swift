@@ -4,9 +4,18 @@ import SwiftUI
 struct MaintenanceChecklistView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var store: VaultStore
+    @State private var showSchedule = false
+    @State private var apptDate = Calendar.current.date(byAdding: .day, value: 3, to: Date()) ?? Date()
+    @State private var scheduling = false
+    @State private var scheduleResult: String?
 
     private var items: [MaintenanceCheck] {
         MaintenanceSchedule.checklist(vehicle: store.vehicle, records: store.records)
+    }
+
+    /// 임박·초과 항목 (예약 메모용)
+    private var dueItems: [MaintenanceCheck] {
+        items.filter { $0.isOverdue || $0.isSoon }
     }
 
     var body: some View {
@@ -14,6 +23,7 @@ struct MaintenanceChecklistView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 10) {
                     header
+                    scheduleButton
                     ForEach(items) { row($0) }
                     Text("정비 기록을 추가하면 그 시점 주행거리를 기준으로 다음 정비 시기를 계산해요. 알림을 켜면 시기가 다가올 때 알려드려요.")
                         .font(pd(10.5)).foregroundStyle(Theme.muted2)
@@ -26,9 +36,73 @@ struct MaintenanceChecklistView: View {
             .navigationTitle("정비 체크리스트")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("닫기") { dismiss() } } }
+            .sheet(isPresented: $showSchedule) { scheduleSheet }
         }
         .tint(Theme.gold)
         .preferredColorScheme(.dark)
+    }
+
+    // 정비 예약을 캘린더에 등록
+    private var scheduleButton: some View {
+        Button { showSchedule = true } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "calendar.badge.plus").font(.system(size: 14))
+                Text("정비 예약 캘린더에 등록").font(pd(13, .semibold))
+                Spacer()
+                Image(systemName: "chevron.right").font(.system(size: 11)).foregroundStyle(Theme.muted)
+            }
+            .foregroundStyle(Theme.gold)
+            .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14))
+            .background(Theme.gold.opacity(0.10)).clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+    }
+
+    private var scheduleSheet: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    DatePicker("예약 날짜", selection: $apptDate, displayedComponents: [.date, .hourAndMinute])
+                }
+                if !dueItems.isEmpty {
+                    Section("함께 메모될 정비 항목") {
+                        ForEach(dueItems) { c in
+                            HStack {
+                                Text(L(c.item)).font(pd(13))
+                                Spacer()
+                                Text(statusText(c)).font(pd(11)).foregroundStyle(Theme.muted)
+                            }
+                        }
+                    }
+                }
+                Section {
+                    Button {
+                        Task {
+                            scheduling = true
+                            let notes = dueItems.isEmpty ? nil
+                                : L("점검 항목:\n") + dueItems.map { "• \(L($0.item)) (\(statusText($0)))" }.joined(separator: "\n")
+                            let ok = await CalendarService().addEvent(
+                                title: String(format: L("%@ 정비 예약"), store.vehicle.name),
+                                date: apptDate, notes: notes, alarmDaysBefore: 1)
+                            scheduling = false
+                            scheduleResult = ok ? L("캘린더에 등록됐어요 (하루 전 알림)") : L("캘린더 접근이 필요해요")
+                            if ok { showSchedule = false }
+                        }
+                    } label: {
+                        HStack { if scheduling { ProgressView().controlSize(.small) }
+                            Text("캘린더에 등록").frame(maxWidth: .infinity) }
+                    }
+                    .disabled(scheduling)
+                    if let msg = scheduleResult {
+                        Text(msg).font(pd(11)).foregroundStyle(Theme.muted)
+                    }
+                }
+            }
+            .navigationTitle("정비 예약")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("취소") { showSchedule = false } } }
+            .tint(Theme.gold).preferredColorScheme(.dark)
+        }
+        .presentationDetents([.medium, .large])
     }
 
     private var header: some View {

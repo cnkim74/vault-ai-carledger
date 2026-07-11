@@ -191,6 +191,7 @@
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "OBD 동글과 연결해 차량 데이터를 자동으로 가져오기 위해 블루투스를 사용합니다.";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "다가오는 일정의 장소로 길찾기를 제공하기 위해 캘린더를 읽습니다.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "다가오는 일정의 장소로 길찾기를 제공하기 위해 캘린더를 읽습니다.";
+				INFOPLIST_KEY_NSCalendarsWriteOnlyAccessUsageDescription = "정비 예약·약정 만료 등 일정을 캘린더에 추가하기 위해 사용합니다.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "영수증·충전 화면을 촬영해 기록을 자동으로 채우기 위해 카메라를 사용합니다.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "현재 위치의 날씨와 차량 관리 팁을 보여드리기 위해 위치 정보를 사용합니다.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "AI 어시스턴트에 음성으로 질문하기 위해 마이크를 사용합니다.";
@@ -227,6 +228,7 @@
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "OBD 동글과 연결해 차량 데이터를 자동으로 가져오기 위해 블루투스를 사용합니다.";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "다가오는 일정의 장소로 길찾기를 제공하기 위해 캘린더를 읽습니다.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "다가오는 일정의 장소로 길찾기를 제공하기 위해 캘린더를 읽습니다.";
+				INFOPLIST_KEY_NSCalendarsWriteOnlyAccessUsageDescription = "정비 예약·약정 만료 등 일정을 캘린더에 추가하기 위해 사용합니다.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "영수증·충전 화면을 촬영해 기록을 자동으로 채우기 위해 카메라를 사용합니다.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "현재 위치의 날씨와 차량 관리 팁을 보여드리기 위해 위치 정보를 사용합니다.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "AI 어시스턴트에 음성으로 질문하기 위해 마이크를 사용합니다.";
