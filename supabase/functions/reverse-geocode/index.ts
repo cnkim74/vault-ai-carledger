@@ -20,10 +20,12 @@ async function kakao(lat: number, long: number): Promise<{ road: string | null; 
     if (!r.ok) return { road: null, jibun: null };
     const d = await r.json();
     const doc = d?.documents?.[0];
-    return {
-      road: doc?.road_address?.address_name ?? null,
-      jibun: doc?.address?.address_name ?? null,
-    };
+    const ra = doc?.road_address;
+    let road: string | null = ra?.address_name ?? null;
+    // 건물명/아파트명 덧붙이기
+    const bn = ra?.building_name;
+    if (road && bn && !road.includes(bn)) road = `${road} ${bn}`;
+    return { road, jibun: doc?.address?.address_name ?? null };
   } catch (_) { return { road: null, jibun: null }; }
 }
 
@@ -40,11 +42,13 @@ async function osm(lat: number, long: number): Promise<string | null> {
     const road = a.road;
     const num = a.house_number;
     const dong = a.suburb || a.neighbourhood || a.quarter || a.village;
+    const name = a.building || a.amenity || a.shop || a.office;
     const parts: string[] = [];
     if (city) parts.push(city);
     if (gu && gu !== city) parts.push(gu);
     if (road) parts.push(road + (num ? ` ${num}` : ""));
     else if (dong) parts.push(dong);
+    if (name && !parts.some((p) => p.includes(name))) parts.push(name);
     return parts.length ? parts.join(" ") : (d?.display_name ?? null);
   } catch (_) { return null; }
 }
