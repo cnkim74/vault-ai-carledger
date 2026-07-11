@@ -11001,6 +11001,72 @@
         }
       }
     },
+    "사진 %d/%d 분석 중…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Analyzing photo %d/%d…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写真 %d/%d 分析中…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分析照片 %d/%d…"
+          }
+        }
+      }
+    },
+    "사진 %d장에서 %d건 인식했어요. 확인 후 등록하세요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Found %2$d rows in %1$d photos. Review and add."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$d枚から%2$d件認識。確認して登録してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从%1$d张照片识别到%2$d条,请确认后登记。"
+          }
+        }
+      }
+    },
+    "인식된 내역이 없어요. 표가 선명한 사진으로 다시 시도해 주세요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No records found. Try clearer photos."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "履歴がありません。鮮明な写真で再試行してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未识别到记录,请用更清晰的照片重试。"
+          }
+        }
+      }
+    },
     "충전 리포트": {
       "localizations": {
         "en": {

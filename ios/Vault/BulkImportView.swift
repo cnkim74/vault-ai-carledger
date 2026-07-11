@@ -11,7 +11,7 @@ struct BulkImportView: View {
     @State private var working = false
     @State private var status: String?
     @State private var showPhoto = false
-    @State private var photoItem: PhotosPickerItem?
+    @State private var photoItems: [PhotosPickerItem] = []
     @State private var showFile = false
     @State private var saving = false
 
@@ -54,13 +54,11 @@ struct BulkImportView: View {
                     }
                 }
             }
-            .photosPicker(isPresented: $showPhoto, selection: $photoItem, matching: .images)
-            .onChange(of: photoItem) { _, item in
-                Task {
-                    if let data = try? await item?.loadTransferable(type: Data.self),
-                       let img = UIImage(data: data) { await parseImage(img) }
-                    photoItem = nil
-                }
+            .photosPicker(isPresented: $showPhoto, selection: $photoItems,
+                          maxSelectionCount: 10, matching: .images)
+            .onChange(of: photoItems) { _, items in
+                guard !items.isEmpty else { return }
+                Task { await parsePhotos(items) }
             }
             .fileImporter(isPresented: $showFile, allowedContentTypes: [.commaSeparatedText, .plainText, .text],
                           allowsMultipleSelection: false) { result in
@@ -121,12 +119,26 @@ struct BulkImportView: View {
         }
     }
 
-    // MARK: 사진 → AI 다건 추출
-    private func parseImage(_ image: UIImage) async {
-        working = true; status = nil; defer { working = false }
-        guard let b64 = ReceiptScanner.downscaledJPEGBase64(image) else {
-            status = L("이미지를 처리할 수 없어요"); return
+    // MARK: 사진(여러 장) → AI 다건 추출 → 누적
+    private func parsePhotos(_ items: [PhotosPickerItem]) async {
+        working = true; status = nil; rows = []
+        defer { working = false; photoItems = [] }
+        var all: [VaultStore.BulkRecord] = []
+        for (i, item) in items.enumerated() {
+            status = String(format: L("사진 %d/%d 분석 중…"), i + 1, items.count)
+            guard let data = try? await item.loadTransferable(type: Data.self),
+                  let img = UIImage(data: data) else { continue }
+            all.append(contentsOf: await parseImageRows(img))
         }
+        rows = dedup(all)
+        status = rows.isEmpty
+            ? L("인식된 내역이 없어요. 표가 선명한 사진으로 다시 시도해 주세요.")
+            : String(format: L("사진 %d장에서 %d건 인식했어요. 확인 후 등록하세요."), items.count, rows.count)
+    }
+
+    /// 이미지 1장 → 행 배열 (실패 시 빈 배열)
+    private func parseImageRows(_ image: UIImage) async -> [VaultStore.BulkRecord] {
+        guard let b64 = ReceiptScanner.downscaledJPEGBase64(image) else { return [] }
         let system = """
         You extract MULTIPLE vehicle charging/fuel records from a photo of a history table or list. \
         Return ONLY a JSON object: {"records":[{"date":"YYYY-MM-DD","kind":"charge"|"fuel","kwh":number|null,"amount_won":integer|null,"location":string|null}]}. \
@@ -138,12 +150,19 @@ struct BulkImportView: View {
               let data = AIProxy.extractJSON(text),
               let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let arr = obj["records"] as? [[String: Any]] else {
-            status = L("인식에 실패했어요. 표가 선명한 사진으로 다시 시도해 주세요."); return
+            return []
         }
-        let parsed = arr.compactMap { rowFrom($0) }
-        if parsed.isEmpty { status = L("인식된 내역이 없어요."); return }
-        rows = parsed
-        status = String(format: L("사진에서 %d건 인식했어요. 확인 후 등록하세요."), parsed.count)
+        return arr.compactMap { rowFrom($0) }
+    }
+
+    /// 여러 장에서 겹친 행 제거 (날짜·kWh·금액 조합 기준)
+    private func dedup(_ items: [VaultStore.BulkRecord]) -> [VaultStore.BulkRecord] {
+        var seen = Set<String>(); var out: [VaultStore.BulkRecord] = []
+        for r in items {
+            let key = "\(Int(r.occurredAt.timeIntervalSince1970 / 86400))|\(r.amountWon ?? -1)|\(r.title)"
+            if seen.insert(key).inserted { out.append(r) }
+        }
+        return out.sorted { $0.occurredAt > $1.occurredAt }
     }
 
     // MARK: CSV 파싱
