@@ -167,6 +167,33 @@ final class VaultStore: ObservableObject {
         await load()
     }
 
+    /// 파일·사진에서 파싱한 여러 기록을 한 번에 등록 (각 기록의 날짜 지정).
+    struct BulkRecord {
+        var kind: RecordKind
+        var title: String
+        var occurredAt: Date
+        var amountWon: Int?
+        var location: String?
+    }
+    @discardableResult
+    func addRecordsBatch(_ items: [BulkRecord]) async throws -> Int {
+        guard !items.isEmpty else { return 0 }
+        let iso = ISO8601DateFormatter()
+        let rows = items.map { r in
+            RecordInsert(
+                vehicle_id: vehicle.id.uuidString.lowercased(),
+                kind: r.kind.rawValue, title: r.title,
+                occurred_at: iso.string(from: r.occurredAt),
+                amount_won: r.amountWon, distance_km: nil, duration_min: nil,
+                location: r.location, tag: L("가져오기"), ai_logged: false,
+                odometer_km: nil
+            )
+        }
+        try await send(method: "POST", path: "rest/v1/records", query: [], body: rows)
+        await load()
+        return rows.count
+    }
+
     /// 기존 기록 수정 (모든 필드 덮어쓰기 · nil은 명시적으로 null 저장)
     func updateRecord(
         id: UUID, kind: RecordKind, title: String,

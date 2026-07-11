@@ -14,6 +14,7 @@ struct AddRecordView: View {
 
     // 스캔(프리미엄) 관련
     @State private var showScanDialog = false
+    @State private var showBulk = false
     @State private var showCamera = false
     @State private var showPhotoPicker = false
     @State private var scanPhotoItem: PhotosPickerItem?
@@ -106,6 +107,17 @@ struct AddRecordView: View {
                         .disabled(scanner.scanning)
                         if let err = scanner.error {
                             Text(err).font(pd(11)).foregroundStyle(.red)
+                        }
+                        Button { showBulk = true } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: "square.and.arrow.down.on.square").font(.system(size: 15)).foregroundStyle(Theme.gold)
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text("엑셀·사진으로 여러 건 가져오기").font(pd(13.5, .semibold)).foregroundStyle(Theme.text)
+                                    Text("CSV 파일 또는 내역 사진에서 일괄 등록").font(pd(10.5)).foregroundStyle(Theme.muted)
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right").font(.system(size: 11)).foregroundStyle(Theme.muted)
+                            }
                         }
                     }
                 }
@@ -271,6 +283,9 @@ struct AddRecordView: View {
             }
         }
         .sheet(isPresented: $showPaywall) { PaywallSheet(premium: premium) }
+        .sheet(isPresented: $showBulk, onDismiss: { Task { await store.load() } }) {
+            BulkImportView(store: store)
+        }
     }
 
     /// 스캔 결과로 폼 필드 자동 채움.

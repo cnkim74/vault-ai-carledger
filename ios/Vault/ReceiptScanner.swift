@@ -72,7 +72,7 @@ final class ReceiptScanner: ObservableObject {
     }
 
     /// 긴 변 1280px로 축소 + JPEG 0.6 → Base64. 페이로드·비용 절감.
-    private static func downscaledJPEGBase64(_ image: UIImage) -> String? {
+    static func downscaledJPEGBase64(_ image: UIImage) -> String? {
         let maxSide: CGFloat = 1280
         let w = image.size.width, h = image.size.height
         let scale = min(1, maxSide / max(w, h))
