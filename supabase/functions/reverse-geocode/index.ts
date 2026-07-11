@@ -61,7 +61,12 @@ Deno.serve(async (req: Request) => {
 
   // 도로명 우선: 카카오 도로명 → OSM(도로명 기반) → 카카오 지번
   const kk = await kakao(lat, long);
-  const address = kk.road ?? (await osm(lat, long)) ?? kk.jibun;
-  if (!address) return json({ error: "not_found", address: null });
+  const raw = kk.road ?? (await osm(lat, long)) ?? kk.jibun;
+  if (!raw) return json({ error: "not_found", address: null });
+  // 맨 앞 시/도 제거로 한 줄에 맞게 축약 (예: "경상북도 안동시 …" → "안동시 …")
+  const address = raw.replace(
+    /^(서울특별시|부산광역시|대구광역시|인천광역시|광주광역시|대전광역시|울산광역시|세종특별자치시|경기도|강원특별자치도|강원도|충청북도|충청남도|전북특별자치도|전라북도|전라남도|경상북도|경상남도|제주특별자치도)\s+/,
+    "",
+  );
   return json({ address });
 });

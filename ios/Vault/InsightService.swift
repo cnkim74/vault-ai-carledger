@@ -23,8 +23,12 @@ final class InsightService: ObservableObject {
         defer { loading = false }
 
         let context = Self.buildContext(vehicle: vehicle, records: records)
-        if let text = await AIProxy.complete(system: Self.system, user: context, maxTokens: 300),
-           !text.isEmpty {
+        // 문장이 잘리지 않게 토큰 여유(512), 실패 시 1회 재시도(간헐 미호출 대비)
+        var text = await AIProxy.complete(system: Self.system, user: context, maxTokens: 512)
+        if text == nil || text?.isEmpty == true {
+            text = await AIProxy.complete(system: Self.system, user: context, maxTokens: 512)
+        }
+        if let text, !text.isEmpty {
             tip = groupInlineNumbers(text)   // AI 출력 숫자에 천단위 쉼표 보정
         }
     }

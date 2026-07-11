@@ -404,10 +404,10 @@ struct CockpitView: View {
                             Image(systemName: "location.fill").font(.system(size: 10)).foregroundStyle(Theme.gold)
                             Text("현재 위치").font(pd(13)).foregroundStyle(Theme.muted)
                         }
-                        Spacer()
+                        Spacer(minLength: 8)
                         Text(addr).font(pd(12.5)).foregroundStyle(Theme.silver)
-                            .multilineTextAlignment(.trailing).lineLimit(2)
-                            .frame(maxWidth: 200, alignment: .trailing)
+                            .lineLimit(1).minimumScaleFactor(0.55)
+                            .multilineTextAlignment(.trailing)
                     }
                 }
             }
