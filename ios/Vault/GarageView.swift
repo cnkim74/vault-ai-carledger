@@ -17,6 +17,7 @@ struct GarageView: View {
     @State private var photoItem: PhotosPickerItem?
     @State private var showEdit = false
     @State private var showAdd = false
+    @State private var showNearby = false
 
     private var v: Vehicle { store.vehicle }
 
@@ -89,6 +90,22 @@ struct GarageView: View {
                     teslaButton
                         .padding(.horizontal, 16)
                         .padding(.top, 10)
+
+                    if tesla.connected {
+                        Button { showNearby = true } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "bolt.badge.a.fill").font(.system(size: 14))
+                                Text("가까운 슈퍼차저").font(pd(13, .semibold))
+                                Spacer()
+                                Image(systemName: "chevron.right").font(.system(size: 11)).foregroundStyle(Theme.muted)
+                            }
+                            .foregroundStyle(Theme.gold)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12).padding(.horizontal, 14)
+                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.gold.opacity(0.4), lineWidth: 1))
+                        }
+                        .padding(.horizontal, 16).padding(.top, 8)
+                    }
                 }
 
                 // OBD 동글 자동 연동 (브랜드 무관)
@@ -257,6 +274,7 @@ struct GarageView: View {
         }
         .buttonStyle(.plain)
         .sheet(isPresented: $showOBDGuide) { OBDGuideView(premium: premium, store: store) }
+        .sheet(isPresented: $showNearby) { NearbySuperchargersView(tesla: tesla, consumer: consumer) }
     }
 
     // 테슬라 연결/동기화 버튼 (자동 연동 = 프리미엄)

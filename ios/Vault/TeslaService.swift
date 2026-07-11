@@ -14,6 +14,21 @@ final class TeslaService: NSObject, ObservableObject, ASWebAuthenticationPresent
     @Published var connected = UserDefaults.standard.bool(forKey: "tesla.connected")
     @Published var message: String?
 
+    // 주변 슈퍼차저
+    struct NearbyCharger: Identifiable {
+        let id = UUID()
+        let name: String
+        let distanceKm: Double?
+        let availableStalls: Int?
+        let totalStalls: Int?
+        let closed: Bool
+        let lat: Double?
+        let long: Double?
+    }
+    @Published var nearby: [NearbyCharger] = []
+    @Published var nearbyLoading = false
+    @Published var nearbyError: String?
+
     /// 개인 데이터 격리 세션 — 함수 호출 시 이 토큰으로 사용자(uid) 식별
     weak var consumer: ConsumerSession?
     private func bearer(fallback key: String) async -> String { (await consumer?.validToken()) ?? key }
@@ -142,6 +157,42 @@ final class TeslaService: NSObject, ObservableObject, ASWebAuthenticationPresent
         try? await store.updateVehicle(upsert)
         message = L("동기화 완료")
         return true
+    }
+
+    /// 차량 기준 주변 슈퍼차저 조회 (vehicle_device_data 권한)
+    func loadNearby() async {
+        guard let base = Secrets.supabaseURL, let key = Secrets.supabaseKey, !key.isEmpty else { return }
+        nearbyLoading = true; nearbyError = nil; defer { nearbyLoading = false }
+
+        var req = URLRequest(url: base.appendingPathComponent("functions/v1/tesla-nearby"))
+        req.httpMethod = "POST"
+        req.setValue("Bearer \(await bearer(fallback: key))", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = Data("{}".utf8)
+        req.timeoutInterval = 45
+
+        guard let (data, _) = try? await URLSession.shared.data(for: req),
+              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            nearbyError = L("주변 충전소를 불러오지 못했어요"); return
+        }
+        if let err = obj["error"] as? String {
+            nearbyError = err == "vehicle_unavailable"
+                ? L("차량이 응답하지 않아요 (잠자는 중)")
+                : (err == "not_connected" ? L("테슬라 미연결") : L("주변 충전소를 불러오지 못했어요"))
+            return
+        }
+        let arr = (obj["superchargers"] as? [[String: Any]]) ?? []
+        nearby = arr.map { s in
+            NearbyCharger(
+                name: s["name"] as? String ?? "Supercharger",
+                distanceKm: (s["distanceKm"] as? NSNumber)?.doubleValue,
+                availableStalls: (s["availableStalls"] as? NSNumber)?.intValue,
+                totalStalls: (s["totalStalls"] as? NSNumber)?.intValue,
+                closed: (s["closed"] as? Bool) ?? false,
+                lat: (s["lat"] as? NSNumber)?.doubleValue,
+                long: (s["long"] as? NSNumber)?.doubleValue
+            )
+        }
     }
 
     /// 슈퍼차저 충전 이력 → 기록 자동 임포트 (신규 세션만)
