@@ -30,6 +30,7 @@ struct CockpitView: View {
     @StateObject private var calendar = CalendarService()
     @StateObject private var notif = NotificationService()
     @StateObject private var tesla = TeslaService()
+    @Environment(\.scenePhase) private var scenePhase
     @State private var showBatteryEdit = false
     @State private var showOdometerEdit = false
     @State private var batteryInput = ""
@@ -87,17 +88,14 @@ struct CockpitView: View {
         .onAppear {
             weather.start()
             carImage = CarImageStore.load(for: store.vehicle.id) ?? envSampleImage()
+            Task { await refreshLiveIfNeeded() }   // 앱 첫 실행 시 1회
         }
         .task { await calendar.load() }
         .task(id: store.vehicle.id) {
             await notif.refreshIfEnabled(store: store, weather: weather)
         }
-        .task(id: store.vehicle.id) {
-            // 홈 진입 시 가벼운 실시간 갱신(차를 깨우지 않음). 90초 이내면 생략.
-            guard teslaConnected else { return }
-            tesla.consumer = consumer
-            if let t = store.liveFetchedAt, Date().timeIntervalSince(t) < 90 { return }
-            await tesla.refreshLive(store: store)
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { Task { await refreshLiveIfNeeded() } }
         }
         .sheet(item: $editingRecord) { rec in
             AddRecordView(store: store, editing: rec)
@@ -307,6 +305,15 @@ struct CockpitView: View {
             .background(Color.white.opacity(0.06))
             .overlay(Circle().stroke(Color.white.opacity(0.08), lineWidth: 1))
             .clipShape(Circle())
+    }
+
+    // 앱을 열거나 다시 포그라운드로 돌아올 때만 1회 가벼운 갱신(차를 안 깨움).
+    // 60초 이내 중복 호출은 생략해 테슬라 API 호출을 최소화.
+    private func refreshLiveIfNeeded() async {
+        guard teslaConnected else { return }
+        if let t = store.liveFetchedAt, Date().timeIntervalSince(t) < 60 { return }
+        tesla.consumer = consumer
+        await tesla.refreshLive(store: store)
     }
 
     // 갱신 시각 상대 표기
