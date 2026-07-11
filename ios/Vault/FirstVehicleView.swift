@@ -36,8 +36,11 @@ struct FirstVehicleView: View {
                         tesla.consumer = consumer
                         importing = true
                         let ok = await tesla.importVehicle(store: store)
+                        if ok {
+                            await store.load()
+                            await tesla.importCharging(store: store)   // 충전 이력도 자동 임포트
+                        }
                         importing = false
-                        if ok { await store.load() }
                     }
                 } label: {
                     HStack(spacing: 8) {

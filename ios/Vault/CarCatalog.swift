@@ -10,7 +10,7 @@ enum CarCatalog {
     }
 
     static let catalog: [(maker: String, models: [String])] = [
-        ("테슬라", ["Model 3", "Model 3 Long Range", "Model 3 Performance", "Model Y", "Model Y Long Range", "Model Y Performance", "Model S", "Model S Plaid", "Model X", "Model X Plaid", "Cybertruck"]),
+        ("테슬라", ["Model 3", "Model 3 Long Range", "Model 3 Performance", "Model Y", "Model Y Long Range", "Model Y Performance", "Model Y L", "Model S", "Model S Plaid", "Model X", "Model X Plaid", "Cybertruck"]),
         ("현대", ["아반떼", "아반떼 N", "쏘나타", "그랜저", "캐스퍼", "캐스퍼 일렉트릭", "베뉴", "코나", "코나 일렉트릭", "투싼", "싼타페", "팰리세이드", "넥쏘", "아이오닉 5", "아이오닉 5 N", "아이오닉 6", "아이오닉 9", "스타리아", "포터2", "ST1"]),
         ("기아", ["모닝", "레이", "레이 EV", "K5", "K8", "K9", "셀토스", "니로", "니로 EV", "스포티지", "쏘렌토", "모하비", "카니발", "EV3", "EV4", "EV5", "EV6", "EV6 GT", "EV9", "타스만"]),
         ("제네시스", ["G70", "G80", "G80 전동화", "G90", "GV60", "GV70", "GV70 전동화", "GV80", "GV80 쿠페"]),
