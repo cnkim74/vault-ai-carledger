@@ -9,6 +9,7 @@ struct StationsCard: View {
     @ObservedObject var weather: WeatherService
     @StateObject private var service = StationService()
     @State private var showSheet = false
+    @State private var showChargers = false
     @Environment(\.openURL) private var openURL
 
     private var fuel: FuelType {
@@ -31,6 +32,9 @@ struct StationsCard: View {
         }
         .sheet(isPresented: $showSheet) {
             StationsSheet(service: service, fuel: fuel)
+        }
+        .sheet(isPresented: $showChargers) {
+            NearbyChargersView(coordinate: weather.coordinate)
         }
     }
 
@@ -115,9 +119,7 @@ struct StationsCard: View {
     // 전기차 충전소 카드 — 카카오맵 실시간 충전소 검색 링크
     private var evCard: some View {
         Button {
-            let q = "\(weather.city) 전기차 충전소"
-                .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "충전소"
-            if let url = URL(string: "https://map.kakao.com/?q=\(q)") { openURL(url) }
+            showChargers = true
         } label: {
             HStack(spacing: 12) {
                 RoundedRectangle(cornerRadius: 10)
@@ -131,13 +133,13 @@ struct StationsCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("주변 충전소 찾기")
                         .font(pd(12.5, .semibold))
-                    Text(verbatim: String(format: L("%@ 주변 · 카카오맵에서 보기"), weather.city))
+                    Text(verbatim: String(format: L("%@ 주변 · 지도에서 보기"), weather.city))
                         .font(pd(10.5))
                         .foregroundStyle(Theme.muted)
                 }
                 Spacer()
-                Image(systemName: "arrow.up.right.square")
-                    .font(.system(size: 15))
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13))
                     .foregroundStyle(Theme.muted)
             }
             .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 14))
