@@ -71,7 +71,8 @@ Deno.serve(async (req: Request) => {
       if (!owner) return json({ error: "no_session", message: "로그인 세션이 필요해요" }, 401);
       const state = owner;
       const auth = `${AUTH}/authorize?response_type=code&client_id=${encodeURIComponent(CLIENT_ID)}` +
-        `&redirect_uri=${encodeURIComponent(REDIRECT)}&scope=${encodeURIComponent(SCOPE)}&state=${encodeURIComponent(state)}`;
+        `&redirect_uri=${encodeURIComponent(REDIRECT)}&scope=${encodeURIComponent(SCOPE)}&state=${encodeURIComponent(state)}` +
+        `&prompt_missing_scopes=true`;
       return json({ url: auth, state });
     }
 
