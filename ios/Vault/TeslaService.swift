@@ -2,6 +2,7 @@ import Foundation
 import UIKit
 import AuthenticationServices
 import CoreLocation
+import Contacts
 
 /// 테슬라 연결 + 배터리·주행거리 동기화.
 /// 연결: tesla-oauth?action=authurl 로 인증 URL을 받아 ASWebAuthenticationSession 실행
@@ -297,17 +298,29 @@ final class TeslaService: NSObject, ObservableObject, ASWebAuthenticationPresent
         return true
     }
 
-    /// 위경도 → 짧은 한글 주소 (예: "성남시 분당구 판교역로")
+    /// 위경도 → 한글 주소 (도로명·건물번호까지 최대한 상세). 예: "안동시 경동로 400"
     static func reverseGeocode(lat: Double, long: Double) async -> String? {
         let geo = CLGeocoder()
         guard let pm = try? await geo.reverseGeocodeLocation(
             CLLocation(latitude: lat, longitude: long),
             preferredLocale: Locale(identifier: "ko_KR")).first else { return nil }
-        var seen = Set<String>(); var out: [String] = []
-        for case let p? in [pm.locality, pm.subLocality, pm.thoroughfare] where !p.isEmpty {
-            if seen.insert(p).inserted { out.append(p) }
+
+        // 시/군/구
+        let city = [pm.locality, pm.subAdministrativeArea, pm.administrativeArea]
+            .compactMap { ($0?.isEmpty == false) ? $0 : nil }.first
+        // 도로명(+건물번호) 우선, 없으면 우편주소 street, 그것도 없으면 동/도로명 조합
+        var street = ""
+        if let t = pm.thoroughfare, !t.isEmpty {
+            street = t + (pm.subThoroughfare.map { " \($0)" } ?? "")
+        } else if let s = pm.postalAddress?.street, !s.isEmpty {
+            street = s
+        } else {
+            street = [pm.subLocality, pm.thoroughfare].compactMap { ($0?.isEmpty == false) ? $0 : nil }.joined(separator: " ")
         }
-        return out.isEmpty ? pm.name : out.joined(separator: " ")
+        var parts: [String] = []
+        if let c = city, !c.isEmpty { parts.append(c) }
+        if !street.isEmpty, street != city { parts.append(street) }
+        return parts.isEmpty ? pm.name : parts.joined(separator: " ")
     }
 
     nonisolated func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
