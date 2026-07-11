@@ -298,8 +298,30 @@ final class TeslaService: NSObject, ObservableObject, ASWebAuthenticationPresent
         return true
     }
 
-    /// 위경도 → 한글 주소 (도로명·건물번호까지 최대한 상세). 예: "안동시 경동로 400"
+    /// 위경도 → 한글 주소. 카카오(도로명 정확) 우선, 실패 시 애플 지오코더 폴백.
     static func reverseGeocode(lat: Double, long: Double) async -> String? {
+        if let kakao = await kakaoAddress(lat: lat, long: long) { return kakao }
+        return await appleAddress(lat: lat, long: long)
+    }
+
+    /// 카카오 좌표→주소 (엣지 함수 reverse-geocode). 키 미설정·실패 시 nil.
+    private static func kakaoAddress(lat: Double, long: Double) async -> String? {
+        guard let base = Secrets.supabaseURL, let key = Secrets.supabaseKey, !key.isEmpty else { return nil }
+        var req = URLRequest(url: base.appendingPathComponent("functions/v1/reverse-geocode"))
+        req.httpMethod = "POST"
+        req.setValue(key, forHTTPHeaderField: "apikey")
+        req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try? JSONSerialization.data(withJSONObject: ["lat": lat, "long": long])
+        req.timeoutInterval = 12
+        guard let (data, _) = try? await URLSession.shared.data(for: req),
+              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let addr = obj["address"] as? String, !addr.isEmpty else { return nil }
+        return addr
+    }
+
+    /// 애플 지오코더 폴백
+    private static func appleAddress(lat: Double, long: Double) async -> String? {
         let geo = CLGeocoder()
         guard let pm = try? await geo.reverseGeocodeLocation(
             CLLocation(latitude: lat, longitude: long),

@@ -3538,29 +3538,6 @@
         }
       }
     },
-    "눈" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Snow"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "雪"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "雪"
-          }
-        }
-      }
-    },
     "누적 주행" : {
       "localizations" : {
         "en" : {
@@ -3623,6 +3600,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "总里程 km"
+          }
+        }
+      }
+    },
+    "눈" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Snow"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "雪"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "雪"
           }
         }
       }
@@ -6766,6 +6766,7 @@
       }
     },
     "시간은 오전 9:00로 등록돼요." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7779,6 +7780,9 @@
         }
       }
     },
+    "여유 %@km" : {
+
+    },
     "연" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -7801,9 +7805,6 @@
           }
         }
       }
-    },
-    "여유 %@km" : {
-
     },
     "연결 중…" : {
       "extractionState" : "stale",
@@ -8955,6 +8956,50 @@
         }
       }
     },
+    "이름" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名前"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "姓名"
+          }
+        }
+      }
+    },
+    "이메일" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Email"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メール"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "邮箱"
+          }
+        }
+      }
+    },
     "일" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -9000,28 +9045,6 @@
         }
       }
     },
-    "이름" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Name"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "名前"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "姓名"
-          }
-        }
-      }
-    },
     "이름 (예: 강남 테슬라 서비스센터)" : {
       "localizations" : {
         "en" : {
@@ -9063,28 +9086,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "易买得城水"
-          }
-        }
-      }
-    },
-    "이메일" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Email"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "メール"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "邮箱"
           }
         }
       }
