@@ -43,12 +43,15 @@ struct VehicleEditView: View {
         self.mode = mode
 
         if mode == .create {
-            _maker = State(initialValue: CarCatalog.makers[0])
-            _model = State(initialValue: CarCatalog.models(for: CarCatalog.makers[0]).first ?? "")
+            let defMaker = CarCatalog.makers[0]
+            _maker = State(initialValue: defMaker)
+            _model = State(initialValue: CarCatalog.models(for: defMaker).first ?? "")
             _useCustomName = State(initialValue: false)
             _customName = State(initialValue: "")
             _plate = State(initialValue: "")
-            _fuel = State(initialValue: FuelType.gasoline.rawValue)
+            // 테슬라 등 순수 EV 브랜드가 기본이면 전기차로 시작
+            let evBrands = ["테슬라", "폴스타", "리비안", "루시드", "BYD"]
+            _fuel = State(initialValue: evBrands.contains(defMaker) ? FuelType.ev.rawValue : FuelType.gasoline.rawValue)
             _year = State(initialValue: "")
             _odometer = State(initialValue: "0")
             _ownership = State(initialValue: .purchase)
@@ -101,6 +104,22 @@ struct VehicleEditView: View {
         category == .car ? CarCatalog.models(for: maker) : BikeCatalog.models(for: maker)
     }
 
+    // 연식 선택지 (올해+1 ~ 1980, 내림차순)
+    private var yearOptions: [Int] {
+        let now = Calendar.current.component(.year, from: Date())
+        return Array((1980...(now + 1)).reversed())
+    }
+
+    // 제조사/모델로 전기차 자동 판별 (테슬라 등 순수 EV 브랜드 + EV 모델명)
+    private func isEVSelection(maker: String, model: String) -> Bool {
+        let evBrands = ["테슬라", "폴스타", "리비안", "루시드", "BYD"]
+        if evBrands.contains(maker) { return true }
+        let m = model.lowercased()
+        let hints = ["아이오닉", "ioniq", "ev6", "ev9", "ev3", "e-tron", "eqs", "eqe", "eqa", "eqb",
+                     "taycan", "model ", "id.", "bolt", "leaf", "코나 일렉트릭", "니로 ev", "폴스타", "i4", "ix"]
+        return hints.contains { m.contains($0) }
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -148,13 +167,23 @@ struct VehicleEditView: View {
                         }
                         .onChange(of: maker) { _, newMaker in
                             model = catalogModels(newMaker).first ?? ""
+                            if isEVSelection(maker: newMaker, model: model) { fuel = FuelType.ev.rawValue }
                         }
                         Picker("모델", selection: $model) {
                             ForEach(catalogModels(maker), id: \.self) { Text($0).tag($0) }
                         }
+                        .onChange(of: model) { _, newModel in
+                            if isEVSelection(maker: maker, model: newModel) { fuel = FuelType.ev.rawValue }
+                        }
                     }
-                    TextField("연식 (예: 2024)", text: $year)
-                        .keyboardType(.numberPad)
+                    Picker("연식", selection: $year) {
+                        Text("선택 안 함").tag("")
+                        ForEach(yearOptions, id: \.self) { y in
+                            Text(verbatim: "\(y)년").tag(String(y))
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .frame(height: 110)
                 }
 
                 Section("등록 정보") {
