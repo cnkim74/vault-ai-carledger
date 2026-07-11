@@ -87,7 +87,7 @@ struct ChargingReportView: View {
     private var heroTiles: some View {
         HStack(spacing: 12) {
             tile(title: "총 충전량", value: grouped(Int(totalKwh.rounded())), unit: "kWh", accent: Theme.gold)
-            tile(title: "총 지출", value: won(totalSpend), unit: nil, accent: Theme.green)
+            tile(title: "총 지출", value: wonShort(totalSpend), unit: nil, accent: Theme.green)
         }
     }
 
@@ -96,6 +96,7 @@ struct ChargingReportView: View {
             Text(L(title)).font(pd(11.5)).foregroundStyle(Theme.muted)
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(value).font(gm(26, .bold)).foregroundStyle(Theme.text)
+                    .lineLimit(1).minimumScaleFactor(0.6)
                 if let unit { Text(unit).font(pd(13, .semibold)).foregroundStyle(Theme.muted) }
             }
         }
@@ -240,7 +241,7 @@ struct ChargingReportView: View {
                 // 전체 합계 요약
                 HStack(spacing: 12) {
                     tile(title: "총 충전량", value: grouped(Int(stats.reduce(0) { $0 + $1.kwh }.rounded())), unit: "kWh", accent: Theme.gold)
-                    tile(title: "총 지출", value: won(stats.reduce(0) { $0 + $1.won }), unit: nil, accent: Theme.green)
+                    tile(title: "총 지출", value: wonShort(stats.reduce(0) { $0 + $1.won }), unit: nil, accent: Theme.green)
                 }
                 // 월별 카드
                 ForEach(stats) { m in
@@ -295,6 +296,18 @@ struct ChargingReportView: View {
                              kwh: v.kwh, won: v.won, count: v.count, sort: v.date)
         }
         .sorted { $0.sort > $1.sort }
+    }
+
+    // 큰 금액은 만/억 단위로 축약 (타일 한 줄 유지). 100만 미만은 그대로.
+    private func wonShort(_ amount: Int) -> String {
+        let a = abs(amount)
+        func trim(_ v: Double) -> String {
+            let r = (v * 10).rounded() / 10
+            return r == r.rounded() ? "\(Int(r))" : String(format: "%.1f", r)
+        }
+        if a >= 100_000_000 { return "₩" + trim(Double(amount) / 100_000_000) + "억" }
+        if a >= 1_000_000 { return "₩" + trim(Double(amount) / 10_000) + "만" }
+        return won(amount)
     }
 
     // MARK: - 집계 헬퍼
