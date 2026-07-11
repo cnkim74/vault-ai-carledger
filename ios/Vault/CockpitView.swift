@@ -397,6 +397,19 @@ struct CockpitView: View {
                     Spacer()
                     Text("503 km").font(pd(13)).foregroundStyle(Theme.silver)
                 }
+                // 현재 위치 (테슬라 동기화로 받은 좌표를 주소로)
+                if teslaConnected, let addr = store.liveLocationAddress, !addr.isEmpty {
+                    HStack(alignment: .top) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "location.fill").font(.system(size: 10)).foregroundStyle(Theme.gold)
+                            Text("현재 위치").font(pd(13)).foregroundStyle(Theme.muted)
+                        }
+                        Spacer()
+                        Text(addr).font(pd(12.5)).foregroundStyle(Theme.silver)
+                            .multilineTextAlignment(.trailing).lineLimit(2)
+                            .frame(maxWidth: 200, alignment: .trailing)
+                    }
+                }
             }
             .padding(.top, 14)
         }

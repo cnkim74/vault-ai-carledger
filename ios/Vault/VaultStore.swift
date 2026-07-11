@@ -18,6 +18,15 @@ final class VaultStore: ObservableObject {
         }
     }
     private static let liveStatusKey = "vault.liveStatus"
+
+    /// 테슬라 동기화 시 갱신되는 현재 위치 주소 (역지오코딩). 재실행 시에도 유지.
+    @Published var liveLocationAddress: String? {
+        didSet {
+            if let a = liveLocationAddress { UserDefaults.standard.set(a, forKey: Self.liveAddrKey) }
+            else { UserDefaults.standard.removeObject(forKey: Self.liveAddrKey) }
+        }
+    }
+    private static let liveAddrKey = "vault.liveAddr"
     /// 단골 센터
     @Published var places: [ServicePlace] = []
 
@@ -30,6 +39,7 @@ final class VaultStore: ObservableObject {
         if let s = UserDefaults.standard.string(forKey: Self.liveStatusKey) {
             liveStatus = VehicleLiveStatus(rawValue: s)
         }
+        liveLocationAddress = UserDefaults.standard.string(forKey: Self.liveAddrKey)
     }
 
     /// 현재 선택된 차량 (없으면 첫 번째)
@@ -52,7 +62,7 @@ final class VaultStore: ObservableObject {
             live = true   // 연결 성공 (신규 사용자라 빈 결과여도 연결됨)
             if fetched.isEmpty {
                 // 신규 사용자: 모든 데이터 초기화 (목업·약정·지출 제거)
-                vehicles = []; records = []; monthlySpend = nil; liveStatus = nil; selectedVehicleID = nil
+                vehicles = []; records = []; monthlySpend = nil; liveStatus = nil; liveLocationAddress = nil; selectedVehicleID = nil
                 return
             }
 

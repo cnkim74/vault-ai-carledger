@@ -1,6 +1,7 @@
 import Foundation
 import UIKit
 import AuthenticationServices
+import CoreLocation
 
 /// 테슬라 연결 + 배터리·주행거리 동기화.
 /// 연결: tesla-oauth?action=authurl 로 인증 URL을 받아 ASWebAuthenticationSession 실행
@@ -155,6 +156,11 @@ final class TeslaService: NSObject, ObservableObject, ASWebAuthenticationPresent
 
         // 실시간 상태 (운행/주차/충전)
         if let s = obj["status"] as? String { store.liveStatus = VehicleLiveStatus(rawValue: s) }
+        // 현재 위치 → 주소 (위치 권한 있을 때만 좌표가 옴)
+        if let lat = (obj["lat"] as? NSNumber)?.doubleValue, let long = (obj["long"] as? NSNumber)?.doubleValue,
+           let addr = await Self.reverseGeocode(lat: lat, long: long) {
+            store.liveLocationAddress = addr
+        }
 
         var upsert = VaultStore.VehicleUpsert()
         if let b = obj["battery"] as? Int { upsert.battery = b }
@@ -289,6 +295,19 @@ final class TeslaService: NSObject, ObservableObject, ASWebAuthenticationPresent
             ? String(format: L("충전 %d건 가져옴"), imported)
             : L("새 충전 내역 없음")
         return true
+    }
+
+    /// 위경도 → 짧은 한글 주소 (예: "성남시 분당구 판교역로")
+    static func reverseGeocode(lat: Double, long: Double) async -> String? {
+        let geo = CLGeocoder()
+        guard let pm = try? await geo.reverseGeocodeLocation(
+            CLLocation(latitude: lat, longitude: long),
+            preferredLocale: Locale(identifier: "ko_KR")).first else { return nil }
+        var seen = Set<String>(); var out: [String] = []
+        for case let p? in [pm.locality, pm.subLocality, pm.thoroughfare] where !p.isEmpty {
+            if seen.insert(p).inserted { out.append(p) }
+        }
+        return out.isEmpty ? pm.name : out.joined(separator: " ")
     }
 
     nonisolated func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
