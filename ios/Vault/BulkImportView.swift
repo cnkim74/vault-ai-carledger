@@ -133,7 +133,8 @@ struct BulkImportView: View {
         Parse every visible row. Numbers only (no commas/units). If a field is unreadable use null. Return {"records":[]} if none.
         """
         guard let text = await AIProxy.completeWithImage(system: system,
-                prompt: "Extract all rows as JSON.", jpegBase64: b64, maxTokens: 1500),
+                prompt: "Extract all rows as JSON.", jpegBase64: b64, maxTokens: 3000,
+                model: "claude-haiku-4-5"),
               let data = AIProxy.extractJSON(text),
               let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let arr = obj["records"] as? [[String: Any]] else {

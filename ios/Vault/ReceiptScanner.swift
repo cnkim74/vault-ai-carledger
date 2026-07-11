@@ -42,7 +42,8 @@ final class ReceiptScanner: ObservableObject {
         }
         let prompt = "Extract the vehicle expense from this image as JSON per the schema."
         guard let text = await AIProxy.completeWithImage(system: Self.system, prompt: prompt,
-                                                         jpegBase64: base64, maxTokens: 400),
+                                                         jpegBase64: base64, maxTokens: 400,
+                                                         model: "claude-haiku-4-5"),
               let data = AIProxy.extractJSON(text),
               let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             error = L("인식에 실패했어요. 다시 시도하거나 직접 입력해 주세요."); return nil
