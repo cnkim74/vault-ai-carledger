@@ -237,7 +237,7 @@ final class VaultStore: ObservableObject {
         comps.queryItems = [URLQueryItem(name: "id", value: "eq.\(id.uuidString.lowercased())")]
         var req = URLRequest(url: comps.url!)
         req.httpMethod = "DELETE"
-        applyHeaders(&req, key: key)
+        applyHeaders(&req, apikey: key, bearer: await bearerToken(fallback: key))
         req.setValue("return=minimal", forHTTPHeaderField: "Prefer")
         _ = try await URLSession.shared.data(for: req)
         await loadPlaces()
@@ -252,7 +252,7 @@ final class VaultStore: ObservableObject {
         comps.queryItems = [URLQueryItem(name: "id", value: "eq.\(id.uuidString.lowercased())")]
         var req = URLRequest(url: comps.url!)
         req.httpMethod = "DELETE"
-        applyHeaders(&req, key: key)
+        applyHeaders(&req, apikey: key, bearer: await bearerToken(fallback: key))
         req.setValue("return=minimal", forHTTPHeaderField: "Prefer")
         let (_, resp) = try await URLSession.shared.data(for: req)
         guard let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
@@ -289,7 +289,7 @@ final class VaultStore: ObservableObject {
         }
         var req = URLRequest(url: base.appendingPathComponent("rest/v1/vehicles"))
         req.httpMethod = "POST"
-        applyHeaders(&req, key: key)
+        applyHeaders(&req, apikey: key, bearer: await bearerToken(fallback: key))
         req.setValue("return=representation", forHTTPHeaderField: "Prefer")
         req.httpBody = try JSONEncoder().encode(insert)
 
@@ -320,9 +320,14 @@ final class VaultStore: ObservableObject {
 
     // ── 공통 헬퍼 ─────────────────────────────────────
 
-    private func applyHeaders(_ req: inout URLRequest, key: String) {
-        req.setValue(key, forHTTPHeaderField: "apikey")
-        req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+    /// 개인 데이터 격리용 익명 세션. 있으면 그 토큰으로, 없으면 anon 키로 접근.
+    weak var session: ConsumerSession?
+    private func bearerToken(fallback key: String) async -> String {
+        (await session?.validToken()) ?? key
+    }
+    private func applyHeaders(_ req: inout URLRequest, apikey: String, bearer: String) {
+        req.setValue(apikey, forHTTPHeaderField: "apikey")
+        req.setValue("Bearer \(bearer)", forHTTPHeaderField: "Authorization")
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
     }
 
@@ -330,11 +335,14 @@ final class VaultStore: ObservableObject {
         guard let base = Secrets.supabaseURL, let key = Secrets.supabaseKey, !key.isEmpty else {
             throw URLError(.userAuthenticationRequired)
         }
+        let bearer = await bearerToken(fallback: key)
         var comps = URLComponents(url: base.appendingPathComponent(path), resolvingAgainstBaseURL: false)!
         if !query.isEmpty { comps.queryItems = query }
         var req = URLRequest(url: comps.url!)
         req.httpMethod = method
-        applyHeaders(&req, key: key)
+        req.setValue(key, forHTTPHeaderField: "apikey")
+        req.setValue("Bearer \(bearer)", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.setValue("return=minimal", forHTTPHeaderField: "Prefer")
         req.httpBody = try JSONEncoder().encode(body)
 
@@ -345,11 +353,12 @@ final class VaultStore: ObservableObject {
     }
 
     private func fetch<T: Decodable>(base: URL, key: String, path: String, query: [URLQueryItem]) async throws -> T {
+        let bearer = await bearerToken(fallback: key)
         var comps = URLComponents(url: base.appendingPathComponent(path), resolvingAgainstBaseURL: false)!
         comps.queryItems = query
         var req = URLRequest(url: comps.url!)
         req.setValue(key, forHTTPHeaderField: "apikey")
-        req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+        req.setValue("Bearer \(bearer)", forHTTPHeaderField: "Authorization")
 
         let (data, resp) = try await URLSession.shared.data(for: req)
         guard let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {

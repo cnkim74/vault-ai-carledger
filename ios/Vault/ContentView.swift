@@ -10,6 +10,7 @@ struct ContentView: View {
     @StateObject private var fleet = FleetStore()
     @StateObject private var auth = AuthService()
     @StateObject private var adminStore = AdminStore()
+    @StateObject private var consumer = ConsumerSession()
     @Environment(\.scenePhase) private var scenePhase
     @State private var tab: MainTab =
         MainTab(rawValue: ProcessInfo.processInfo.environment["TAB"] ?? "") ?? .home
@@ -65,6 +66,8 @@ struct ContentView: View {
             AccountView(profile: profile, premium: premium, fleet: fleet, auth: auth, adminStore: adminStore)
         }
         .task {
+            store.session = consumer            // 개인 데이터 격리(익명 세션) 연결
+            await consumer.start()              // 기기별 익명 로그인
             await store.load()
             await store.loadPlaces()
             await insight.generate(vehicle: store.vehicle, records: store.records)
