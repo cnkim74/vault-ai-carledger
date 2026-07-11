@@ -128,9 +128,10 @@ Deno.serve(async (req: Request) => {
   }
   if (!vehicleId) return json({ error: "no_target", message: "대상 차량 없음" });
 
-  // 모든 페이지 순회 → 연결 이전 과거 이력까지 전부 (안전 상한 2000건)
-  const PAGE = 50, MAX_PAGES = 40;
+  // 모든 페이지 순회 — 새 세션이 안 나올 때까지 (페이지 크기 무관)
+  const PAGE = 50, MAX_PAGES = 60;
   const sessions: Record<string, any>[] = [];
+  const seen = new Set<string>();
   let firstBodySample = "";
   for (let page = 1; page <= MAX_PAGES; page++) {
     const histURL =
@@ -138,13 +139,9 @@ Deno.serve(async (req: Request) => {
       `&pageNo=${page}&pageSize=${PAGE}&sortBy=start_datetime&sortOrder=DESC`;
     const cr = await fetch(histURL, { headers: H });
     const raw = await cr.text();
-    if (page === 1) {
-      firstBodySample = raw.slice(0, 300);
-      await dbg(uid, cr.status, `history_p1 fleet=${fleet} vin=${vin}`, raw);
-      console.log(`[charging] page1 status=${cr.status} len=${raw.length} vin=${vin} body=${firstBodySample}`);
-    }
     if (!cr.ok) {
       if (page === 1) {
+        await dbg(uid, cr.status, `history_p1 vin=${vin}`, raw);
         return json({ error: cr.status === 403 ? "scope" : "history_failed", status: cr.status, message: raw.slice(0, 240) });
       }
       break; // 이후 페이지 실패 → 여기까지 수집분만 사용
@@ -154,10 +151,18 @@ Deno.serve(async (req: Request) => {
     // 테슬라 charging/history 응답은 최상위 { data: [...] } 구조 (response 래퍼 없음)
     const batch: Record<string, any>[] = cd?.data ?? cd?.response?.data ?? cd?.response?.results ??
       (Array.isArray(cd?.response) ? cd.response : []) ?? [];
-    if (page === 1) console.log(`[charging] page1 parsed count=${Array.isArray(batch) ? batch.length : "n/a"} keys=${Object.keys(cd?.response ?? {}).join(",")}`);
+    if (page === 1) {
+      firstBodySample = raw.slice(0, 300);
+      await dbg(uid, cr.status, `history total=${cd?.totalResults ?? cd?.totalCount ?? "?"} got=${Array.isArray(batch) ? batch.length : "na"}`, raw);
+    }
     if (!Array.isArray(batch) || batch.length === 0) break;
-    sessions.push(...batch);
-    if (batch.length < PAGE) break; // 마지막 페이지
+    // 새 세션만 누적 — 페이지가 안 넘어가거나(같은 결과) 끝이면 added=0 으로 종료
+    let added = 0;
+    for (const s of batch) {
+      const sid = String(s.sessionId ?? s.session_id ?? "");
+      if (sid && !seen.has(sid)) { seen.add(sid); sessions.push(s); added++; }
+    }
+    if (added === 0) break;
   }
   if (sessions.length === 0) return json({ imported: 0, total: 0, debug: firstBodySample });
 
