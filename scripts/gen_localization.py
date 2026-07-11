@@ -509,6 +509,7 @@ T = {
     "초고속충전": ("Ultra-fast charge", "超急速充電", "超快充"),
     "고속충전": ("Fast charge", "急速充電", "快充"),
     "완속충전": ("Slow charge", "普通充電", "慢充"),
+    "충전 이력 권한이 없어요": ("No charging-history permission", "充電履歴の権限がありません", "没有充电记录权限"),
     "테슬라 로그인이 필요해요": ("Tesla sign-in needed", "テスラのログインが必要です", "需要登录特斯拉"),
     "금액이나 내용을 입력해 주세요.": ("Please enter an amount or details.", "金額または内容を入力してください。", "请输入金额或内容。"),
     "충전 리포트": ("Charging report", "充電レポート", "充电报告"),

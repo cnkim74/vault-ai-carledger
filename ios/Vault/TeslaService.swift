@@ -164,9 +164,12 @@ final class TeslaService: NSObject, ObservableObject, ASWebAuthenticationPresent
         }
 
         if let err = obj["error"] as? String {
+            let status = obj["status"] as? Int
+            let serverMsg = (obj["message"] as? String) ?? ""
+            let tail = serverMsg.isEmpty ? "" : "\n\(serverMsg.prefix(140))"
             switch err {
-            case "not_connected", "reauth", "scope":
-                // 토큰 만료·갱신 실패·권한 부족 → 자동으로 다시 로그인 후 1회 재시도
+            case "not_connected", "reauth":
+                // 토큰 만료·갱신 실패 → 자동으로 다시 로그인 후 1회만 재시도 (무한 루프 방지)
                 connected = false
                 UserDefaults.standard.set(false, forKey: "tesla.connected")
                 if !retried {
@@ -175,15 +178,13 @@ final class TeslaService: NSObject, ObservableObject, ASWebAuthenticationPresent
                     if connected { return await importCharging(store: store, retried: true) }
                 }
                 message = L("테슬라 로그인이 필요해요")
-                return false
+            case "scope":
+                // 재로그인으론 안 풀림(파트너 앱 권한/충전 API 미승인) → 루프 중단, 원인 노출
+                message = L("충전 이력 권한이 없어요") + (status.map { " (\($0))" } ?? "") + tail
             case "no_vin":
                 message = L("VIN 확인 실패")
             default:
-                if let st = obj["status"] as? Int {
-                    message = String(format: L("충전 이력 조회 실패 (%d)"), st)
-                } else {
-                    message = L("충전 이력 조회 실패")
-                }
+                message = L("충전 이력 조회 실패") + (status.map { " (\($0))" } ?? "") + tail
             }
             return false
         }

@@ -17,6 +17,16 @@ function json(b: unknown, s = 200) {
 }
 const SBH = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` };
 
+async function dbg(uid: string, status: number | null, note: string, body: string) {
+  try {
+    await fetch(`${SB_URL}/rest/v1/tesla_debug`, {
+      method: "POST",
+      headers: { ...SBH, "Content-Type": "application/json", Prefer: "return=minimal" },
+      body: JSON.stringify({ uid, status, note, body: (body || "").slice(0, 800) }),
+    });
+  } catch (_) { /* ignore */ }
+}
+
 async function uidFrom(req: Request): Promise<string | null> {
   const auth = req.headers.get("Authorization");
   if (!auth) return null;
@@ -94,7 +104,8 @@ Deno.serve(async (req: Request) => {
 
   if (row.expires_at && new Date(row.expires_at as string).getTime() < Date.now() + 60000) {
     const na = await refresh(uid, row.refresh_token as string);
-    if (na) access = na; else return json({ error: "reauth", message: "재로그인 필요" });
+    if (na) access = na;
+    else { await dbg(uid, null, "reauth", "refresh failed"); return json({ error: "reauth", message: "재로그인 필요" }); }
   }
   const H = { Authorization: `Bearer ${access}` };
 
@@ -129,6 +140,7 @@ Deno.serve(async (req: Request) => {
     const raw = await cr.text();
     if (page === 1) {
       firstBodySample = raw.slice(0, 300);
+      await dbg(uid, cr.status, `history_p1 fleet=${fleet} vin=${vin}`, raw);
       console.log(`[charging] page1 status=${cr.status} len=${raw.length} vin=${vin} body=${firstBodySample}`);
     }
     if (!cr.ok) {
