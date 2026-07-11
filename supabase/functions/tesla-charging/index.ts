@@ -38,12 +38,23 @@ async function saveToken(uid: string, fields: Record<string, unknown>) {
   });
 }
 async function refresh(uid: string, refreshToken: string): Promise<string | null> {
-  const body = new URLSearchParams({
-    grant_type: "refresh_token", client_id: CLIENT_ID, client_secret: CLIENT_SECRET, refresh_token: refreshToken,
-  });
-  const r = await fetch(`${AUTH}/token`, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body });
-  const d = await r.json();
-  if (!d.access_token) return null;
+  async function attempt(withSecret: boolean): Promise<any | null> {
+    const params: Record<string, string> = {
+      grant_type: "refresh_token", client_id: CLIENT_ID, refresh_token: refreshToken,
+    };
+    if (withSecret) params.client_secret = CLIENT_SECRET;
+    const r = await fetch(`${AUTH}/token`, {
+      method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams(params),
+    });
+    const txt = await r.text();
+    let d: any = {}; try { d = JSON.parse(txt); } catch (_) { /* ignore */ }
+    console.log(`[refresh] withSecret=${withSecret} status=${r.status} ok=${!!d.access_token} body=${txt.slice(0, 200)}`);
+    return d?.access_token ? d : null;
+  }
+  // 컨피덴셜 클라이언트(client_secret 포함) 우선, 실패 시 secret 없이 재시도
+  const d = (await attempt(true)) ?? (await attempt(false));
+  if (!d?.access_token) return null;
   const expires = new Date(Date.now() + (d.expires_in ?? 28800) * 1000).toISOString();
   await saveToken(uid, { access_token: d.access_token, expires_at: expires, ...(d.refresh_token ? { refresh_token: d.refresh_token } : {}) });
   return d.access_token;

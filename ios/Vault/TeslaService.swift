@@ -146,7 +146,7 @@ final class TeslaService: NSObject, ObservableObject, ASWebAuthenticationPresent
 
     /// 슈퍼차저 충전 이력 → 기록 자동 임포트 (신규 세션만)
     @discardableResult
-    func importCharging(store: VaultStore) async -> Bool {
+    func importCharging(store: VaultStore, retried: Bool = false) async -> Bool {
         if !connected { await connect() }
         guard connected, let base = Secrets.supabaseURL, let key = Secrets.supabaseKey, !key.isEmpty else { return false }
         importing = true; defer { importing = false }
@@ -165,12 +165,17 @@ final class TeslaService: NSObject, ObservableObject, ASWebAuthenticationPresent
 
         if let err = obj["error"] as? String {
             switch err {
-            case "not_connected", "reauth":
+            case "not_connected", "reauth", "scope":
+                // 토큰 만료·갱신 실패·권한 부족 → 자동으로 다시 로그인 후 1회 재시도
                 connected = false
                 UserDefaults.standard.set(false, forKey: "tesla.connected")
-                message = L("재연결이 필요해요")
-            case "scope":
-                message = L("테슬라 재연결 필요 (충전 이력 권한)")
+                if !retried {
+                    message = L("테슬라 다시 로그인 중…")
+                    await connect()
+                    if connected { return await importCharging(store: store, retried: true) }
+                }
+                message = L("테슬라 로그인이 필요해요")
+                return false
             case "no_vin":
                 message = L("VIN 확인 실패")
             default:

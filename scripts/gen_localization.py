@@ -501,6 +501,8 @@ T = {
     "테슬라 충전 이력 가져오기": ("Import Tesla charging history", "テスラ充電履歴を取り込む", "导入特斯拉充电记录"),
     "슈퍼차저 충전 내역을 자동 기입": ("Auto-fill Supercharger sessions", "スーパーチャージャー履歴を自動入力", "自动填入超充记录"),
     "테슬라 계정 연결 후 자동 기입": ("Connect Tesla, then auto-fill", "テスラ連携後に自動入力", "连接特斯拉后自动填入"),
+    "테슬라 다시 로그인 중…": ("Signing in to Tesla again…", "テスラに再ログイン中…", "正在重新登录特斯拉…"),
+    "테슬라 로그인이 필요해요": ("Tesla sign-in needed", "テスラのログインが必要です", "需要登录特斯拉"),
     "금액이나 내용을 입력해 주세요.": ("Please enter an amount or details.", "金額または内容を入力してください。", "请输入金额或内容。"),
     "충전 리포트": ("Charging report", "充電レポート", "充电报告"),
     "충전량·지출·장소별 · 휘발유 대비 절약": ("Energy, cost, by place · savings vs gas", "充電量・支出・場所別 · ガソリン比節約", "电量·支出·按地点 · 对比油费节省"),
