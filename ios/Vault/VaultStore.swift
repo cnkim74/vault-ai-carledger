@@ -141,6 +141,26 @@ final class VaultStore: ObservableObject {
         let tag: String?
         let ai_logged: Bool
         let odometer_km: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case vehicle_id, kind, title, occurred_at, amount_won, distance_km
+            case duration_min, location, tag, ai_logged, odometer_km
+        }
+        // 벌크(배열) 삽입 시 모든 행의 키가 동일해야 함 → nil도 null로 명시 인코딩
+        func encode(to encoder: Encoder) throws {
+            var c = encoder.container(keyedBy: CodingKeys.self)
+            try c.encode(vehicle_id, forKey: .vehicle_id)
+            try c.encode(kind, forKey: .kind)
+            try c.encode(title, forKey: .title)
+            try c.encode(occurred_at, forKey: .occurred_at)
+            try c.encode(amount_won, forKey: .amount_won)
+            try c.encode(distance_km, forKey: .distance_km)
+            try c.encode(duration_min, forKey: .duration_min)
+            try c.encode(location, forKey: .location)
+            try c.encode(tag, forKey: .tag)
+            try c.encode(ai_logged, forKey: .ai_logged)
+            try c.encode(odometer_km, forKey: .odometer_km)
+        }
     }
 
     /// 새 기록을 Supabase에 저장하고 목록을 새로고침한다.
@@ -377,9 +397,12 @@ final class VaultStore: ObservableObject {
         req.setValue("return=minimal", forHTTPHeaderField: "Prefer")
         req.httpBody = try JSONEncoder().encode(body)
 
-        let (_, resp) = try await URLSession.shared.data(for: req)
+        let (data, resp) = try await URLSession.shared.data(for: req)
         guard let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-            throw URLError(.badServerResponse)
+            let code = (resp as? HTTPURLResponse)?.statusCode ?? -1
+            let msg = String(data: data, encoding: .utf8) ?? ""
+            throw NSError(domain: "Supabase", code: code,
+                          userInfo: [NSLocalizedDescriptionKey: "서버 오류 \(code) \(msg.prefix(140))"])
         }
     }
 
