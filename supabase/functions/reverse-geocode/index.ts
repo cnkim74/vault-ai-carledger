@@ -12,16 +12,19 @@ function json(b: unknown, s = 200) {
   return new Response(JSON.stringify(b), { status: s, headers: { "Content-Type": "application/json", ...CORS } });
 }
 
-async function kakao(lat: number, long: number): Promise<string | null> {
-  if (!KAKAO_KEY) return null;
+async function kakao(lat: number, long: number): Promise<{ road: string | null; jibun: string | null }> {
+  if (!KAKAO_KEY) return { road: null, jibun: null };
   try {
     const url = `https://dapi.kakao.com/v2/local/geo/coord2address.json?x=${long}&y=${lat}`;
     const r = await fetch(url, { headers: { Authorization: `KakaoAK ${KAKAO_KEY}` } });
-    if (!r.ok) return null;
+    if (!r.ok) return { road: null, jibun: null };
     const d = await r.json();
     const doc = d?.documents?.[0];
-    return doc?.road_address?.address_name ?? doc?.address?.address_name ?? null;
-  } catch (_) { return null; }
+    return {
+      road: doc?.road_address?.address_name ?? null,
+      jibun: doc?.address?.address_name ?? null,
+    };
+  } catch (_) { return { road: null, jibun: null }; }
 }
 
 async function osm(lat: number, long: number): Promise<string | null> {
@@ -52,7 +55,9 @@ Deno.serve(async (req: Request) => {
   const lat = Number(body.lat), long = Number(body.long);
   if (!isFinite(lat) || !isFinite(long)) return json({ error: "bad_request" }, 400);
 
-  const address = (await kakao(lat, long)) ?? (await osm(lat, long));
+  // 도로명 우선: 카카오 도로명 → OSM(도로명 기반) → 카카오 지번
+  const kk = await kakao(lat, long);
+  const address = kk.road ?? (await osm(lat, long)) ?? kk.jibun;
   if (!address) return json({ error: "not_found", address: null });
   return json({ address });
 });
