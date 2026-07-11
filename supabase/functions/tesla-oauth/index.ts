@@ -10,7 +10,7 @@ const AUTH = "https://auth.tesla.com/oauth2/v3";
 const FLEET_NA = "https://fleet-api.prd.na.vn.cloud.tesla.com";
 const DOMAIN = "cnkim74.github.io";
 const REDIRECT = "https://ftcjeqqdzofuwcphzqnu.supabase.co/functions/v1/tesla-oauth";
-const SCOPE = "openid vehicle_device_data vehicle_charging_cmds offline_access";
+const SCOPE = "openid vehicle_device_data vehicle_location vehicle_charging_cmds offline_access";
 
 function json(b: unknown, s = 200) {
   return new Response(JSON.stringify(b), { status: s, headers: { "Content-Type": "application/json" } });

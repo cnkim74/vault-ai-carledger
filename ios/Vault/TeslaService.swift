@@ -29,6 +29,13 @@ final class TeslaService: NSObject, ObservableObject, ASWebAuthenticationPresent
     @Published var nearbyLoading = false
     @Published var nearbyError: String?
 
+    // 차량 현재 위치
+    struct VehicleLocation { let lat: Double; let long: Double; let name: String?; let status: String? }
+    @Published var location: VehicleLocation?
+    @Published var locationLoading = false
+    @Published var locationError: String?
+    @Published var locationNeedsReconnect = false
+
     /// 개인 데이터 격리 세션 — 함수 호출 시 이 토큰으로 사용자(uid) 식별
     weak var consumer: ConsumerSession?
     private func bearer(fallback key: String) async -> String { (await consumer?.validToken()) ?? key }
@@ -192,6 +199,42 @@ final class TeslaService: NSObject, ObservableObject, ASWebAuthenticationPresent
                 lat: (s["lat"] as? NSNumber)?.doubleValue,
                 long: (s["long"] as? NSNumber)?.doubleValue
             )
+        }
+    }
+
+    /// 차량 현재 위치 조회 (vehicle_location 권한 필요). 좌표 없으면 재연결 안내.
+    func loadLocation() async {
+        guard let base = Secrets.supabaseURL, let key = Secrets.supabaseKey, !key.isEmpty else { return }
+        locationLoading = true; locationError = nil; locationNeedsReconnect = false
+        defer { locationLoading = false }
+
+        var req = URLRequest(url: base.appendingPathComponent("functions/v1/tesla-vehicle"))
+        req.httpMethod = "POST"
+        req.setValue("Bearer \(await bearer(fallback: key))", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = Data("{}".utf8)
+        req.timeoutInterval = 45
+
+        guard let (data, _) = try? await URLSession.shared.data(for: req),
+              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            locationError = L("차량 위치를 불러오지 못했어요"); return
+        }
+        if let err = obj["error"] as? String {
+            locationError = err == "vehicle_unavailable"
+                ? L("차량이 응답하지 않아요 (잠자는 중)")
+                : (err == "not_connected" ? L("테슬라 미연결") : L("차량 위치를 불러오지 못했어요"))
+            return
+        }
+        let lat = (obj["lat"] as? NSNumber)?.doubleValue
+        let long = (obj["long"] as? NSNumber)?.doubleValue
+        if let lat, let long {
+            location = VehicleLocation(lat: lat, long: long,
+                                       name: obj["name"] as? String,
+                                       status: obj["status"] as? String)
+        } else {
+            // 좌표가 비면 위치 권한(vehicle_location) 미부여 → 재연결 필요
+            locationNeedsReconnect = true
+            locationError = L("위치 권한이 없어요. 테슬라를 다시 연결해 주세요.")
         }
     }
 

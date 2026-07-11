@@ -100,6 +100,10 @@ Deno.serve(async (req: Request) => {
   else if (shift && shift !== "P") status = "driving";
   else if (typeof speed === "number" && speed > 0) status = "driving";
 
+  // 차량 위치 (vehicle_location 권한이 있어야 채워짐)
+  const lat = typeof ds.latitude === "number" ? ds.latitude : null;
+  const long = typeof ds.longitude === "number" ? ds.longitude : null;
+
   return json({
     connected: true,
     battery,
@@ -107,6 +111,7 @@ Deno.serve(async (req: Request) => {
     odometerKm: odoMi != null ? Math.round(odoMi * 1.60934) : null,
     name: d?.response?.display_name ?? null,
     charging, shiftState: shift, speed, status,
+    lat, long,
     fetchedAt: new Date().toISOString(),
   });
 });
