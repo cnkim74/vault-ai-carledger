@@ -543,11 +543,7 @@ struct CockpitView: View {
                     if let tip = insight.tip {
                         Text(tip)
                     } else {
-                        (
-                            Text("심야 요금제로 충전 시간대를 옮기면 이번 달 ")
-                            + Text("₩38,200").bold().foregroundStyle(Theme.gold)
-                            + Text(" 절약할 수 있어요.")
-                        )
+                        Text("기록을 추가하면 맞춤 인사이트를 보여드려요.")
                     }
                 }
                 .font(pd(13))
@@ -574,8 +570,8 @@ struct CockpitView: View {
     private var statCards: some View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(verbatim: String(format: L("%d월 지출"), store.monthlySpend?.month ?? 7)).font(pd(11)).foregroundStyle(Theme.muted)
-                Text(won(store.monthlySpend?.total ?? 186400)).font(gm(19, .bold))
+                Text(verbatim: String(format: L("%d월 지출"), store.monthlySpend?.month ?? Calendar.current.component(.month, from: Date()))).font(pd(11)).foregroundStyle(Theme.muted)
+                Text(won(store.monthlySpend?.total ?? 0)).font(gm(19, .bold))
                 spendDelta
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -597,10 +593,8 @@ struct CockpitView: View {
             Text("지난달 대비 \(down ? "−" : "+")\(abs(pct))%")
                 .font(pd(11))
                 .foregroundStyle(down ? Theme.green : Theme.orange)
-        } else if store.monthlySpend != nil {
-            Text("첫 지출 기록").font(pd(11)).foregroundStyle(Theme.muted)
         } else {
-            Text("지난달 대비 −12%").font(pd(11)).foregroundStyle(Theme.green)
+            Text("기록을 추가해 보세요").font(pd(11)).foregroundStyle(Theme.muted)
         }
     }
 

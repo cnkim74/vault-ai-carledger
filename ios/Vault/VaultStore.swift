@@ -41,7 +41,11 @@ final class VaultStore: ObservableObject {
                 ]
             )
             live = true   // 연결 성공 (신규 사용자라 빈 결과여도 연결됨)
-            guard !fetched.isEmpty else { return }   // 빈 결과 → 온보딩(목업) 유지, 첫 차량 등록 대기
+            if fetched.isEmpty {
+                // 신규 사용자: 모든 데이터 초기화 (목업·약정·지출 제거)
+                vehicles = []; records = []; monthlySpend = nil; liveStatus = nil; selectedVehicleID = nil
+                return
+            }
 
             vehicles = fetched
             if selectedVehicleID == nil || !fetched.contains(where: { $0.id == selectedVehicleID }) {

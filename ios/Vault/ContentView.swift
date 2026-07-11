@@ -31,7 +31,12 @@ struct ContentView: View {
         workVehicleID.flatMap { id in myWorkVehicles.first { $0.id == id } }
     }
 
-    var body: some View {
+    /// 연결됐는데 차량이 0대 = 신규 사용자 → 첫 차량 등록 온보딩 (목업/약정 미표시)
+    private var needsFirstVehicle: Bool {
+        store.live && store.vehicles.isEmpty && myWorkVehicles.isEmpty
+    }
+
+    private var mainShell: some View {
         VStack(spacing: 0) {
             Group {
                 switch tab {
@@ -49,9 +54,18 @@ struct ContentView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             TabBarView(tab: $tab) {
-                // 업무 모드에서 +는 해당 업무 차량의 Fleet 기록 추가
                 if let wv = workVehicle, tab == .home { workRecordVehicle = wv }
                 else { showAddRecord = true }
+            }
+        }
+    }
+
+    var body: some View {
+        Group {
+            if needsFirstVehicle {
+                FirstVehicleView(store: store)
+            } else {
+                mainShell
             }
         }
         .background(Theme.bgTop.ignoresSafeArea())
