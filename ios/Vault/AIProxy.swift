@@ -40,9 +40,14 @@ enum AIProxy {
         let error: Err?
     }
 
+    /// 텍스트 AI 기본 모델 — 지금은 Sonnet(비용·품질 균형). 유료 전환 시 opus로 상향 검토.
+    static let defaultTextModel = "claude-sonnet-5"
+    /// 이미지 인식 기본 모델 — OCR/표 추출은 Haiku로 충분(저렴).
+    static let defaultVisionModel = "claude-haiku-4-5"
+
     /// 첫 text 블록을 반환. 미설정/거부/오류 시 nil.
     static func complete(system: String, user: String, maxTokens: Int,
-                         model: String = "claude-opus-4-8") async -> String? {
+                         model: String = defaultTextModel) async -> String? {
         let localizedSystem = system +
             "\n\nIMPORTANT: Regardless of any language mentioned above, write ALL human-readable text " +
             "(sentences, reasons, labels) in \(AppLocale.aiLanguageName). Keep JSON keys and numbers unchanged."
@@ -57,7 +62,7 @@ enum AIProxy {
     /// 이미지(영수증·충전 화면 등) + 프롬프트 → 첫 text 블록 반환.
     static func completeWithImage(system: String, prompt: String, jpegBase64: String,
                                   mediaType: String = "image/jpeg", maxTokens: Int = 512,
-                                  model: String = "claude-opus-4-8") async -> String? {
+                                  model: String = defaultVisionModel) async -> String? {
         let msg = VisionBody.Msg(role: "user", content: [
             VisionBody.Block(type: "image", source: .init(media_type: mediaType, data: jpegBase64)),
             VisionBody.Block(type: "text", text: prompt),
