@@ -45,9 +45,12 @@ struct CockpitView: View {
                     weatherCard
                     heroCard
                     insightCard
-                    DestinationCard(calendar: calendar, consumer: consumer)
-                    StationsCard(store: store, weather: weather)
-                        .padding(.top, 12)
+                    DestinationCard(calendar: calendar, consumer: consumer,
+                                    isEV: !store.vehicle.usesFuel, coordinate: weather.coordinate)
+                    if store.vehicle.usesFuel {
+                        StationsCard(store: store, weather: weather)
+                            .padding(.top, 12)
+                    }
                     statCards
                     leaseProjectionCard
                     maintenanceCard

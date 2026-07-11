@@ -11177,6 +11177,28 @@
         }
       }
     },
+    "지도에서 보기 · 내비 길찾기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View on map · nav directions"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "地図で見る · ナビ経路"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在地图查看 · 导航路线"
+          }
+        }
+      }
+    },
     "충전 리포트": {
       "localizations": {
         "en": {

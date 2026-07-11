@@ -6,8 +6,11 @@ import CoreLocation
 struct DestinationCard: View {
     @ObservedObject var calendar: CalendarService
     var consumer: ConsumerSession? = nil
+    var isEV: Bool = false
+    var coordinate: CLLocationCoordinate2D? = nil
     @StateObject private var tesla = TeslaService()
     @State private var showNearby = false
+    @State private var showChargers = false
     @State private var pending: Destination?
     @State private var query: String = ""
     @FocusState private var searchFocused: Bool
@@ -37,6 +40,27 @@ struct DestinationCard: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("가까운 슈퍼차저").font(pd(12.5, .medium))
                             Text("차량 위치 기준 주변 충전소").font(pd(10.5)).foregroundStyle(Theme.muted).lineLimit(1)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right").font(.system(size: 11)).foregroundStyle(Theme.muted)
+                    }
+                    .padding(EdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 12))
+                    .background(Theme.card).clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.cardBorder, lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+            }
+
+            // 주변 충전소 찾기 (전기차) — 가까운 슈퍼차저 바로 아래
+            if isEV {
+                Button { showChargers = true } label: {
+                    HStack(spacing: 12) {
+                        RoundedRectangle(cornerRadius: 10).fill(Theme.green.opacity(0.14))
+                            .frame(width: 34, height: 34)
+                            .overlay(Image(systemName: "bolt.car.fill").font(.system(size: 14)).foregroundStyle(Theme.green))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("주변 충전소 찾기").font(pd(12.5, .medium))
+                            Text("지도에서 보기 · 내비 길찾기").font(pd(10.5)).foregroundStyle(Theme.muted).lineLimit(1)
                         }
                         Spacer()
                         Image(systemName: "chevron.right").font(.system(size: 11)).foregroundStyle(Theme.muted)
@@ -148,5 +172,6 @@ struct DestinationCard: View {
             Button("취소", role: .cancel) { pending = nil }
         }
         .sheet(isPresented: $showNearby) { NearbySuperchargersView(tesla: tesla, consumer: consumer) }
+        .sheet(isPresented: $showChargers) { NearbyChargersView(coordinate: coordinate) }
     }
 }
