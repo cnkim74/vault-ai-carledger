@@ -151,7 +151,8 @@ Deno.serve(async (req: Request) => {
     }
     let cd: any = {};
     try { cd = JSON.parse(raw); } catch (_) { /* ignore */ }
-    const batch: Record<string, any>[] = cd?.response?.data ?? cd?.response?.results ??
+    // 테슬라 charging/history 응답은 최상위 { data: [...] } 구조 (response 래퍼 없음)
+    const batch: Record<string, any>[] = cd?.data ?? cd?.response?.data ?? cd?.response?.results ??
       (Array.isArray(cd?.response) ? cd.response : []) ?? [];
     if (page === 1) console.log(`[charging] page1 parsed count=${Array.isArray(batch) ? batch.length : "n/a"} keys=${Object.keys(cd?.response ?? {}).join(",")}`);
     if (!Array.isArray(batch) || batch.length === 0) break;
