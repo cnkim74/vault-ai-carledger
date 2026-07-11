@@ -17,16 +17,6 @@ function json(b: unknown, s = 200) {
 }
 const SBH = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` };
 
-async function dbg(uid: string, status: number | null, note: string, body: string) {
-  try {
-    await fetch(`${SB_URL}/rest/v1/tesla_debug`, {
-      method: "POST",
-      headers: { ...SBH, "Content-Type": "application/json", Prefer: "return=minimal" },
-      body: JSON.stringify({ uid, status, note, body: (body || "").slice(0, 800) }),
-    });
-  } catch (_) { /* ignore */ }
-}
-
 async function uidFrom(req: Request): Promise<string | null> {
   const auth = req.headers.get("Authorization");
   if (!auth) return null;
@@ -105,7 +95,7 @@ Deno.serve(async (req: Request) => {
   if (row.expires_at && new Date(row.expires_at as string).getTime() < Date.now() + 60000) {
     const na = await refresh(uid, row.refresh_token as string);
     if (na) access = na;
-    else { await dbg(uid, null, "reauth", "refresh failed"); return json({ error: "reauth", message: "재로그인 필요" }); }
+    else return json({ error: "reauth", message: "재로그인 필요" });
   }
   const H = { Authorization: `Bearer ${access}` };
 
@@ -132,7 +122,6 @@ Deno.serve(async (req: Request) => {
   const PAGE = 50, MAX_PAGES = 60;
   const sessions: Record<string, any>[] = [];
   const seen = new Set<string>();
-  let firstBodySample = "";
   for (let page = 1; page <= MAX_PAGES; page++) {
     const histURL =
       `${fleet}/api/1/dx/charging/history?vin=${encodeURIComponent(vin)}` +
@@ -141,7 +130,6 @@ Deno.serve(async (req: Request) => {
     const raw = await cr.text();
     if (!cr.ok) {
       if (page === 1) {
-        await dbg(uid, cr.status, `history_p1 vin=${vin}`, raw);
         return json({ error: cr.status === 403 ? "scope" : "history_failed", status: cr.status, message: raw.slice(0, 240) });
       }
       break; // 이후 페이지 실패 → 여기까지 수집분만 사용
@@ -151,10 +139,6 @@ Deno.serve(async (req: Request) => {
     // 테슬라 charging/history 응답은 최상위 { data: [...] } 구조 (response 래퍼 없음)
     const batch: Record<string, any>[] = cd?.data ?? cd?.response?.data ?? cd?.response?.results ??
       (Array.isArray(cd?.response) ? cd.response : []) ?? [];
-    if (page === 1) {
-      firstBodySample = raw.slice(0, 300);
-      await dbg(uid, cr.status, `history total=${cd?.totalResults ?? cd?.totalCount ?? "?"} got=${Array.isArray(batch) ? batch.length : "na"}`, raw);
-    }
     if (!Array.isArray(batch) || batch.length === 0) break;
     // 새 세션만 누적 — 페이지가 안 넘어가거나(같은 결과) 끝이면 added=0 으로 종료
     let added = 0;
@@ -164,7 +148,7 @@ Deno.serve(async (req: Request) => {
     }
     if (added === 0) break;
   }
-  if (sessions.length === 0) return json({ imported: 0, total: 0, debug: firstBodySample });
+  if (sessions.length === 0) return json({ imported: 0, total: 0 });
 
   const er = await fetch(
     `${SB_URL}/rest/v1/records?vehicle_id=eq.${vehicleId}&ext_id=like.tesla-charge-*&select=ext_id`,
