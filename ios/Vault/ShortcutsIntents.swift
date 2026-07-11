@@ -9,7 +9,7 @@ struct AddSpendRecordIntent: AppIntent {
     static var openAppWhenRun: Bool = false
 
     @Parameter(title: "금액(원)") var amount: Int
-    @Parameter(title: "종류", default: .fuel) var kind: RecordKindOption
+    @Parameter(title: "종류", default: .auto) var kind: RecordKindOption
     @Parameter(title: "가맹점/메모") var merchant: String?
 
     static var parameterSummary: some ParameterSummary {
@@ -18,7 +18,9 @@ struct AddSpendRecordIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        let ok = await QuickRecord.add(amount: amount, kind: kind.recordKind, title: merchant)
+        // 종류가 '자동'이면 가맹점명으로 주유/충전/정비 추론
+        let resolved = kind == .auto ? RecordKindOption.infer(merchant: merchant) : kind
+        let ok = await QuickRecord.add(amount: amount, kind: resolved.recordKind, title: merchant)
         return .result(dialog: IntentDialog(stringLiteral:
             ok ? "기록을 추가했어요." : "먼저 앱에서 차량을 등록해 주세요."))
     }
@@ -26,18 +28,35 @@ struct AddSpendRecordIntent: AppIntent {
 
 /// 단축어 파라미터용 기록 종류
 enum RecordKindOption: String, AppEnum {
-    case fuel, charge, maintenance, other
+    case auto, fuel, charge, maintenance, other
     static var typeDisplayRepresentation: TypeDisplayRepresentation = "기록 종류"
     static var caseDisplayRepresentations: [RecordKindOption: DisplayRepresentation] = [
-        .fuel: "주유", .charge: "충전", .maintenance: "정비", .other: "기타",
+        .auto: "자동(가맹점으로 판단)", .fuel: "주유", .charge: "충전", .maintenance: "정비", .other: "기타",
     ]
     var recordKind: RecordKind {
         switch self {
         case .fuel: return .fuel
         case .charge: return .charge
         case .maintenance: return .maintenance
-        case .other: return .drive
+        case .auto, .other: return .drive
         }
+    }
+
+    /// 가맹점명으로 종류 추론 (주유소·충전소·정비소 키워드)
+    static func infer(merchant: String?) -> RecordKindOption {
+        let m = (merchant ?? "").lowercased()
+        guard !m.isEmpty else { return .other }
+        let fuel = ["gs칼텍스", "칼텍스", "sk에너지", "s-oil", "에쓰오일", "에스오일", "오일뱅크",
+                    "현대오일", "주유", "셀프주유", "알뜰", "e1", "gs25 주유", "지에스칼텍스"]
+        let charge = ["충전", "슈퍼차저", "supercharger", "차지비", "chargev", "이비카", "evgo",
+                      "환경부", "채비", "스타코프", "대영", "테슬라", "tesla", "킹볼트", "파워큐브",
+                      "이카", "플러그", "plugin", "hd현대", "매니지드", "s-트래픽"]
+        let maint = ["정비", "카센터", "블루핸즈", "오토큐", "스피드메이트", "타이어", "카닥",
+                     "오토오아시스", "공업사", "바디샵", "정비소", "미쉐린", "한국타이어", "금호타이어"]
+        if fuel.contains(where: m.contains) { return .fuel }
+        if charge.contains(where: m.contains) { return .charge }
+        if maint.contains(where: m.contains) { return .maintenance }
+        return .other
     }
 }
 

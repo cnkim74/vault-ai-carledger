@@ -12,6 +12,7 @@ struct AccountView: View {
     @State private var showProfileEdit = false
     @State private var showFleet = false
     @State private var showInquiry = false
+    @State private var showShortcuts = false
     @State private var showInbox = false
     @State private var showDeleteConfirm = false
     @State private var deleting = false
@@ -65,6 +66,7 @@ struct AccountView: View {
 
                 // 지원
                 Section("지원") {
+                    row("카드문자 자동입력 설정", "creditcard.fill") { showShortcuts = true }
                     row("앱 평가하기", "star.fill") { requestReview() }
                     row("1:1 문의", "envelope.fill") { showInquiry = true }
                 }
@@ -126,6 +128,7 @@ struct AccountView: View {
         .sheet(isPresented: $showProfileEdit) { ProfileSheet(profile: profile) }
         .sheet(isPresented: $showFleet) { FleetView(premium: premium, fleet: fleet, auth: auth) }
         .sheet(isPresented: $showInquiry) { InquiryView() }
+        .sheet(isPresented: $showShortcuts) { ShortcutsGuideView() }
         .sheet(isPresented: $showInbox, onDismiss: { Task { await adminStore.refresh(auth: auth) } }) { AdminInboxView(auth: auth) }
         .sheet(item: $legal) { doc in LegalTextView(title: doc.title, body_: doc.text) }
         .confirmationDialog("계정을 삭제할까요?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
