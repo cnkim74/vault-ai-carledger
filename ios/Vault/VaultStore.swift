@@ -10,8 +10,14 @@ final class VaultStore: ObservableObject {
     @Published var live = false
     @Published var selectedVehicleID: UUID?
     @Published var monthlySpend: MonthlySpend?
-    /// 테슬라 동기화 시 갱신되는 실시간 상태 (운행/주차/충전)
-    @Published var liveStatus: VehicleLiveStatus?
+    /// 테슬라 동기화 시 갱신되는 실시간 상태 (운행/주차/충전). 마지막 값을 저장해 재실행 시에도 배지 유지.
+    @Published var liveStatus: VehicleLiveStatus? {
+        didSet {
+            if let s = liveStatus { UserDefaults.standard.set(s.rawValue, forKey: Self.liveStatusKey) }
+            else { UserDefaults.standard.removeObject(forKey: Self.liveStatusKey) }
+        }
+    }
+    private static let liveStatusKey = "vault.liveStatus"
     /// 단골 센터
     @Published var places: [ServicePlace] = []
 
@@ -20,6 +26,9 @@ final class VaultStore: ObservableObject {
     init() {
         if let raw = UserDefaults.standard.string(forKey: Self.selectedKey) {
             selectedVehicleID = UUID(uuidString: raw)
+        }
+        if let s = UserDefaults.standard.string(forKey: Self.liveStatusKey) {
+            liveStatus = VehicleLiveStatus(rawValue: s)
         }
     }
 

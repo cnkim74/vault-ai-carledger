@@ -78,16 +78,22 @@ Deno.serve(async (req: Request) => {
   if (!vid) return json({ error: "no_vehicle", message: "차량 없음" });
 
   const H = { Authorization: `Bearer ${access}` };
-  const dataURL = `${fleet}/api/1/vehicles/${vid}/vehicle_data?endpoints=${encodeURIComponent("charge_state;vehicle_state;drive_state;location_data")}`;
+  const ep = (loc: boolean) =>
+    `${fleet}/api/1/vehicles/${vid}/vehicle_data?endpoints=${encodeURIComponent(
+      loc ? "charge_state;vehicle_state;drive_state;location_data" : "charge_state;vehicle_state;drive_state")}`;
 
-  let r = await fetch(dataURL, { headers: H });
+  let r = await fetch(ep(true), { headers: H });
   if (r.status === 408) {
     await fetch(`${fleet}/api/1/vehicles/${vid}/wake_up`, { method: "POST", headers: H });
     for (let i = 0; i < 8; i++) {
       await new Promise((res) => setTimeout(res, 3000));
-      r = await fetch(dataURL, { headers: H });
+      r = await fetch(ep(true), { headers: H });
       if (r.status !== 408) break;
     }
+  }
+  // location_data(위치 권한 미부여 등)로 실패하면 위치 제외하고 재시도 → 배터리·상태 동기화는 유지
+  if (!r.ok && r.status !== 408) {
+    r = await fetch(ep(false), { headers: H });
   }
   if (!r.ok) {
     const t = await r.text();
