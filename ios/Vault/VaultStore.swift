@@ -5,9 +5,11 @@ import Foundation
 /// 다중 차량: vehicles 배열 + 선택된 차량(selectedVehicleID, UserDefaults 영속화).
 @MainActor
 final class VaultStore: ObservableObject {
-    @Published var vehicles: [Vehicle] = [MockData.vehicle]
-    @Published var records: [VaultRecord] = MockData.records
+    @Published var vehicles: [Vehicle] = []
+    @Published var records: [VaultRecord] = []
     @Published var live = false
+    /// 최초 로드 시도 완료 여부 (완료 전엔 목업/온보딩 대신 로딩 표시)
+    @Published var loadedOnce = false
     @Published var selectedVehicleID: UUID?
     @Published var monthlySpend: MonthlySpend?
     /// 테슬라 동기화 시 갱신되는 실시간 상태 (운행/주차/충전). 마지막 값을 저장해 재실행 시에도 배지 유지.
@@ -59,6 +61,7 @@ final class VaultStore: ObservableObject {
     }
 
     func load() async {
+        defer { loadedOnce = true }
         guard let base = Secrets.supabaseURL, let key = Secrets.supabaseKey, !key.isEmpty else { return }
 
         do {

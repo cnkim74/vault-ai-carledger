@@ -128,6 +128,8 @@ struct Vehicle: Codable, Identifiable {
 
     /// 디자인 로직과 동일: rangeKm = battery × 5.03
     var rangeKm: Int { Int((Double(battery) * 5.03).rounded()) }
+    /// 완충(100%) 시 주행 가능 거리 (동일 전비 기준)
+    var fullChargeRangeKm: Int { Int((100.0 * 5.03).rounded()) }
 
     /// 계약 이후 실제 주행거리 = 누적주행 − 계약 시작 시 주행거리 (음수 방지).
     /// odometer/시작값이 유효하지 않으면 레거시 lease_driven_km로 폴백.
@@ -468,45 +470,26 @@ func groupInlineNumbers(_ text: String) -> String {
     return out
 }
 
-// ── 목업 (디자인 원본과 동일 · 네트워크 실패 시 폴백) ──
-
+// ── 폴백 차량 ──
+// 실제 데이터 로드 전/없을 때 store.vehicle 접근 안전용 빈 값. 화면엔 노출되지 않음(온보딩 게이트).
 enum MockData {
     static let vehicle = Vehicle(
         id: UUID(),
-        name: "Model Y Long Range",
-        plate: "62가 3817",
+        name: "",
+        plate: nil,
         fuelType: "전기차",
-        battery: 82,
-        odometerKm: 24318,
+        battery: 0,
+        odometerKm: 0,
         odometerStartKm: 0,
-        leaseLimitKm: 20000,
-        leaseDrivenKm: 17200,
-        ownership: .rent,
-        maker: "테슬라",
-        model: "Model Y Long Range",
-        year: 2024,
+        leaseLimitKm: nil,
+        leaseDrivenKm: nil,
+        ownership: .purchase,
+        maker: nil,
+        model: nil,
+        year: nil,
         purchasePriceWon: nil,
-        monthlyFeeWon: 890000,
-        contractStart: "2024-07-01",
-        contractEnd: "2027-06-30"
+        monthlyFeeWon: nil,
+        contractStart: nil,
+        contractEnd: nil
     )
-
-    static var records: [VaultRecord] {
-        let cal = Calendar.current
-        let today = cal.startOfDay(for: Date())
-        func at(_ dayOffset: Int, _ hour: Int = 0, _ minute: Int = 0) -> Date {
-            cal.date(byAdding: DateComponents(day: dayOffset, hour: hour, minute: minute), to: today) ?? today
-        }
-        return [
-            VaultRecord(id: UUID(), kind: .charge, title: "초급속 충전 · 42kWh", occurredAt: at(0, 7, 12),
-                        amountWon: 14900, distanceKm: nil, durationMin: nil,
-                        location: "이마트 성수", tag: nil, aiLogged: true),
-            VaultRecord(id: UUID(), kind: .drive, title: "주행 일지 · 서울 → 판교", occurredAt: at(-1, 8, 40),
-                        amountWon: nil, distanceKm: 38.2, durationMin: 21,
-                        location: nil, tag: "출퇴근", aiLogged: false),
-            VaultRecord(id: UUID(), kind: .maintenance, title: "엔진오일 교체 알림", occurredAt: at(-2),
-                        amountWon: nil, distanceKm: nil, durationMin: nil,
-                        location: "세컨카", tag: "2,000km 남음", aiLogged: false),
-        ]
-    }
 }

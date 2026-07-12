@@ -261,7 +261,7 @@ struct BriefingView: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(verbatim: String(format: L("%d월 총 지출"), s?.month ?? 7)).font(pd(11)).foregroundStyle(Theme.muted)
-                    Text(won(s?.total ?? 186400)).font(gm(28, .bold))
+                    Text(won(s?.total ?? 0)).font(gm(28, .bold))
                     spendDeltaText
                 }
                 Spacer()

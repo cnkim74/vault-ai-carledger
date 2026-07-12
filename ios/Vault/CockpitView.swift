@@ -416,10 +416,12 @@ struct CockpitView: View {
                     }
                     .buttonStyle(.plain)
                 }
-                HStack {
-                    Text("완충 시 주행").font(pd(13)).foregroundStyle(Theme.muted)
-                    Spacer()
-                    Text("503 km").font(pd(13)).foregroundStyle(Theme.silver)
+                if !store.vehicle.usesFuel {
+                    HStack {
+                        Text("완충 시 주행").font(pd(13)).foregroundStyle(Theme.muted)
+                        Spacer()
+                        Text("\(grouped(store.vehicle.fullChargeRangeKm)) km").font(pd(13)).foregroundStyle(Theme.silver)
+                    }
                 }
                 // 현재 위치 (테슬라 동기화로 받은 좌표를 주소로)
                 if teslaConnected, let addr = store.liveLocationAddress, !addr.isEmpty {

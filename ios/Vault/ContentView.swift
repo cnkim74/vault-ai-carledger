@@ -31,9 +31,19 @@ struct ContentView: View {
         workVehicleID.flatMap { id in myWorkVehicles.first { $0.id == id } }
     }
 
-    /// 연결됐는데 차량이 0대 = 신규 사용자 → 첫 차량 등록 온보딩 (목업/약정 미표시)
+    /// 차량 0대 = 신규 사용자 → 첫 차량 등록 온보딩 (목업/약정 미표시)
     private var needsFirstVehicle: Bool {
-        store.live && store.vehicles.isEmpty && myWorkVehicles.isEmpty
+        store.vehicles.isEmpty && myWorkVehicles.isEmpty
+    }
+
+    // 최초 로드 전 로딩 스플래시 (목업 플래시 방지)
+    private var loadingSplash: some View {
+        VStack(spacing: 14) {
+            Text("Wheelet").font(pd(24, .black)).foregroundStyle(Theme.goldGradient)
+            ProgressView().tint(Theme.gold)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(LinearGradient(colors: [Theme.bgTop, Theme.bgBottom], startPoint: .top, endPoint: .bottom).ignoresSafeArea())
     }
 
     private var mainShell: some View {
@@ -63,7 +73,9 @@ struct ContentView: View {
 
     var body: some View {
         Group {
-            if needsFirstVehicle {
+            if !store.loadedOnce && store.vehicles.isEmpty {
+                loadingSplash
+            } else if needsFirstVehicle {
                 FirstVehicleView(store: store, consumer: consumer)
             } else {
                 mainShell
@@ -85,7 +97,10 @@ struct ContentView: View {
             await consumer.start()              // 기기별 익명 로그인
             await store.load()
             await store.loadPlaces()
-            await insight.generate(vehicle: store.vehicle, records: store.records)
+            // 차량이 있을 때만 인사이트 생성 (빈 상태에서 불필요한 AI 호출 방지)
+            if !store.vehicles.isEmpty {
+                await insight.generate(vehicle: store.vehicle, records: store.records)
+            }
         }
         .task {
             fleet.auth = auth
