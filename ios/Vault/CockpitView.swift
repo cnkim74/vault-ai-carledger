@@ -370,27 +370,32 @@ struct CockpitView: View {
                 statusBadge
             }
 
-            // 차량 사진(비율 채움) + 배터리 도넛을 같은 줄에, 중간 여백 없이
+            // 차량 사진(비율 채움) + (전기차만) 배터리 도넛
             HStack(spacing: 14) {
                 photoSlot(height: 128)
                     .frame(maxWidth: .infinity)
                     .padding(.top, 12)
-                // 테슬라 자동연결이면 수정 불가(값은 자동 동기화), 아니면 탭해서 편집
-                if teslaConnected {
-                    batteryRing(editable: false).padding(.top, 12)
-                } else {
-                    Button {
-                        batteryInput = "\(store.vehicle.battery)"
-                        showBatteryEdit = true
-                    } label: { batteryRing(editable: true) }
-                    .buttonStyle(.plain)
-                    .padding(.top, 12)
+                // 배터리는 전기차 개념 — 내연기관/가스 차량엔 표시 안 함
+                if !store.vehicle.usesFuel {
+                    if teslaConnected {
+                        batteryRing(editable: false).padding(.top, 12)
+                    } else {
+                        Button {
+                            batteryInput = "\(store.vehicle.battery)"
+                            showBatteryEdit = true
+                        } label: { batteryRing(editable: true) }
+                        .buttonStyle(.plain)
+                        .padding(.top, 12)
+                    }
                 }
             }
 
             // 상세 스탯 (풀폭)
             VStack(spacing: 8) {
-                statRow(label: "주행 가능 거리", value: "\(grouped(store.vehicle.rangeKm)) km")
+                // 주행 가능 거리는 배터리 기반 — 전기차만
+                if !store.vehicle.usesFuel {
+                    statRow(label: "주행 가능 거리", value: "\(grouped(store.vehicle.rangeKm)) km")
+                }
                 // 테슬라 자동연결이면 누적 주행도 수정 불가
                 if teslaConnected {
                     HStack {
