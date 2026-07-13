@@ -16,9 +16,9 @@ final class PremiumStore: ObservableObject {
     static let yearlyID  = "com.cnkim74.vault.premium.yearly"
     static var productIDs: [String] { [monthlyID, yearlyID] }
 
-    /// 베타 기간: 모든 사용자에게 프리미엄 개방 (유료 앱 계약·구독 상품 정식화 시 false로 되돌림).
-    /// 이러면 페이월/복원 무한로딩을 아예 거치지 않고 테스터가 전 기능을 쓴다.
-    static let betaUnlockAll = true
+    /// 프리미엄은 실제 구매(또는 복원)로만 활성. (App Store 심사: 구매 없이 켜지면 리젝)
+    /// 테스터에겐 프로모션 코드로 제공. 로컬 확인은 아래 DEBUG PREMIUM 환경변수 사용.
+    static let betaUnlockAll = false
 
     private var updatesTask: Task<Void, Never>?
 
