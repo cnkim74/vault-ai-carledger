@@ -6,6 +6,7 @@ struct PaywallSheet: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var premium: PremiumStore
     @State private var working = false
+    @State private var loading = true
     @State private var restoreMsg: String?
 
     private let privacyURL = URL(string: "https://cnkim74.github.io/vault-ai-carledger/privacy.html")!
@@ -41,7 +42,11 @@ struct PaywallSheet: View {
             .background(Theme.bgTop.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("닫기") { dismiss() } } }
-            .task { if premium.products.isEmpty { await premium.loadProducts() } }
+            .task {
+                loading = true
+                if premium.products.isEmpty { await premium.loadProducts() }
+                loading = false
+            }
             .onChange(of: premium.isPremium) { _, isPro in if isPro { dismiss() } }
         }
         .tint(Theme.gold).preferredColorScheme(.dark)
@@ -63,12 +68,26 @@ struct PaywallSheet: View {
 
     @ViewBuilder
     private var plansSection: some View {
-        if premium.products.isEmpty {
+        if loading {
             VStack(spacing: 8) {
                 ProgressView().tint(Theme.gold)
-                Text("구독 상품을 불러오는 중이에요.\nApp Store Connect 상품 설정 후 표시됩니다.")
+                Text("구독 상품 불러오는 중…").font(pd(11)).foregroundStyle(Theme.muted)
+            }.padding(.vertical, 16)
+        } else if premium.products.isEmpty {
+            VStack(spacing: 10) {
+                Text("지금은 구독 상품을 불러올 수 없어요.")
+                    .font(pd(12.5, .semibold)).foregroundStyle(Theme.text)
+                Text("네트워크를 확인하고 다시 시도해 주세요. 이미 구매하셨다면 아래 '구매 복원'을 눌러주세요.")
                     .font(pd(11)).foregroundStyle(Theme.muted).multilineTextAlignment(.center)
-            }.padding(.vertical, 10)
+                Button {
+                    Task { loading = true; await premium.loadProducts(); loading = false }
+                } label: {
+                    Text("다시 시도").font(pd(13, .semibold)).foregroundStyle(Theme.ink)
+                        .frame(maxWidth: .infinity).padding(.vertical, 12)
+                        .background(Theme.goldGradient).clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+            }
+            .padding(14).background(Theme.card).clipShape(RoundedRectangle(cornerRadius: 16))
         } else {
             VStack(spacing: 10) {
                 ForEach(premium.products, id: \.id) { product in

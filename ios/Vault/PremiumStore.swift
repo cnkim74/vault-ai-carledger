@@ -39,7 +39,14 @@ final class PremiumStore: ObservableObject {
     deinit { updatesTask?.cancel() }
 
     func loadProducts() async {
-        let items = (try? await Product.products(for: Self.productIDs)) ?? []
+        // Product.products가 응답 없이 멈추는 경우 대비 타임아웃(12초) — 페이월 무한로딩 방지
+        let items: [Product] = await withTaskGroup(of: [Product]?.self) { group in
+            group.addTask { (try? await Product.products(for: Self.productIDs)) ?? [] }
+            group.addTask { try? await Task.sleep(nanoseconds: 12_000_000_000); return nil }
+            let first = await group.next() ?? []
+            group.cancelAll()
+            return first ?? []
+        }
         products = items.sorted { $0.price < $1.price }   // 월간 먼저
     }
 

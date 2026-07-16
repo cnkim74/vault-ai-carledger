@@ -1,13 +1,10 @@
 import SwiftUI
-import AuthenticationServices
 
-/// 프로필 입력 시트 — 이름 직접 입력 또는 Apple로 계속하기.
+/// 프로필 입력 시트 — 표시할 이름(선택) + 언어. 계정/로그인 아님(앱은 익명 사용).
 struct ProfileSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.colorScheme) private var scheme
     @ObservedObject var profile: ProfileStore
     @State private var name: String
-    @State private var appleNote: String?
     @State private var showLangRestart = false
 
     // (표시명, AppleLanguages 코드 · nil=시스템 기본값)
@@ -56,7 +53,7 @@ struct ProfileSheet: View {
                     .font(pd(15, .semibold))
                     .foregroundStyle(Theme.text)
 
-                TextField("이름", text: $name)
+                TextField("이름 (선택)", text: $name)
                     .font(pd(15))
                     .multilineTextAlignment(.center)
                     .padding(14)
@@ -64,30 +61,8 @@ struct ProfileSheet: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.cardBorder, lineWidth: 1))
 
-                // Apple로 계속하기 — 최초 인증 시 이름 자동 입력
-                SignInWithAppleButton(.continue) { req in
-                    req.requestedScopes = [.fullName]
-                } onCompletion: { result in
-                    switch result {
-                    case .success(let auth):
-                        if let cred = auth.credential as? ASAuthorizationAppleIDCredential,
-                           let given = cred.fullName?.givenName, !given.isEmpty {
-                            name = given
-                            appleNote = nil
-                        } else {
-                            appleNote = "Apple 계정에 이름이 없어요. 직접 입력해 주세요."
-                        }
-                    case .failure:
-                        appleNote = "Apple 로그인을 사용할 수 없어요. 이름을 직접 입력해 주세요."
-                    }
-                }
-                .signInWithAppleButtonStyle(scheme == .dark ? .white : .black)
-                .frame(height: 48)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-
-                if let note = appleNote {
-                    Text(note).font(pd(11)).foregroundStyle(Theme.muted).multilineTextAlignment(.center)
-                }
+                Text("계정 없이 바로 시작해요. 이름은 나중에 바꿀 수 있어요.")
+                    .font(pd(11)).foregroundStyle(Theme.muted).multilineTextAlignment(.center)
 
                 // 언어 선택
                 HStack {
@@ -121,10 +96,10 @@ struct ProfileSheet: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("완료") {
-                        profile.save(name)
+                        let n = name.trimmingCharacters(in: .whitespaces)
+                        profile.save(n.isEmpty ? L("나") : n)   // 이름 없어도 진행 (갇힘 방지)
                         dismiss()
                     }
-                    .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             }
         }
